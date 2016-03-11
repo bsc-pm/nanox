@@ -150,7 +150,6 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     }
 
 
-    nanos::MPIDevice::initMPICacheStruct();
     nanos::mpi::command::CachePayload::initDataType();
     nanos::mpi::command::CommandPayload::initDataType();
 
@@ -168,8 +167,6 @@ void MPIRemoteNode::nanosMPIFinalize() {
 
     nanos::mpi::command::CachePayload::freeDataType();
     nanos::mpi::command::CommandPayload::freeDataType();
-    MPI_Type_free( &MPIDevice::cacheStruct );
-    MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
 
     int mpi_finalized;
     MPI_Finalized(&mpi_finalized);
@@ -192,117 +189,6 @@ void MPIRemoteNode::nanosMPIFinalize() {
 
 //TODO: Finish implementing shared memory
 #define N_FREE_SLOTS 10
-void MPIRemoteNode::unifiedMemoryMallocHost(size_t size, MPI_Comm communicator) {
-//    int comm_size;
-//    MPI_Comm_remote_size(communicator,&comm_size);
-//    void* proposedAddr;
-//    bool sucessMalloc=false;
-//    while (!sucessMalloc) {
-//        proposedAddr=getFreeVirtualAddr(size);
-//        sucessMalloc=mmapOfAddr(proposedAddr);
-//    }
-//    //Fast mode: Try sending one random address and hope its free in every node
-//    cacheOrder newOrder;
-//    newOrder.opId=OPID_UNIFIED_MEM_REQ;
-//    newOrder.size=size;
-//    newOrder.hostAddr=(uint16_t)proposedAddr;
-//    for (int i=0; i<comm_size ; i++) {
-//       nanos::ext::MPIRemoteNode::nanosMPISend(&newOrder, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, communicator);
-//    }
-//    int totalValids;
-//    nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//    if (totalValids!=comm_size) {
-//        //Fast mode failed, enter safe mode
-//        munmapOfAddr(proposedAddr);
-//        uint64_t finalPtr;
-//        uint64_t freeSpaces[N_FREE_SLOTS*2];
-//        getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
-//        MPI_Status status;
-//        ptrArr[i]=freeSpaces;
-//        arrLength[i]=N_FREE_SLOTS;
-//        sizeArr[i]=freeSpaces+arrLength[i];
-//        //Gather from everyone in the communicator
-//        //MPI_Gather could be an option, but this is not a performance critical routine
-//        //and would limit the sizes to a fixed size
-//        for (int i=0; i<comm_size; ++i) {
-//           MPI_Probe(parentRank, TAG_UNIFIED_MEM, parentcomm, &status);
-            //TODO: FREE THIS MALLOCS
-//           localArr= (uint64_t*) malloc(status.count*sizeof(uint64_t));
-//           ptrArr[i]=localArr;
-//           arrLength[i]=status.count/2;
-//           sizeArr[i]=localArr+arrLength[i];
-//           nanos::ext::MPIRemoteNode::nanosMPIRecv(&localArr, status.count, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
-//        }
-//        //Now intersect all the free spaces we got...
-//        std::map<uint64_t,char> blackList;
-//        bool sucess=false;
-//        while (!sucess) {
-//            finalPtr=getFreeChunk(comm_size+1, ptrArr, sizeArr, arrLength, order.size, blackList);
-//            bool sucess=mmapOfAddr(finalPtr);
-//            if (sucess) {
-//                for (int i=0; i<comm_size ; i++) {
-//                   nanos::ext::MPIRemoteNode::nanosMPISend(&finalPtr, 1, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
-//                }
-//                int totalValids;
-//                nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//                if (totalValids!=comm_size) {
-//                    munmapOfAddr(finalPtr);
-//                    sucess=false;
-//                }
-//            }
-//            if (!sucess) blackList.insert(std::make_pair<uint64_t,char>(finalPtr,1));
-//        }
-//    }
-}
-
-void MPIRemoteNode::unifiedMemoryMallocRemote(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
-//    int comm_size;
-//    int localPositives=0;
-//    int totalPositives=0;
-//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
-//    bool hostProposalIsFree=true;
-//    hostProposalIsFree=mmapOfAddr(order.hostAddr);
-//    localPositives+=(int) hostProposalIsFree;
-//    MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-//    if (rank==0) {
-//        nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//    }
-//    if (totalPositives!=localPositives) {
-//        //Some node failed doing malloc, entre safe mode
-//        munmapOfAddr(order.hostAddr);
-//        unifiedMemoryMallocRemoteSafe(order,parentRank,parentcomm);
-//    }
-}
-
-
-void MPIRemoteNode::unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
-//    uint64_t freeSpaces[N_FREE_SLOTS*2];
-//    int comm_size;
-//    int localPositives=0;
-//    int totalPositives=-1;
-//    //Send my array of free memory slots to the master
-//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
-//    uint64_t finalPtr;
-//    getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
-//    nanos::ext::MPIRemoteNode::nanosMPISend(freespaces, sizeof(freeSpaces), MPI_LONG, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//    //Keep receiving addresses from the master until every node could malloc a common address
-//    while (totalPositives!=localPositives) {
-//        totalPositives=0;
-//        localPositives=0;
-//        //Wait for the answer of the proposed/valid pointer
-//        nanos::ext::MPIRemoteNode::nanosMPIRecv(&finalPtr, 1, MPI_LONG, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//
-//        bool hostProposalIsFree=true;
-//        hostProposalIsFree=mmapOfAddr(finalPtr);
-//        localPositives+=(int) hostProposalIsFree;
-//        MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-//        if (rank==0) {
-//            nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//        }
-//        if (totalPositives!=localPositives) munmapOfAddr(finalPtr);
-//    }
-}
-
 uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
          uint64_t** sizeArr,int** arrLength, size_t chunkSize, std::map<uint64_t,char>& blackList ) {
 //    uint64_t result=0;
@@ -357,7 +243,6 @@ uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
 //    return result;
     return 0;
 }
-
 
 void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);

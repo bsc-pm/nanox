@@ -71,16 +71,6 @@ void Finish::Requestor::dispatch()
 void Finish::Servant::serve()
 {
 	_finished.test_and_set(); 
-	if( CreateAuxiliaryThread::Servant::isCreated() ) {
-		//Add finish task to execution queue
-		MPIRemoteNode::addTaskToQueue(TASK_END_PROCESS,_channel.getSource());
-		MPIRemoteNode::getTaskLock().acquire();
-		MPIRemoteNode::getTaskLock().acquire();
-	} else {
-		//Execute in current thread
-		MPIRemoteNode::setCurrentTaskParent(_channel.getSource());
-		MPIRemoteNode::executeTask(TASK_END_PROCESS);
-	}
 }
 
 } // namespace command
@@ -88,3 +78,4 @@ void Finish::Servant::serve()
 } // namespace nanos
 
 #endif // FINISH_HPP
+

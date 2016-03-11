@@ -2,6 +2,7 @@
 #ifndef COMMAND_HPP
 #define COMMAND_HPP
 
+#include "commandid.hpp"
 #include "commandpayload.hpp"
 
 #include "memoryaddress.hpp"

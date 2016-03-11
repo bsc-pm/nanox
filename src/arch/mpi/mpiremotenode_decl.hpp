@@ -124,24 +124,7 @@ namespace nanos {
              * @param communicator
              */
             static void unifiedMemoryMallocHost(size_t size, MPI_Comm communicator);
-            
-            /**
-             * Remote part for unifiedMemoryMallocHost which tries to make a best-effort and fast
-             * alloc
-             * @param order
-             * @param parentRank
-             * @param parentComm
-             */
-            static void unifiedMemoryMallocRemote(cacheOrder& order, int parentRank, MPI_Comm parentComm);
 
-            /**
-             * Remote part for unifiedMemoryMallocHost which makes sure we find a shared memory address
-             * @param order
-             * @param parentRank
-             * @param parentComm
-             */
-            static void unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentRank, MPI_Comm parentComm);
-            
             /**
              * Intersect memory spaces and get a chunk of chunkSize
              * @param arraysLength Length of the arrays (num mem spaces)

@@ -49,7 +49,6 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-MPI_Datatype MPIDevice::cacheStruct;
 char MPIDevice::_executingTask=0;
 bool MPIDevice::_createdExtraWorkerThread=false;
 
@@ -158,24 +157,6 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
-///* \brief Copy localy in the device from src to dst
-// */
-//void MPIDevice::copyLocal(void *dst, void *src, size_t size, ProcessingElement *pe) {
-//    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYLOCAL_SYNC_EVENT);
-//    //std::cerr << "Inicio copylocal\n";
-//    //HostAddr will be src and DevAddr will be dst (both are device addresses)
-//    MPIProcessor * myPE = (MPIProcessor *) pe;
-//    cacheOrder order;
-//    order.opId = OPID_COPYLOCAL;
-//    order.devAddr = (uint64_t) dst;
-//    order.hostAddr = (uint64_t) src;
-//    order.size = size;
-//    MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
-//    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-//    //std::cerr << "Fin copyin\n";
-//}
-
-
 bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYDEV2DEV_SYNC_EVENT);
     //This will never be another PE type which is not MPI (or something is broken in core :) )
@@ -209,17 +190,6 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
-void MPIDevice::initMPICacheStruct() {
-    //Initialize cacheStruct in case it's not initialized
-    if (cacheStruct == 0) {
-        MPI_Datatype typelist[4] = {MPI_INT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG};
-        int blocklen[4] = {1, 1, 1, 1};
-        MPI_Aint disp[4] = {offsetof(cacheOrder, opId), offsetof(cacheOrder, hostAddr), offsetof(cacheOrder, devAddr), offsetof(cacheOrder, size)};
-        MPI_Type_create_struct(4, blocklen, disp, typelist, &cacheStruct);
-        MPI_Type_commit(&cacheStruct);
-    }
-}
-
 void MPIDevice::createExtraCacheThread(){    
     //Create extra worker thread
     MPI_Comm mworld= MPI_COMM_WORLD;
@@ -247,8 +217,7 @@ void MPIDevice::remoteNodeCacheWorker() {
                && !mpi::command::Finish::Servant::isFinished() ) {
             dispatcher.waitForCommands();
             dispatcher.queueAvailableCommands();
-				dispatcher.executeCommands();
-				std::cout << "cache worker loop" << std::endl;
+            dispatcher.executeCommands();
         }
     }
 }

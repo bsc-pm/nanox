@@ -2,19 +2,6 @@
 #ifndef COMMAND_ID_HPP
 #define COMMAND_ID_HPP
 
-// This struct is deprecated and no longer used
-// However, there are some API declarations with this
-// struct type declared (e.g. unifiedMemoryMallocRemote)
-typedef struct {
-       int opId;
-       //In case of dev2dev, hostaddr= srcAddr, devAddr=remoteAddr
-       uint64_t hostAddr;
-       uint64_t devAddr;
-       size_t size;
-       //size_t old_size;
-       //unsigned char* data;
-} cacheOrder;
-
 // MPI Communication tags, we use that many so messages don't collide for different operations
 enum {
     TAG_M2S_COMMAND = 1200, TAG_M2S_CACHE_COMMAND, TAG_CACHE_DATA_IN,TAG_CACHE_DATA_OUT,

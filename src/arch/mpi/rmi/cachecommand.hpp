@@ -2,55 +2,13 @@
 #ifndef CACHE_COMMAND_HPP
 #define CACHE_COMMAND_HPP
 
+#include "commandid.hpp"
 #include "commandrequestor.hpp"
 #include "commandservant.hpp"
 #include "commandchannel.hpp"
 #include "cachepayload.hpp"
 
 #include "memoryaddress.hpp"
-#include "mpidevice_decl.hpp"
-
-#if 0
-enum {
-	TAG_M2S_ORDER = 1200,
-	TAG_CACHE_DATA_IN,
-	TAG_CACHE_DATA_OUT, 
-   TAG_CACHE_ANSWER,
-	TAG_INI_TASK,
-	TAG_END_TASK,
-	TAG_ENV_STRUCT,
-	TAG_CACHE_ANSWER_REALLOC,
-   TAG_CACHE_ANSWER_ALLOC,
-	TAG_CACHE_ANSWER_CIN,
-	TAG_CACHE_ANSWER_COUT,
-	TAG_CACHE_ANSWER_FREE,
-	TAG_CACHE_ANSWER_DEV2DEV,
-	TAG_CACHE_ANSWER_CL,
-	TAG_FP_NAME_SYNC,
-	TAG_FP_SIZE_SYNC,
-	TAG_CACHE_DEV2DEV,
-	TAG_EXEC_CONTROL,
-	TAG_NUM_PENDING_COMMS,
-	TAG_UNIFIED_MEM
-};
-
-//Because of DEV2DEV OPIDs <=0 are RESERVED, and OPIDs > OPID_DEVTODEV too
-enum {
-	OPID_INVALID=0,
-	OPID_FINISH=1,
-	OPID_COPYIN = 2,
-	OPID_COPYOUT=3,
-	OPID_FREE = 4,
-	OPID_ALLOCATE =5,
-	OPID_COPYLOCAL = 6,
-	OPID_REALLOC = 7,
-	OPID_CONTROL = 8, 
-	OPID_CREATEAUXTHREAD=9,
-	OPID_UNIFIED_MEM_REQ=10,
-	OPID_TASK_INIT=11,
-	OPID_DEVTODEV=999 /*Keep DEV2DEV value as highest in the OPIDs*/
-};
-#endif
 
 namespace nanos {
 namespace mpi {

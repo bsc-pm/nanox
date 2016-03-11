@@ -100,6 +100,11 @@ class CommandChannel {
 			return _communicator;
 		}
 
+		int getId() const
+		{
+			return command_id;
+		}
+
 		int getTag() const
 		{
 			return channel_tag;

@@ -101,6 +101,7 @@ devinclude_HEADERS = \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
 	memory/memoryaddress.hpp \
+	concurrent_queue.hpp \
 	$(END) 
 
 support_sources = \
@@ -193,6 +194,7 @@ support_sources = \
 	hwloc.cpp \
 	memory/memoryaddress.hpp \
 	memory/memoryaddress.cpp \
+	concurrent_queue.hpp \
 	$(END) 
 
 debug_sources = \

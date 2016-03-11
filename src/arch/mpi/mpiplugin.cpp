@@ -79,6 +79,7 @@ class MPIPlugin : public ArchPlugin
           //Do not initialize if we have extrae or we are not slaves
           if (_extraeInitialized) nanos::ext::MPIRemoteNode::preInit();
           nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
+          MPIRemoteNode::executeTask(TASK_END_PROCESS);
        }
     }
 
