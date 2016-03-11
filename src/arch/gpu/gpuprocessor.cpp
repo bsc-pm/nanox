@@ -428,7 +428,3 @@ BaseThread * GPUProcessor::getUnassignedThread()
    return _core->getUnassignedThread();
 }
 #endif
-
-//bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
-//   return ( &GPU == pe.getCacheDeviceType() );
-//}

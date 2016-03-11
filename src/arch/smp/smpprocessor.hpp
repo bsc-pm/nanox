@@ -81,7 +81,6 @@ namespace ext
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );
-         //virtual bool supportsDirectTransfersWith(ProcessingElement const & pe) const;
          void setNumFutureThreads( unsigned int nthreads );
          unsigned int getNumFutureThreads() const;
    };

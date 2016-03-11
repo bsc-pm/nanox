@@ -103,7 +103,7 @@ AS_IF([test "x$gasnet" = xyes],[
   #AX_SILENT_MODE(on)
 
   # Check available GASNet conduits that are supported.
-  # Supported conduits: smp, udp, mpi, ibv
+  # Supported conduits: smp, udp, mpi, ibv, mxm, aries
 
   # Special requirements for supported conduits
   # SMP: no special requirements
@@ -120,6 +120,7 @@ AS_IF([test "x$gasnet" = xyes],[
   _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
   _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
   _AX_CHECK_GASNET_CONDUIT(mxm,$MPICXX,-lmxm -L/opt/mellanox/mxm/lib $mpilibs)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
 
   # Checks done. Disable silent mode again.
   #AX_SILENT_MODE(off)
@@ -163,7 +164,7 @@ GASNet is linked with.
 
 ])dnl if gasnet
 
-m4_foreach_w([conduit_name],[smp udp mpi ibv mxm],[
+m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
   _AX_CONDUIT_SUBST(conduit_name)
 ])
 
@@ -172,7 +173,7 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv mxm],[
 # _AX_CHECK_GASNET_CONDUIT(name [, compiler [, libraries [, preprocessor flags ]]])
 # Helper function that checks for the availability of a single GASNet conduit
 # Parameters:
-# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv}
+# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv, aries}
 # $2 - Required compiler. Some conduits must be compiled differently (e.g.: mpi must be compiled with MPI compiler)
 # $3 - Library requirements (optional). Special library requirements to link with this conduit.
 # $4 - Additional preprocessor flags (optional).

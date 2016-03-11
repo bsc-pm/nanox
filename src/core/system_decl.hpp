@@ -127,9 +127,10 @@ namespace nanos
          std::string          _defInstr;              //!< \brief Name of default instrumentation
          std::string          _defDepsManager;        //!< \brief Name of default dependences manager
          std::string          _defArch;               //!< \brief Name of default architercture
+#if 0 /* _defDeviceName and _defDevice seem unused */
          std::string          _defDeviceName;         //!< \brief Name of default device
-
          const Device         *_defDevice;
+#endif
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;

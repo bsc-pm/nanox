@@ -115,14 +115,6 @@ typedef std::set<const Device *>  DeviceList;
       private:
          work_fct       _work;
          
-         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
-          * **REQUERIMENT** If pe == NULL, this function must return true
-          *
-          *  \param[pe] pe is the ProcessingElement which we have to compare to.
-          *  \return a boolean indicating if both elements (DeviceData and PE) are compatible.
-          */
-         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
-
       public:
 
          /*! \brief DeviceData constructor
@@ -161,7 +153,7 @@ typedef std::set<const Device *>  DeviceList;
           *  \param[in] arch is the Device which we have to compare to.
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
-         bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
+         bool isCompatible ( const Device &arch ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -424,7 +416,7 @@ typedef std::set<const Device *>  DeviceList;
          unsigned getDepth() const;
 
          /* device related methods */
-         bool canRunIn ( const Device &device , const ProcessingElement * pe = NULL) const;
+         bool canRunIn ( const Device &device ) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
          DeviceData & activateDevice ( unsigned int deviceIdx );

@@ -160,8 +160,17 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
    if ( _dq.empty() )
       return NULL;
 
-   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
-      return NULL;
+   if ( _deviceCounter ) {
+      std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
+      bool has_tasks = false;
+      for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
+            it != pe_devices.end() && !has_tasks; it++ ) {
+         has_tasks = (_ndevs[ *it ].value() > 0); 
+      }
+      if ( !has_tasks ) {
+         return NULL;
+      }
+   }
 
    {
       LockBlock lock( _lock );
@@ -229,8 +238,17 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thre
    if ( _dq.empty() )
       return NULL;
 
-   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
-      return NULL;
+   if ( _deviceCounter ) {
+      std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
+      bool has_tasks = false;
+      for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
+            it != pe_devices.end() && !has_tasks; it++ ) {
+         has_tasks = (_ndevs[ *it ].value() > 0); 
+      }
+      if ( !has_tasks ) {
+         return NULL;
+      }
+   }
 
    {
       LockBlock lock( _lock );

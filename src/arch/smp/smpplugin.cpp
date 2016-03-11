@@ -420,8 +420,13 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void addDevices( DeviceList &devices ) const
    {
-      if ( !_cpus->empty() )
-         devices.insert( ( *_cpus->begin() )->getDeviceType() );
+      if ( !_cpus->empty() ) {
+         std::vector<const Device *> const &pe_archs = ( *_cpus->begin() )->getDeviceTypes();
+         for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+               it != pe_archs.end(); it++ ) {
+            devices.insert( *it );
+         }
+      }
    }
 
    virtual void startSupportThreads() { }

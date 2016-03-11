@@ -194,7 +194,6 @@ namespace ext
             while ( !_initialized ) { memoryFence(); }
 #endif
          }
-         //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
          std::size_t getMaxMemoryAvailable () const;
 
       // Methods related to GPUThread management

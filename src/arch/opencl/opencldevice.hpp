@@ -33,7 +33,7 @@ void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &m
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
-       CopyData cdata=wd.getCopies()[copyIdx];
+       CopyData cdata=wd->getCopies()[copyIdx];
        //If we are on allocWide mode and we have the complete size (aka we are allocating the whole structure), do offset = 0
        if (nanos::ext::OpenCLConfig::getAllocWide() && cdata.getSize()!=cdata.getMaxSize()) {
          return proc->allocate( size , cdata.getAddress(), 0);
