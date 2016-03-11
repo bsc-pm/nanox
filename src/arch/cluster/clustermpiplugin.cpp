@@ -31,6 +31,9 @@
 #ifdef GPU_DEV
 #include "gpudd.hpp"
 #endif
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#endif
 
 #if defined(__SIZEOF_SIZE_T__) 
    #if  __SIZEOF_SIZE_T__ == 8

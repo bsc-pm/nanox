@@ -79,7 +79,7 @@ void * local_nanos_ocl_factory( void *args )
 #endif
 #ifdef FPGA_DEV
 #include "fpgadd.hpp"
-#include "fpgadevice_decl.hpp"
+#include "fpgadevice.hpp"
 void * local_nanos_fpga_factory( void *args );
 void * local_nanos_fpga_factory( void *args )
 {

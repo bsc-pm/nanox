@@ -28,6 +28,9 @@
 #ifdef OpenCL_DEV
 #include "opencldd.hpp"
 #endif
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#endif
 
 using namespace nanos;
 using namespace ext;
