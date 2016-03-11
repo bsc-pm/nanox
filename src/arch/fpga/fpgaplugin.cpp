@@ -148,7 +148,11 @@ class FPGAPlugin : public ArchPlugin
          if ( !_fpgas->empty() ) {
             //Insert device type.
             //Any position in _fpgas will work as we only need the device type
-            devices.insert( ( *_fpgas->begin() )->getDeviceType() );
+            std::vector<const Device*> const &pe_archs = ( *_fpgas->begin() )->getDeviceTypes();
+            for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+                  it != pe_archs.end(); it++ ) {
+               devices.insert( *it );
+            }
          }
       }
 
