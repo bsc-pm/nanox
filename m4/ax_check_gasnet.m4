@@ -178,11 +178,11 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv mxm],[
 # $4 - Additional preprocessor flags (optional).
 AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 [
-  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1])
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
-  conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
+  conduit_prereq_libs="$PTHREAD_LIBS -lrt $3"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
   AX_VAR_PUSHVALUE([CXX],[$2])
