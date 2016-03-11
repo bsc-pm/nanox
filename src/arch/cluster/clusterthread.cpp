@@ -227,7 +227,7 @@ void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
    }
 #endif
 #ifdef FPGA_DEV
-   else if ( completeWD->canRunIn( FPGA ) )
+   else if ( completedWD->canRunIn( FPGA ) )
    {
       arch = 3;
    }
