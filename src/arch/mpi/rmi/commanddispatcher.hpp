@@ -2,6 +2,8 @@
 #ifndef COMMAND_DISPATCHER_HPP
 #define COMMAND_DISPATCHER_HPP
 
+#include "commanddispatcher_decl.hpp"
+
 #include "commandservant.hpp"
 #include "cachepayload.hpp"
 #include "commandpayload.hpp"
@@ -83,6 +85,7 @@ class SingleDispatcher {
 		typedef std::vector<MPI_Status>              status_storage;
 		typedef typename std::vector<CommandPayload> buffer_storage;
 
+		int                                               _rank;
 		MPI_Comm                                          _communicator;
 		std::vector<CommandPayload>                       _bufferedCommands;
 
@@ -94,9 +97,10 @@ class SingleDispatcher {
 	public:
 		SingleDispatcher( MPI_Comm communicator, size_t size, 
 		            iterator_range<request_storage::iterator> request_range ) :
-			_communicator( communicator ), _bufferedCommands( size ), 
+			_rank(MPI_PROC_NULL), _communicator( communicator ), _bufferedCommands( size ),
 			_pendingCommands()
 		{
+			MPI_Comm_rank(_communicator, &_rank);
 			typename buffer_storage::iterator buffer_it = _bufferedCommands.begin();
 			request_storage::iterator request_it;
 			for( request_it = request_range.begin(); request_it != request_range.end(); request_it++ ) {
@@ -123,7 +127,7 @@ class SingleDispatcher {
 		void queueCommand( size_t commandIndex, MPI_Status const& status )
 		{
 			CommandPayload& order = _bufferedCommands.at( commandIndex );
-			_pendingCommands.push( BaseServant::createSpecific( status.MPI_SOURCE, _communicator, order ) );
+			_pendingCommands.push( BaseServant::createSpecific( status.MPI_SOURCE, _rank, _communicator, order ) );
 		}
 
 		void servePendingCommands()
@@ -207,12 +211,14 @@ class Dispatcher {
 			int index = _readyRequestIndices.at(r);
 			while( r < _readyRequestNumber && index < _size ) {
 				_commands.queueCommand( index, _statuses.at(index) );
+				_requests.at(index).start();
 				r++;
 				index = _readyRequestIndices.at(r);
 			}
 
 			while( r < _readyRequestNumber && (index-_size) < _size ) {
 				_cacheCommands.queueCommand( (index-_size), _statuses.at(index) );
+				_requests.at(index).start();
 				r++;
 				index = _readyRequestIndices.at(r);
 			}

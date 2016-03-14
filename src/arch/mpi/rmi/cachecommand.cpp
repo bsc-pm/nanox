@@ -19,11 +19,8 @@ namespace command {
 MPI_Datatype CachePayload::_type = 0;
 
 template <> 
-BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, CachePayload const& data )
+BaseServant* BaseServant::createSpecific( int source, int destination, MPI_Comm communicator, CachePayload const& data )
 {
-	int destination;
-	MPI_Comm_rank( communicator, &destination );
-
 	switch( data.getId() ) {
 		case Allocate::id:
 		{

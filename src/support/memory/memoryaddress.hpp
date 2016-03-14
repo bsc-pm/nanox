@@ -104,8 +104,9 @@ class Address {
 		 */
 		nanos_constexpr
 		size_t operator-( Address const& base ) {
-			return reinterpret_cast<uintptr_t>(base.value)
-				  - reinterpret_cast<uintptr_t>(value);
+			return ((uintptr_t)base.value) - ((uintptr_t)value);
+			//return reinterpret_cast<uintptr_t>(base.value)
+			//	  - reinterpret_cast<uintptr_t>(value);
 		}
 
 		Address operator+=( size_t size ) {

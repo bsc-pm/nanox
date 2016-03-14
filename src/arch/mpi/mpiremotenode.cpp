@@ -81,6 +81,7 @@ void MPIRemoteNode::preInit(){
 
 void MPIRemoteNode::mpiOffloadSlaveMain(){
     nanos::MPIDevice::remoteNodeCacheWorker();
+    MPIRemoteNode::executeTask(TASK_END_PROCESS);
     exit(0);
 }
 
