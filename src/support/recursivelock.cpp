@@ -128,6 +128,7 @@ void RecursiveLock::release ( )
       __atomic_store_n(&state_, NANOS_LOCK_FREE, __ATOMIC_RELEASE);
    }
 #else
+   ensure(_recursionCount > 0, "double release lock");
    _recursionCount--;
    if ( _recursionCount == 0UL )
    {
