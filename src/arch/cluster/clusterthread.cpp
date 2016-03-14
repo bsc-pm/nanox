@@ -32,7 +32,7 @@
 using namespace nanos;
 using namespace ext;
 
-ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead(0), _completedHead2(0), _completedTail(0) {
+ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead(0), _completedHead2(0), _completedTail(0), _waitingDataWDs(), _pendingInitWD( NULL ) {
    for ( unsigned int i = 0; i < MAX_PRESEND; i++ )
    {
       _completedWDs[i] = NULL;
@@ -72,6 +72,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
    unsigned int pos = realpos %MAX_PRESEND;
    _completedWDs[pos] = (WD *) remoteWdAddr;
    while( !_completedHead2.cswap( realpos, realpos+1) ) {}
+   ensure( _numRunning.value() > 0, "invalid value");
    _numRunning--;
 }
 
