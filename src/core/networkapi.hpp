@@ -43,8 +43,8 @@ namespace nanos {
          virtual void finalizeNoBarrier () = 0;
          virtual void poll () = 0;
          virtual void sendExitMsg ( unsigned int dest ) = 0;
-         virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch , void *remoteWdAddr, std::size_t expectedData) = 0;
-         virtual void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr ) = 0;
+         virtual void sendWorkMsg ( unsigned int dest, WorkDescriptor const &wd, std::size_t expectedData ) = 0;
+         virtual void sendWorkDoneMsg ( unsigned int dest, void const *remoteWdAddr ) = 0;
          virtual void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) = 0;
          virtual void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) = 0;
          virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, CopyData const &cd ) = 0;

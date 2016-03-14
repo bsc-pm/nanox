@@ -39,7 +39,7 @@ class MemController {
    bool                        _memoryAllocated;
    bool                        _invalidating;
    bool                        _mainWd;
-   WD                         &_wd;
+   WD                         *_wd;
    ProcessingElement          *_pe;
    Lock                        _provideLock;
    //std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
@@ -58,7 +58,7 @@ public:
       NO_CACHE
    };
    MemCacheCopy *_memCacheCopies;
-   MemController( WD &wd );
+   MemController( WD *wd, unsigned int numCopies );
    ~MemController();
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );

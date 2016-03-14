@@ -41,6 +41,8 @@ pe_cluster_sources = \
 		gasnetapi_decl.hpp \
 		gasnetapi_fwd.hpp \
 		gasnetapi.cpp \
+		netwd.cpp \
+		netwd_decl.hpp \
 		$(END)
 
 pe_clustermpi_sources = \
@@ -50,6 +52,8 @@ pe_clustermpi_sources = \
 		gasnetapi_decl.hpp \
 		gasnetapi_fwd.hpp \
 		gasnetapi.cpp \
+		netwd.cpp \
+		netwd_decl.hpp \
 		$(END)
 
 noinst_LTLIBRARIES =

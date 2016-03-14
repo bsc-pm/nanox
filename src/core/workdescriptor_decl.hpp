@@ -272,7 +272,7 @@ typedef std::set<const Device *>  DeviceList;
          //bool _listed;
          void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
          BaseThread const             *_notifyThread;
-         void                         *_remoteAddr;
+         void const                   *_remoteAddr;
       public:
          MemController                 _mcontrol;
       private: /* private methods */
@@ -724,8 +724,8 @@ typedef std::set<const Device *>  DeviceList;
 
          void setId( unsigned int id );
 
-         void setRemoteAddr( void *addr );
-         void *getRemoteAddr() const;
+         void setRemoteAddr( void const *addr );
+         void const *getRemoteAddr() const;
          
          /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
              If invalid (flag = true) it propagates upwards to the ancestors until

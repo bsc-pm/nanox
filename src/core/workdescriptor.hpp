@@ -57,7 +57,8 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
                                  _taskReductions(),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ),
+                                 _mcontrol( this, numCopies )
                                  {
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
@@ -89,7 +90,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL), _taskReductions(),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( this, numCopies )
                                  {
                                      _devices = new DeviceData*[1];
                                      _devices[0] = device;
@@ -124,7 +125,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer), _taskReductions(),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( this, wd._numCopies )
                                  {
                                     if ( wd._parent != NULL ) wd._parent->addWork(*this);
                                     _flags.is_final = wd._flags.is_final;
@@ -515,11 +516,11 @@ inline void WorkDescriptor::setId( unsigned int id ) {
    _id = id;
 }
 
-inline void WorkDescriptor::setRemoteAddr( void *addr ) {
+inline void WorkDescriptor::setRemoteAddr( void const *addr ) {
    _remoteAddr = addr;
 }
 
-inline void *WorkDescriptor::getRemoteAddr() const {
+inline void const *WorkDescriptor::getRemoteAddr() const {
    return _remoteAddr;
 }
 

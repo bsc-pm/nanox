@@ -520,7 +520,7 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         _copies[i].setRemoteHost( false );
     }
 
-   new ( &_mcontrol ) MemController( *this );
+   new ( &_mcontrol ) MemController( this, numCopies );
 }
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
