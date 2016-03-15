@@ -142,9 +142,13 @@ int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
             node_index += 1;
          }
       }
-      _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(nodes, 0);
-      _gasnetApi->_rwgGPU = getRemoteWorkDescriptor(nodes, 1);
-      _gasnetApi->_rwgOCL = getRemoteWorkDescriptor(nodes, 2);
+      _gasnetApi->_rwgs = NEW GASNetAPI::ArchRWDs[ nodes ];
+      for ( unsigned int idx = 0; idx < nodes; idx += 1 ) {
+         _gasnetApi->_rwgs[idx][0] = getRemoteWorkDescriptor(0);
+         _gasnetApi->_rwgs[idx][1] = getRemoteWorkDescriptor(1);
+         _gasnetApi->_rwgs[idx][2] = getRemoteWorkDescriptor(2);
+         _gasnetApi->_rwgs[idx][3] = getRemoteWorkDescriptor(3);
+      }
       _clusterThread->addThreadsFromPEs( tmp_nodes.size(), &(tmp_nodes[0]) );
    }
    return 0;
@@ -187,14 +191,10 @@ System::CachePolicyType ClusterMPIPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
-RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( unsigned int numNodes, int archId ) {
-   ensure( numNodes > 0, "invalid number of nodes");
-   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor[ numNodes ];
-   for ( unsigned int idx = 0; idx < numNodes; idx += 1 ) {
-      new ( &rwd[ idx ] ) RemoteWorkDescriptor( archId );
-      rwd->_mcontrol.preInit();
-      rwd->_mcontrol.initialize( *_cpu );
-   }
+RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( int archId ) {
+   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( archId );
+   rwd->_mcontrol.preInit();
+   rwd->_mcontrol.initialize( *_cpu );
    return rwd;
 }
 

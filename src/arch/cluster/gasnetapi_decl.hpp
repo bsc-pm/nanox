@@ -21,7 +21,6 @@
 #ifndef _GASNETAPI_DECL
 #define _GASNETAPI_DECL
 
-#include "clusterplugin_fwd.hpp"
 #include "basethread_decl.hpp"
 #include "networkapi.hpp"
 #include "network_decl.hpp"
@@ -155,7 +154,7 @@ namespace ext {
             WD const * wd;
          };
          RequestQueue< FreeBufferRequest > _freeBufferReqs;
-         RequestQueue< std::pair< void *, unsigned int > > _workDoneReqs;
+         RequestQueue< std::pair< void const *, unsigned int > > _workDoneReqs;
 
          std::size_t _rxBytes;
          std::size_t _txBytes;
@@ -167,10 +166,8 @@ namespace ext {
          bool _unalignedNodeMemory;
 
       public:
-         RemoteWorkDescriptor *_rwgGPU;
-         RemoteWorkDescriptor *_rwgSMP;
-         RemoteWorkDescriptor *_rwgOCL;
-         RemoteWorkDescriptor *_rwgFPGA;
+         typedef RemoteWorkDescriptor *ArchRWDs[4]; //0: smp, 1: cuda, 2: opencl, 3: fpga
+         ArchRWDs *_rwgs; //archs
 
          GASNetAPI();
          ~GASNetAPI();
@@ -179,9 +176,9 @@ namespace ext {
          void finalizeNoBarrier ();
          void poll ();
          void sendExitMsg ( unsigned int dest );
-         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd, std::size_t expectedData );
-         void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr );
-         void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr );
+         void sendWorkMsg ( unsigned int dest, WorkDescriptor const &wd, std::size_t expectedData );
+         void sendWorkDoneMsg ( unsigned int dest, void const *remoteWdAddr );
+         void _sendWorkDoneMsg ( unsigned int dest, void const *remoteWdAddr );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, CopyData const &cd );
@@ -229,19 +226,11 @@ namespace ext {
          static void amFinalize( gasnet_token_t token );
          static void amFinalizeReply(gasnet_token_t token);
          static void amWork(gasnet_token_t token, void *arg, std::size_t argSize,
-                             gasnet_handlerarg_t workLo,
-                             gasnet_handlerarg_t workHi,
-                             gasnet_handlerarg_t xlateLo,
-                             gasnet_handlerarg_t xlateHi,
-                             gasnet_handlerarg_t rmwdLo,
-                             gasnet_handlerarg_t rmwdHi,
-                             gasnet_handlerarg_t expectedDataLo,
-                             gasnet_handlerarg_t expectedDataHi,
+                             gasnet_handlerarg_t wdId,
                              gasnet_handlerarg_t totalArgSizeLo,
                              gasnet_handlerarg_t totalArgSizeHi,
-                             gasnet_handlerarg_t dataSize,
-                             gasnet_handlerarg_t wdId,
-                             gasnet_handlerarg_t arch,
+                             gasnet_handlerarg_t expectedDataLo,
+                             gasnet_handlerarg_t expectedDataHi,
                              gasnet_handlerarg_t seq );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
                gasnet_handlerarg_t wdId,

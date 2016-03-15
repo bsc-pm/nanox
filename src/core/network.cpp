@@ -144,25 +144,21 @@ void Network::sendExitMsg( unsigned int nodeNum )
    }
 }
 
-void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWd )
+void Network::sendWorkMsg( unsigned int dest, WorkDescriptor const &wd )
 {
    //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
-      if (work == NULL)
-      {
-         std::cerr << "ERROR: no work to send (work=NULL)" << std::endl;
-      }
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd.getId()) ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_REMOTE, id, 0, 0, dest ); )
 
-      std::size_t expectedData = _sentWdData.getSentData( wdId );
-      _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd, expectedData );
+      std::size_t expectedData = _sentWdData.getSentData( wd.getId() );
+      _api->sendWorkMsg( dest, wd, expectedData );
    }
 }
 
-void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr )
+void Network::sendWorkDoneMsg( unsigned int nodeNum, void const *remoteWdAddr )
 {
    //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )

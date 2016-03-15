@@ -251,10 +251,12 @@ void ClusterPlugin::startSupportThreads() {
             /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
             sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
          }
-         _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(0);
-         _gasnetApi->_rwgGPU = getRemoteWorkDescriptor(1);
-         _gasnetApi->_rwgOCL = getRemoteWorkDescriptor(2);
-         _gasnetApi->_rwgFPGA = getRemoteWorkDescriptor(3);
+
+         _gasnetApi->_rwgs = (GASNetAPI::ArchRWDs *) NEW GASNetAPI::ArchRWDs();
+         _gasnetApi->_rwgs[0][0] = getRemoteWorkDescriptor(0);
+         _gasnetApi->_rwgs[0][1] = getRemoteWorkDescriptor(1);
+         _gasnetApi->_rwgs[0][2] = getRemoteWorkDescriptor(2);
+         _gasnetApi->_rwgs[0][3] = getRemoteWorkDescriptor(3);
       }
    }
 }

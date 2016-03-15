@@ -269,9 +269,9 @@ namespace nanos {
          void finalizeNoBarrier ( void );
          void poll ( unsigned int id );
          void sendExitMsg( unsigned int nodeNum );
-         void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWdAddr );
+         void sendWorkMsg( unsigned int dest, WorkDescriptor const &wd );
          bool isWorking( unsigned int dest, unsigned int numPe ) const;
-         void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr );
+         void sendWorkDoneMsg( unsigned int nodeNum, void const *remoteWdaddr );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, void *hostObject, reg_t hostRegId );

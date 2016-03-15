@@ -246,9 +246,14 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
    std::vector<const Device *> const &pe_archs = pe.getDeviceTypes();
-   for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
-         it != pe_archs.end() && !result; it++ ) {
-      result = canRunIn( *(*it) ) ;
+   if ( pe.getActiveDevice() == pe_archs.size() ) {
+      // all active 
+      for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+            it != pe_archs.end() && !result; it++ ) {
+         result = canRunIn( *(*it) ) ;
+      }
+   } else {
+      result = canRunIn( *pe_archs[pe.getActiveDevice()] );
    }
 
    return result;   
@@ -515,7 +520,7 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         _copies[i].setRemoteHost( false );
     }
 
-   new ( &_mcontrol ) MemController( *this );
+   new ( &_mcontrol ) MemController( this, numCopies );
 }
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )

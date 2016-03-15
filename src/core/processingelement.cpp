@@ -33,7 +33,7 @@ using namespace nanos;
 ProcessingElement::ProcessingElement ( const Device *arch, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _devices( 1, arch ), _threads(), _memorySpaceId( memSpaceId )
+   _id ( sys.nextPEId() ), _devices( 1, arch ), _activeDevice( 0 ), _threads(), _memorySpaceId( memSpaceId )
 {
    _threads.reserve(8);
 }
@@ -41,7 +41,7 @@ ProcessingElement::ProcessingElement ( const Device *arch, unsigned int memSpace
 ProcessingElement::ProcessingElement ( const Device **archs, unsigned int numArchs, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _devices( numArchs, NULL ), _threads(), _memorySpaceId( memSpaceId ) 
+   _id ( sys.nextPEId() ), _devices( numArchs, NULL ), _activeDevice( numArchs ), _threads(), _memorySpaceId( memSpaceId ) 
 {
    _threads.reserve(8);
    for(unsigned int idx = 0; idx < numArchs; idx += 1) {

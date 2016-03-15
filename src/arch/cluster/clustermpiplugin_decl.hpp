@@ -60,7 +60,7 @@ class ClusterMPIPlugin : public ArchPlugin
       int getGpuPresend() const;
       int getSmpPresend() const;
       System::CachePolicyType getCachePolicy ( void ) const;
-      RemoteWorkDescriptor * getRemoteWorkDescriptor( unsigned int num_nodes, int archId );
+      RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocFit() const;
       bool unalignedNodeMemory() const;
       virtual int initNetwork(int *argc, char ***argv);

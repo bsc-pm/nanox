@@ -1336,7 +1336,7 @@ void RegionCache::NEWcopyOut( global_reg_t const &reg, unsigned int version, WD 
       increaseTransferredReplacedOutData(reg.getDataSize());
    }
    //if ( providedOrigChunk == NULL ) {
-      origChunk->unlock();
+   //   origChunk->unlock();
    //}
 //(*myThread->_file) << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " issuing copyOut (from " << this->getMemorySpaceId() << " using chunk " << origChunk << " w/addr " << origChunk->getHostAddress() << " provided chunk was " << providedOrigChunk << std::endl;
    copyOut( reg, origDevAddr, ops, wd );

@@ -43,6 +43,7 @@ namespace nanos
          //! Unique ID
          int                                  _uid;
          std::vector<const Device *>          _devices;
+         unsigned int                         _activeDevice; //if _activeDevice == _devices.size then all are active
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
 
@@ -125,6 +126,9 @@ namespace nanos
          std::size_t getRunningThreads() const;
 
          virtual bool isActive() const { return true; }
+         void setActiveDevice( unsigned int devIdx );
+         void setActiveDevice( const Device *dev );
+         unsigned int getActiveDevice() const;
    };
 
    typedef class ProcessingElement PE;

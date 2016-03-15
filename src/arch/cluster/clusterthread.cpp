@@ -25,6 +25,7 @@
 #include "workdescriptor_decl.hpp"
 #include "basethread.hpp"
 #include "smpthread.hpp"
+#include "netwd_decl.hpp"
 #ifdef OpenCL_DEV
 #include "opencldd.hpp"
 #endif
@@ -35,7 +36,7 @@
 using namespace nanos;
 using namespace ext;
 
-ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead(0), _completedHead2(0), _completedTail(0) {
+ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead(0), _completedHead2(0), _completedTail(0), _waitingDataWDs(), _pendingInitWD( NULL ) {
    for ( unsigned int i = 0; i < MAX_PRESEND; i++ )
    {
       _completedWDs[i] = NULL;
@@ -75,6 +76,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
    unsigned int pos = realpos %MAX_PRESEND;
    _completedWDs[pos] = (WD *) remoteWdAddr;
    while( !_completedHead2.cswap( realpos, realpos+1) ) {}
+   ensure( _numRunning.value() > 0, "invalid value");
    _numRunning--;
 }
 
@@ -107,13 +109,13 @@ void ClusterThread::preOutlineWorkDependent ( WD &wd ) {
 
 void ClusterThread::outlineWorkDependent ( WD &wd )
 {
-   unsigned int i;
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
    ProcessingElement *pe = this->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
    //wd.getGE()->setNode( ( ( ClusterNode * ) pe )->getClusterNodeNum() );
 
+#if 0
    unsigned int totalDimensions = 0;
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       totalDimensions += wd.getCopies()[i].getNumDimensions();
@@ -151,7 +153,9 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       newCopies[i].setHostRegionId( wd._mcontrol._memCacheCopies[i]._reg.id );
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
+#endif
 
+#if 0
 
    int arch = -1;
    if ( wd.canRunIn( getSMPDevice() ) ) {
@@ -178,11 +182,13 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    else {
       fatal("unsupported architecture");
    }
+   #endif
 
    //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " arch: "<< arch << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
 
    ( ( ClusterNode * ) pe )->incExecutedWDs();
-   sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, totalBufferSize, buff, wd.getTranslateArgs(), arch, (void *) &wd );
+   sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), wd );
+   //sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, nwd.getBufferSize(), nwd.getBuffer(), wd.getTranslateArgs(), arch, (void *) &wd );
 
 }
 
@@ -411,6 +417,7 @@ void ClusterThread::workerClusterLoop ()
             for ( ClusterNode::ClusterSupportedArchMap::const_iterator it = archs.begin();
                   it != archs.end(); it++ ) {
                unsigned int arch_id = it->first;
+               thisNode->setActiveDevice( it->second );
                myClusterThread->clearCompletedWDs( arch_id );
                if ( myClusterThread->hasWaitingDataWDs( arch_id ) ) {
                   WD * wd_waiting = myClusterThread->getWaitingDataWD( arch_id );
