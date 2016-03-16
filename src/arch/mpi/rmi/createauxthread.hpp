@@ -81,7 +81,6 @@ void CreateAuxiliaryThread::Servant::serve()
 	bool alreadyCreated = _alreadyCreated.test_and_set();
 	if( !alreadyCreated ) {
 		MPIDevice::createExtraCacheThread();
-		MPIRemoteNode::nanosMPIWorker();
 	}
 }
 

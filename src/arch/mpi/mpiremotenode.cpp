@@ -52,11 +52,18 @@ extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
 
 
 bool MPIRemoteNode::executeTask(int taskId) {
-    void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
-    //nanos::MPIDevice::taskPreInit();
-    function_pointer();
-    //nanos::MPIDevice::taskPostFinish();
-    return false;
+    if( taskId == TASK_END_PROCESS ) {
+        delete _commandDispatcher;
+        delete _pendingTasksWithParent;
+        nanosMPIFinalize();
+        return true;
+    } else {
+        void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
+        //nanos::MPIDevice::taskPreInit();
+        function_pointer();
+        //nanos::MPIDevice::taskPostFinish();
+        return false;
+    }
 }
 
 void MPIRemoteNode::preInit(){

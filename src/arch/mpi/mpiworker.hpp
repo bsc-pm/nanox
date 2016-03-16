@@ -96,11 +96,6 @@ void MPIRemoteNode::mpiOffloadSlaveMain() {
                                  new mpi::command::Dispatcher(parentcomm, 10 );
 
     nanosMPIWorker();
-
-    delete MPIRemoteNode::_pendingTasksWithParent;
-    delete MPIRemoteNode::_commandDispatcher;
-
-    nanosMPIFinalize();
 }
 
 } // namespace ext

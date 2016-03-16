@@ -71,6 +71,7 @@ void Finish::Requestor::dispatch()
 void Finish::Servant::serve()
 {
 	_finished.test_and_set(); 
+	MPIRemoteNode::addTaskToQueue( TASK_END_PROCESS, _channel.getSource() );
 }
 
 } // namespace command
