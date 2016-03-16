@@ -55,7 +55,7 @@ class ConditionVariable {
 		template < class Predicate >
 		void wait( UniqueLock<Mutex>& lock, Predicate pred )
 		{
-			while (!preD()) {
+			while (!pred()) {
 				wait(lock);
 			}
 		}
