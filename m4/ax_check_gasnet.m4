@@ -183,7 +183,7 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
 # $4 - Additional preprocessor flags (optional).
 AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 [
-  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1])
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
@@ -216,7 +216,8 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
                   [$conduit_prereq_libs])
     ])
   ])
-    
+
+  
   AS_IF([test "$conduit_available" = yes],[
     AS_VAR_APPEND([gasnet_available_conduits],[" $1"])
     AS_VAR_SET([conduit_libs],["$LIBS $conduit_prereq_libs"])
