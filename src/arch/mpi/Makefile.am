@@ -68,6 +68,7 @@ offload_sources= \
  status.hpp \
  pagealignedallocator_decl.hpp \
  pagealignedallocator.hpp \
+ mpiworker.hpp \
  rmi/allocate.hpp \
  rmi/cachecommand.cpp \
  rmi/cachecommand.hpp \

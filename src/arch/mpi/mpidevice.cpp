@@ -39,8 +39,9 @@
 #include "copyout.hpp"
 #include "copydevtodev.hpp"
 #include "createauxthread.hpp"
-#include "commanddispatcher.hpp"
 #include "finish.hpp"
+
+#include "mpiworker.hpp"
 
 #include <iostream>
 
@@ -190,34 +191,3 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
-void MPIDevice::createExtraCacheThread(){    
-    //Create extra worker thread
-    MPI_Comm mworld= MPI_COMM_WORLD;
-    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
-    if (core==NULL) {
-        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,MPIRemoteNode::getCurrentProcessor());
-    }
-    MPIProcessor *mpi = NEW MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
-    MPIDD * dd = NEW MPIDD((MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker);
-    WD* wd = NEW WD(dd);
-    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-    mpi->startMPIThread(wd);
-}
-
-void MPIDevice::remoteNodeCacheWorker() {                            
-    //myThread = myThread->getNextThread();
-    MPI_Comm parentcomm; /* intercommunicator */
-    MPI_Comm_get_parent(&parentcomm);    
-
-    //If this process was not spawned, we don't need this daemon-thread
-    if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
-
-        mpi::command::Dispatcher dispatcher(parentcomm, 10 ); // reserve space for 10 elements of each generic command type
-        while( !mpi::command::CreateAuxiliaryThread::Servant::isCreated()
-               && !mpi::command::Finish::Servant::isFinished() ) {
-            dispatcher.waitForCommands();
-            dispatcher.queueAvailableCommands();
-            dispatcher.executeCommands();
-        }
-    }
-}

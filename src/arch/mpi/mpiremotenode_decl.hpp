@@ -29,6 +29,9 @@
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 
+#include "concurrent_queue.hpp"
+#include "commanddispatcher.hpp"
+
 namespace nanos {
     namespace ext {
 
@@ -44,15 +47,11 @@ namespace nanos {
             
             static bool _initialized;   
             static bool _disconnectedFromParent;
-            static Lock _taskLock;
-            static std::list<int> _pendingTasksQueue;
-            static std::list<int> _pendingTaskParentsQueue;  
+            static ProducerConsumerQueue<std::pair<int,int> >* _pendingTasksWithParent;
+            static mpi::command::Dispatcher* _commandDispatcher;
             static std::vector<MPI_Datatype*> _taskStructsCache;   
             static int _currentTaskParent;
             static int _currProcessor;
-            static pthread_cond_t          _taskWait;         //! Condition variable to wait for completion
-            static pthread_mutex_t         _taskMutex;        //! Mutex to access the completion 
-            
 
             // disable copy constructor and assignment operator
             MPIRemoteNode(const MPIRemoteNode &pe);
@@ -60,29 +59,21 @@ namespace nanos {
 
 
         public:
-            
-                                     
             static int getCurrentTaskParent();
-            
-            static int getQueueCurrentTaskParent();
             
             static void setCurrentTaskParent(int parent);
             
             static int getCurrentProcessor();
-            
-            static void testTaskQueueSizeAndLock();
-            
-            static Lock& getTaskLock();
-            
-            static int getQueueCurrTaskIdentifier();
-            
+
+            static std::pair<int,int> getNextTaskAndParent();
+
             static void addTaskToQueue(int task_id, int parentId);
 
-            static void removeTaskFromQueue();        
-            
             static bool getDisconnectedFromParent();            
             
             static bool executeTask(int taskId);
+
+            static mpi::command::Dispatcher& getDispatcher();
             
             /**
              * Initialize OmpSs

@@ -64,9 +64,10 @@ namespace nanos
           */
          static void initMPICacheStruct();
          
+         template < bool dedicated = false >
          static void remoteNodeCacheWorker();
          
-			static void createExtraCacheThread();
+         static void createExtraCacheThread();
          
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx);
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );

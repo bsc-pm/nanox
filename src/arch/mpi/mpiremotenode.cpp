@@ -18,6 +18,8 @@
 /*************************************************************************************/
 
 #include "mpiremotenode.hpp"
+#include "mpidevice_decl.hpp"
+
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"
@@ -29,6 +31,8 @@
 
 #include "finish.hpp"
 #include "init.hpp"
+
+#include "mpiworker.hpp"
 
 #include <stdlib.h>
 #include <iostream>
@@ -48,41 +52,16 @@ extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
 
 
 bool MPIRemoteNode::executeTask(int taskId) {
-    bool ret=false;
-    if (taskId==TASK_END_PROCESS){
-       nanosMPIFinalize();
-       nanos::ext::MPIRemoteNode::getTaskLock().release();
-       ret=true;
-    } else {
-       void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
-       //nanos::MPIDevice::taskPreInit();
-       function_pointer();
-       //nanos::MPIDevice::taskPostFinish();
-    }
-    return ret;
-}
-
-int MPIRemoteNode::nanosMPIWorker(){
-	bool finalize=false;
-	while(!finalize){
-		//Acquire twice and block until cache thread unlocks
-      testTaskQueueSizeAndLock();
-      setCurrentTaskParent(getQueueCurrentTaskParent());
-		finalize=executeTask(getQueueCurrTaskIdentifier());
-      removeTaskFromQueue();
-	}
-   return 0;
+    void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
+    //nanos::MPIDevice::taskPreInit();
+    function_pointer();
+    //nanos::MPIDevice::taskPostFinish();
+    return false;
 }
 
 void MPIRemoteNode::preInit(){
     nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
     nanos::ext::MPIRemoteNode::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
-}
-
-void MPIRemoteNode::mpiOffloadSlaveMain(){
-    nanos::MPIDevice::remoteNodeCacheWorker();
-    MPIRemoteNode::executeTask(TASK_END_PROCESS);
-    exit(0);
 }
 
 int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){

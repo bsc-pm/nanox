@@ -22,14 +22,8 @@ void Init::Requestor::dispatch()
 template<>
 void Init::Servant::serve()
 {
-	if( CreateAuxiliaryThread::Servant::isCreated() ) {
-		//Add task to execution queue
-		MPIRemoteNode::addTaskToQueue( _data.getCode(), _channel.getSource() );
-	} else {
-		//Execute the task in current thread
-		MPIRemoteNode::setCurrentTaskParent( _channel.getSource() );
-		MPIRemoteNode::executeTask( _data.getCode() );
-	}
+	//Add task to execution queue
+	MPIRemoteNode::addTaskToQueue( _data.getCode(), _channel.getSource() );
 }
 
 } // namespace command

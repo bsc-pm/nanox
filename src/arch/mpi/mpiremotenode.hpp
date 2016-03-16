@@ -35,70 +35,43 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-using namespace nanos;
-using namespace ext;
+namespace nanos {
+namespace ext {
     
-Lock MPIRemoteNode::_taskLock;
-pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait for completion
-pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 
-std::list<int> MPIRemoteNode::_pendingTasksQueue;
-std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
-std::vector<MPI_Datatype*>  MPIRemoteNode::_taskStructsCache;
+ProducerConsumerQueue<std::pair<int,int> >* MPIRemoteNode::_pendingTasksWithParent = NULL;
+mpi::command::Dispatcher* MPIRemoteNode::_commandDispatcher = NULL;
+std::vector<MPI_Datatype*> MPIRemoteNode::_taskStructsCache;
 bool MPIRemoteNode::_initialized=false;
 bool MPIRemoteNode::_disconnectedFromParent=false;
 int MPIRemoteNode::_currentTaskParent=-1;
 int MPIRemoteNode::_currProcessor=0;
 
-Lock& MPIRemoteNode::getTaskLock() {
-    return _taskLock;
-}
-
-int MPIRemoteNode::getQueueCurrTaskIdentifier() {
-    return _pendingTasksQueue.front();
-}
-
-int MPIRemoteNode::getQueueCurrentTaskParent() {
-    return _pendingTaskParentsQueue.front();
+mpi::command::Dispatcher& MPIRemoteNode::getDispatcher() {
+    return *MPIRemoteNode::_commandDispatcher;
 }
 
 int MPIRemoteNode::getCurrentTaskParent() {
-    return _currentTaskParent;
+    return MPIRemoteNode::_currentTaskParent;
 }
 
 void MPIRemoteNode::setCurrentTaskParent(int parent) {
-    _currentTaskParent=parent;
+    MPIRemoteNode::_currentTaskParent=parent;
 }
 
 int MPIRemoteNode::getCurrentProcessor() {
-    return _currProcessor++;
+    return MPIRemoteNode::_currProcessor++;
 }
 
-void MPIRemoteNode::testTaskQueueSizeAndLock() {    
-    pthread_mutex_lock( &_taskMutex ); 
-    if (_pendingTasksQueue.size()==0) {
-        pthread_cond_wait( &_taskWait, &_taskMutex );
-    } 
-    pthread_mutex_unlock( &_taskMutex ); 
+void MPIRemoteNode::addTaskToQueue(int task_id, int parent_id) {
+    MPIRemoteNode::_pendingTasksWithParent->push( std::make_pair(task_id,parent_id) );
 }
 
-void MPIRemoteNode::addTaskToQueue(int task_id, int parentId) {
-    pthread_mutex_lock( &_taskMutex ); 
-    _pendingTasksQueue.push_back(task_id);
-    _pendingTaskParentsQueue.push_back(parentId);
-    pthread_cond_signal( &_taskWait );
-    pthread_mutex_unlock( &_taskMutex ); 
+std::pair<int,int> MPIRemoteNode::getNextTaskAndParent() {
+    return MPIRemoteNode::_pendingTasksWithParent->pop();
 }
-
-void MPIRemoteNode::removeTaskFromQueue() {
-    pthread_mutex_lock( &_taskMutex ); 
-    _pendingTasksQueue.pop_front();
-    _pendingTaskParentsQueue.pop_front();
-    pthread_mutex_unlock( &_taskMutex ); 
-}
-
 
 bool MPIRemoteNode::getDisconnectedFromParent(){
-    return _disconnectedFromParent; 
+    return MPIRemoteNode::_disconnectedFromParent;
 }
 
 ////////////////////////////////
@@ -142,5 +115,8 @@ static void releaseLock( int fd, char const *lockName )
     //remove( lockName );
     close( fd );
 }
+
+} // namespace mpi
+} // namespace nanos
 
 #endif

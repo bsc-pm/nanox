@@ -168,18 +168,18 @@ namespace nanos {
             
             void appendToPendingRequests( mpi::request const& req );
 
-				/**
-				 * Waits for all requests to be completed.
-				 * Then, it frees them all.
+            /**
+             * Waits for all requests to be completed.
+             * Then, it frees them all.
              * Thread-unsafe function
-				 */
-				void waitAndClearRequests();
+             */
+            void waitAndClearRequests();
 
-				/**
-				 * Frees and erases all requests.
+            /**
+             * Frees and erases all requests.
              * Thread-unsafe function
-				 */
-				void clearAllRequests();
+             */
+            void clearAllRequests();
 
             /**
              * Waits for all pending Requests

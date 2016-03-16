@@ -104,7 +104,6 @@ class SingleDispatcher {
 			typename buffer_storage::iterator buffer_it = _bufferedCommands.begin();
 			request_storage::iterator request_it;
 			for( request_it = request_range.begin(); request_it != request_range.end(); request_it++ ) {
-				std::cout << "MPI_Recv_init" << std::endl;
 				MPI_Recv_init( &(*buffer_it), 1, CommandPayload::getDataType(),
 				                   MPI_ANY_SOURCE, tag, _communicator, *request_it );
 				buffer_it++;
@@ -186,7 +185,6 @@ class Dispatcher {
 
 		virtual ~Dispatcher()
 		{
-			std::cout << "Clearing pending requests" << std::endl;
 			request_storage::iterator request_it;
 			for( request_it = _requests.begin(); request_it != _requests.end(); request_it++ )
 			{
@@ -199,7 +197,6 @@ class Dispatcher {
 
 		void waitForCommands()
 		{
-			std::cout << "Wait some" << std::endl;
 			MPI_Waitsome( _size*num_command_types, _requests[0], &_readyRequestNumber, &_readyRequestIndices[0], &_statuses[0] );
 			assert( _readyRequestNumber != MPI_UNDEFINED );
 		}

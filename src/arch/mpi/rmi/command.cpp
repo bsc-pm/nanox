@@ -14,11 +14,8 @@ namespace command {
 MPI_Datatype CommandPayload::_type = 0;
 
 template <>
-BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, CommandPayload const& data )
+BaseServant* BaseServant::createSpecific( int source, int destination, MPI_Comm communicator, CommandPayload const& data )
 {
-	int destination;
-	MPI_Comm_rank( communicator, &destination );
-
 	switch( data.getId() ) {
 		case CreateAuxiliaryThread::id:
 		{

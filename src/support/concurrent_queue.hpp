@@ -2,6 +2,9 @@
 #ifndef CONCURRENT_QUEUE_HPP
 #define CONCURRENT_QUEUE_HPP
 
+#include "mutex.hpp"
+#include "condition_variable.hpp"
+
 namespace nanos {
 
 namespace detail {
@@ -88,10 +91,11 @@ class ConcurrentQueue {
 		void push( const_reference_type value )
 		{
 			node_type* newTail = new node_type(value);
-			_tail_lock.acquire();
-			_tail->setNext(newTail);
-			_tail = newTail;
-			_tail_lock.release();
+			{
+				LockBlock guard(_tail_lock);
+				_tail->setNext(newTail);
+				_tail = newTail;
+			}
 		}
 
 		bool pop( reference_type value )
@@ -112,6 +116,62 @@ class ConcurrentQueue {
 				delete node;
 				return true;
 			}
+		}
+};
+
+template < typename T >
+class ProducerConsumerQueue {
+	private:
+		typedef detail::ConcurrentQueueNode<T> node_type;
+		typedef T                              value_type;
+		typedef T*                             pointer_type;
+		typedef const T*                       const_pointer_type;
+		typedef T&                             reference_type;
+		typedef const T&                       const_reference_type;
+
+		node_type*        _head;
+		node_type*        _tail;
+
+		// TODO: consider using Lock (spinlock) for tail (producer) and
+		// regular Mutex for head (consumer)
+		Mutex             _head_lock;
+		Mutex             _tail_lock;
+		ConditionVariable _empty_condition;
+
+	public:
+		ProducerConsumerQueue() :
+			_head( new node_type() ), _tail(_head),
+			_head_lock(), _tail_lock()
+		{
+		}
+
+		void push( const_reference_type value )
+		{
+			node_type* newTail = new node_type(value);
+			LockGuard<Mutex> guard( _tail_lock );
+			_tail->setNext(newTail);
+			_tail = newTail;
+			_empty_condition.notify_one();
+		}
+
+		value_type pop()
+		{
+			UniqueLock<Mutex> guard( _head_lock );
+
+			while( !_head->hasNext() ) {
+				_empty_condition.wait(guard);
+			}
+
+			node_type* newHead = _head->getNext();
+			node_type* node = _head;
+
+			_head = newHead;
+			value_type value = newHead->value();
+
+			guard.unlock();
+
+			delete node;
+			return value;
 		}
 };
 
