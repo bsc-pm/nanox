@@ -97,7 +97,6 @@ AS_IF([test "x$gasnet" = xyes],[
   AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS -DGASNET_PAR])
   AX_VAR_PUSHVALUE([CXXFLAGS],[$CXXFLAGS $PTHREAD_CFLAGS])
   AX_VAR_PUSHVALUE([LIBS],[])
-  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
 
   # Do not print conduit check results in standard output
   #AX_SILENT_MODE(on)
@@ -117,10 +116,16 @@ AS_IF([test "x$gasnet" = xyes],[
   gasnet_available_conduits=
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
+
+  # set the appropiate LDFLAGS for conduits that require MPI
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
+
   _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
   _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
   _AX_CHECK_GASNET_CONDUIT(mxm,$MPICXX,-lmxm -L/opt/mellanox/mxm/lib $mpilibs)
-  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
+
+  AX_VAR_POPVALUE([LDFLAGS])
 
   # Checks done. Disable silent mode again.
   #AX_SILENT_MODE(off)
@@ -154,7 +159,6 @@ GASNet is linked with.
   AX_VAR_POPVALUE([CPPFLAGS])
   AX_VAR_POPVALUE([CXXFLAGS])
   AX_VAR_POPVALUE([LIBS])
-  AX_VAR_POPVALUE([LDFLAGS])
 
   AC_LANG_POP([C++])
 
