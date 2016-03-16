@@ -17,20 +17,15 @@ namespace nanos {
 template<>
 void MPIDevice::remoteNodeCacheWorker<true>() {
 
-    //If this process was not spawned, we don't need this daemon-thread
-    std::cout << "[Entry] Cache worker loop" << std::endl;
-
     mpi::command::Dispatcher& dispatcher = MPIRemoteNode::getDispatcher();
     // Before waiting for new commands, execute those that were left
     // pending by the regular mpi slave thread
     dispatcher.executeCommands();
     while( !mpi::command::Finish::Servant::isFinished() ) {
-        std::cout << "[Iteration] Cache worker loop" << std::endl;
         dispatcher.waitForCommands();
         dispatcher.queueAvailableCommands();
         dispatcher.executeCommands();
     }
-    std::cout << "[Exit] Cache worker loop" << std::endl;
 }
 
 // Worker thread that waits for commands as well
