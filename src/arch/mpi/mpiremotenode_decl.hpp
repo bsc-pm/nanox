@@ -67,6 +67,8 @@ namespace nanos {
 
             static std::pair<int,int> getNextTaskAndParent();
 
+            static bool isNextTaskAvailable();
+
             static void addTaskToQueue(int task_id, int parentId);
 
             static bool getDisconnectedFromParent();            
@@ -214,9 +216,6 @@ namespace nanos {
              * @return 
              */
             static int nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm comm);
-
-            static int nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status); 
 
             static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
                     MPI_Comm comm);

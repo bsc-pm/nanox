@@ -37,25 +37,46 @@ void MPIDevice::remoteNodeCacheWorker<true>() {
 template<>
 void MPIDevice::remoteNodeCacheWorker<false>() {
 
-    //If this process was not spawned, we don't need this daemon-thread
-    if( !mpi::command::Finish::Servant::isFinished()
-          && !mpi::command::CreateAuxiliaryThread::Servant::isCreated() ) {
-    	std::cout << "[Entry] Cache iteration for regular workers" << std::endl;
+    mpi::command::Dispatcher& dispatcher = MPIRemoteNode::getDispatcher();
+    dispatcher.waitForCommands();
+    dispatcher.queueAvailableCommands();
+    dispatcher.executeCommands();
+}
 
-	mpi::command::Dispatcher& dispatcher = MPIRemoteNode::getDispatcher();
-        dispatcher.waitForCommands();
-        dispatcher.queueAvailableCommands();
-        dispatcher.executeCommands();
+void MPIDevice::createExtraCacheThread() {
+    //Create extra worker thread
+    MPI_Comm mworld= MPI_COMM_WORLD;
+    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
+    if (core==NULL) {
+        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,MPIRemoteNode::getCurrentProcessor());
     }
+    MPIProcessor *mpi = NEW MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
+    MPIDD * dd = NEW MPIDD((MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker<true> );
+    WD* wd = NEW WD(dd);
+    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
+    mpi->startMPIThread(wd);
 }
 
 namespace ext {
 
 int MPIRemoteNode::nanosMPIWorker() {
-    while( !mpi::command::Finish::Servant::isFinished() ) {
-	nanos::MPIDevice::remoteNodeCacheWorker<false>();
+    // Meanwhile communications thread is not created
+    while( !mpi::command::CreateAuxiliaryThread::Servant::isCreated()
+           && !mpi::command::Finish::Servant::isFinished() ) {
 
-	std::pair<int,int> taskWithParent = MPIRemoteNode::getNextTaskAndParent();
+        nanos::MPIDevice::remoteNodeCacheWorker<false>();
+
+        if( MPIRemoteNode::isNextTaskAvailable() ) {
+            std::pair<int,int> taskWithParent = MPIRemoteNode::getNextTaskAndParent();
+            setCurrentTaskParent( taskWithParent.second );
+            executeTask( taskWithParent.first );
+        }
+    }
+
+    // When cache thread has already been created
+    // just take pending offload tasks created by communications thread
+    while( !mpi::command::Finish::Servant::isFinished() ) {
+        std::pair<int,int> taskWithParent = MPIRemoteNode::getNextTaskAndParent();
 
         setCurrentTaskParent( taskWithParent.second );
         executeTask( taskWithParent.first );
@@ -75,21 +96,11 @@ void MPIRemoteNode::mpiOffloadSlaveMain() {
                                  new mpi::command::Dispatcher(parentcomm, 10 );
 
     nanosMPIWorker();
-    nanosMPIFinalize();
-}
 
-void MPIDevice::createExtraCacheThread(){    
-    //Create extra worker thread
-    MPI_Comm mworld= MPI_COMM_WORLD;
-    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
-    if (core==NULL) {
-        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,MPIRemoteNode::getCurrentProcessor());
-    }
-    MPIProcessor *mpi = NEW MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
-    MPIDD * dd = NEW MPIDD((MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker<true> );
-    WD* wd = NEW WD(dd);
-    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-    mpi->startMPIThread(wd);
+    delete MPIRemoteNode::_pendingTasksWithParent;
+    delete MPIRemoteNode::_commandDispatcher;
+
+    nanosMPIFinalize();
 }
 
 } // namespace ext

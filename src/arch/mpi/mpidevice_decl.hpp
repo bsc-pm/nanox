@@ -64,7 +64,7 @@ namespace nanos
           */
          static void initMPICacheStruct();
          
-         template < bool dedicated = false >
+         template < bool dedicated >
          static void remoteNodeCacheWorker();
          
          static void createExtraCacheThread();

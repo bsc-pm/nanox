@@ -62,6 +62,10 @@ int MPIRemoteNode::getCurrentProcessor() {
     return MPIRemoteNode::_currProcessor++;
 }
 
+bool MPIRemoteNode::isNextTaskAvailable() {
+    return !MPIRemoteNode::_pendingTasksWithParent->empty();
+}
+
 void MPIRemoteNode::addTaskToQueue(int task_id, int parent_id) {
     MPIRemoteNode::_pendingTasksWithParent->push( std::make_pair(task_id,parent_id) );
 }

@@ -4,20 +4,32 @@
 
 #include "mutex.hpp"
 
+#include <pthread.h>
+
 namespace nanos {
 
 class ConditionVariable {
 	private:
-		pthread_cond_t _handle;
+		pthread_cond_t _handle = PTHREAD_COND_INITIALIZER;
 
 		ConditionVariable( const ConditionVariable & ); // Non copyable
 
 		ConditionVariable& operator=( const ConditionVariable& ); // Non assignable
 
 	public:
+		/*
+		 * This is only valid since C++11
+		 *
 		ConditionVariable() :
 			_handle(PTHREAD_COND_INITIALIZER)
 		{
+		}
+		*/
+
+		ConditionVariable()
+		{
+			// Alternative to PTHREAD_COND_INITIALIZER
+			//pthread_cond_init( &_handle, NULL );
 		}
 
 		~ConditionVariable()

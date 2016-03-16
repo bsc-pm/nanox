@@ -148,8 +148,8 @@ class Dispatcher {
 		typedef std::vector<MPI_Status>                       status_storage;
 		typedef std::vector<int>                              index_storage;
 
-		typedef detail::SingleDispatcher<CachePayload,TAG_M2S_CACHE_COMMAND> command_dispatcher;
-		typedef detail::SingleDispatcher<CommandPayload,TAG_M2S_COMMAND>   cache_dispatcher;
+		typedef detail::SingleDispatcher<CommandPayload,TAG_M2S_COMMAND>     command_dispatcher;
+		typedef detail::SingleDispatcher<CachePayload,TAG_M2S_CACHE_COMMAND> cache_dispatcher;
 
 		MPI_Comm                         _communicator;
 		int                              _size;
@@ -203,21 +203,25 @@ class Dispatcher {
 
 		void queueAvailableCommands()
 		{
-			// This could be done clearer if we had a tuple of Single dispatchers
-			int r = 0;
-			int index = _readyRequestIndices.at(r);
-			while( r < _readyRequestNumber && index < _size ) {
-				_commands.queueCommand( index, _statuses.at(index) );
+			for( int r = 0; r < _readyRequestNumber; r++ ) {
+				int index = _readyRequestIndices.at(r);
+				// Create the command specialization
+				// TODO: Maybe there is a better way to do this
+				//       Tried using different loops but I was
+				//       not very convinced.
+				// Note that index is always between 0 and
+				// (_size * num_command_types - 1 )
+				// Warning: statuses in array_of_statuses are contiguous
+				// they must be indexed by 'r' instead of 'index'
+				if( index < _size ) {
+					std::cout << "Queue command at index:" << index << std::endl;
+					_commands.queueCommand( index, _statuses.at(r) );
+				} else {
+					std::cout << "Queue cache command at index:" << index << std::endl;
+					_cacheCommands.queueCommand( (index-_size), _statuses.at(r) );
+				}
+				// and restart the request
 				_requests.at(index).start();
-				r++;
-				index = _readyRequestIndices.at(r);
-			}
-
-			while( r < _readyRequestNumber && (index-_size) < _size ) {
-				_cacheCommands.queueCommand( (index-_size), _statuses.at(index) );
-				_requests.at(index).start();
-				r++;
-				index = _readyRequestIndices.at(r);
 			}
 		}
 

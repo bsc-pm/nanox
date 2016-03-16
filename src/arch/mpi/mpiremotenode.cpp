@@ -762,11 +762,6 @@ int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm
     return MPI_SUCCESS; // TODO: add some sort of error report for commands
 }
 
-int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
-        MPI_Comm comm, MPI_Status *status) {
-    return nanosMPIRecv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
-}
-
 int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
         MPI_Comm comm) {
     if (_disconnectedFromParent) return 0;
