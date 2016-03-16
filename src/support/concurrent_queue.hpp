@@ -9,6 +9,15 @@ namespace nanos {
 
 namespace detail {
 
+/**
+ * \file concurrent_queue.hpp
+ * Thread safe FIFO queue implementation based on the article by
+ * M. Michael and M. Scott
+ * "Nonblocking algorithms and preemption-safe locking on
+ *  multiprogrammed shared - memory multiprocessors."
+ * Journal of Parallel and Distributed Computing, 51(1):1-26, 1998.
+ */
+
 template < typename T >
 class ConcurrentQueueNode {
 	private:
@@ -172,6 +181,12 @@ class ProducerConsumerQueue {
 
 			delete node;
 			return value;
+		}
+
+		bool empty()
+		{
+			UniqueLock<Mutex> guard( _head_lock );
+			return !_head->hasNext();
 		}
 };
 
