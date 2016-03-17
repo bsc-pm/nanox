@@ -8,7 +8,7 @@ namespace nanos {
 
 class Mutex {
 	private:
-		pthread_mutex_t _handle = PTHREAD_MUTEX_INITIALIZER; // Until C++11
+		pthread_mutex_t _handle;
 
 		// Non copyable
 		Mutex( const Mutex & );
@@ -17,20 +17,18 @@ class Mutex {
 		Mutex& operator=( const Mutex & );
 
 	public:
-		/*
-		 * This is only valid since C++11
-		 *
+#ifdef HAVE_CXX11
 		Mutex() :
 			_handle(PTHREAD_MUTEX_INITIALIZER)
 		{
 		}
-		*/
-
+#else
 		Mutex()
 		{
 			// Alternative for PTHREAD_MUTEX_INITIALIZER
-			//pthread_mutex_init( &_handle, NULL );
+			pthread_mutex_init( &_handle, NULL );
 		}
+#endif
 
 		~Mutex()
 		{
