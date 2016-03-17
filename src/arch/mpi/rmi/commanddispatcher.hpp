@@ -214,10 +214,8 @@ class Dispatcher {
 				// Warning: statuses in array_of_statuses are contiguous
 				// they must be indexed by 'r' instead of 'index'
 				if( index < _size ) {
-					std::cout << "Queue command at index:" << index << std::endl;
 					_commands.queueCommand( index, _statuses.at(r) );
 				} else {
-					std::cout << "Queue cache command at index:" << index << std::endl;
 					_cacheCommands.queueCommand( (index-_size), _statuses.at(r) );
 				}
 				// and restart the request
