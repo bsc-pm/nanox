@@ -40,6 +40,12 @@
 #include <unistd.h>
 #include <mpi.h>
 
+#if MPI_VERSION >= 3
+#define NANOS_MPI2_CONST const
+#else
+#define NANOS_MPI2_CONST
+#endif
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -826,7 +832,7 @@ void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {
     *newtype=_taskStructsCache[taskId];
 }
 
-int MPIRemoteNode::nanosMPISend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPISend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -841,7 +847,7 @@ int MPIRemoteNode::nanosMPISend(const void *buf, int count, MPI_Datatype datatyp
     return err;
 }
 
-int MPIRemoteNode::nanosMPIIsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPIIsend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ISEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){

@@ -9,6 +9,12 @@
 #   include <sstream>
 #endif
 
+#if MPI_VERSION >=3
+#define NANOS_MPI2_CONST const
+#else
+#define NANOS_MPI2_CONST
+#endif
+
 // TODO: replace by debug.hpp
 // TODO: replace assert for ensure
 #include <cassert>
@@ -76,23 +82,27 @@ public:
 		int flag;
 		std::string value( "\0", MPI_MAX_INFO_VAL );
 		MPI_Info_get( info_, key, value.size(), &value[0], &flag );
-		if( flag )
+		if( flag ) {
+#ifdef HAVE_CXX11
+			value.shrink_to_fit();
+#endif
 			return value;
-		else
+		} else {
 			return std::string();
+		}
 	}
 
-	void set( const char* key, std::string const& value ) {
+	void set( NANOS_MPI2_CONST char* key, NANOS_MPI2_CONST std::string& value ) {
 		if( !value.empty() )
 		MPI_Info_set( info_, key, value.c_str() );
 	}
 
-	void set( const char* key, const char* value ) {
+	void set( NANOS_MPI2_CONST char* key, NANOS_MPI2_CONST char* value ) {
 		MPI_Info_set( info_, key, value );
 	}
 
 	template<typename T>
-	void set( const char* key, T const& value ) {
+	void set( NANOS_MPI2_CONST char* key, const T& value ) {
 #ifdef HAVE_CXX11
 		std::string svalue( std::to_string(value) );
 #else
