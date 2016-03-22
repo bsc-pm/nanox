@@ -122,6 +122,7 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
+typedef unsigned int reg_t;
 typedef unsigned int memory_space_id_t;
 
 /* This structure is initialized in copydata.hpp. Any change in
@@ -142,12 +143,13 @@ typedef struct {
    // declaration would be a pointer to a scalar, not a pointer to an array
    void* dimensions;
 #else
-   nanos_region_dimension_internal_t *dimensions;
+   nanos_region_dimension_internal_t const *dimensions;
 #endif
    ptrdiff_t offset;
    uint64_t host_base_address;
-   memory_space_id_t host_region_id;
+   reg_t host_region_id;
    bool remote_host;
+   void *deducted_cd;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;

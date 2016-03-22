@@ -746,15 +746,16 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 }
 
 template < template <class> class Sparsity>
-reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const &wd, unsigned int idx ) {
+reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData &cd, WD const &wd, unsigned int idx ) {
    reg_t id = 0;
    CopyData *deductedCd = NULL;
    if ( this->getRegisteredObject() != NULL && !this->getRegisteredObject()->equalGeometry( cd ) ) {
       CopyData *tmp = NEW CopyData( *this->getRegisteredObject() );
       nanos_region_dimension_internal_t *dims = NEW nanos_region_dimension_internal_t[tmp->getNumDimensions()];
+      cd.deductCd( *this->getRegisteredObject(), dims );
       tmp->setDimensions( dims );
-      cd.deductCd( *this->getRegisteredObject(), tmp );
       deductedCd = tmp;
+      cd.setDeductedCD( tmp );
    }
    CopyData const &realCd = deductedCd != NULL ? *deductedCd : cd;
    if ( realCd.getNumDimensions() != this->getNumDimensions() ) {
@@ -771,12 +772,14 @@ reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const
    } else {
       for ( unsigned int cidx = 0; cidx < realCd.getNumDimensions(); cidx += 1 ) {
          if ( this->getDimensionSizes()[ cidx ] != realCd.getDimensions()[ cidx ].size ) {
+            printBt(*myThread->_file);
             fatal("Object with base address " << (void *)realCd.getBaseAddress() <<
                   " was previously registered with a different size in dimension " <<
                   std::dec << cidx << " (previously was " <<
                   std::dec << this->getDimensionSizes()[ cidx ] <<
                   " now received size " << std::dec <<
-                  realCd.getDimensions()[ cidx ].size << ")." );
+                  realCd.getDimensions()[ cidx ].size << "). WD: " <<
+                  ( wd.getDescription() != NULL ? wd.getDescription() : "n/a") );
          }
       }
       id = this->addRegion( realCd.getDimensions() );
@@ -786,7 +789,7 @@ reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const
 }
 
 template < template <class> class Sparsity>
-reg_t RegionDictionary< Sparsity >::obtainRegionId( nanos_region_dimension_internal_t region[] ) {
+reg_t RegionDictionary< Sparsity >::obtainRegionId( nanos_region_dimension_internal_t const region[] ) {
    return this->addRegion( region );
 }
 

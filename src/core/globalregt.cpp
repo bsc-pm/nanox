@@ -106,7 +106,7 @@ unsigned int global_reg_t::getNumDimensions() const {
    return key->getNumDimensions();
 }
 
-void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]) const {
+void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t *region) const {
    RegionNode *n = key->getRegionNode( id );
    std::vector< std::size_t > const &sizes = key->getDimensionSizes();
    for ( int dimIdx = key->getNumDimensions() - 1; dimIdx >= 0; dimIdx -= 1 ) {

@@ -172,15 +172,21 @@ WD2Net::WD2Net( WD const &wd ) {
    
    uintptr_t dimensionIndex = 0;
    for (unsigned int i = 0; i < wd.getNumCopies(); i += 1) {
-      new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
-      memcpy( &dimensions[ dimensionIndex ], wd.getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd.getCopies()[i].getNumDimensions());
+      CopyData &cd = ( wd.getCopies()[i].getDeductedCD() != NULL ) 
+         ? *(wd.getCopies()[i].getDeductedCD()) 
+         : wd.getCopies()[i];
+      new ( &newCopies[i] ) CopyData( cd );
+      if ( newCopies[i].getDeductedCD() != NULL ) {
+         std::cerr << "REGISTERED REG!!!!" << std::endl;
+      }
+      memcpy( &dimensions[ dimensionIndex ], cd.getDimensions(), sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions());
       newCopies[i].setDimensions( ( nanos_region_dimension_internal_t *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
-      newCopies[i].setHostBaseAddress( (uint64_t) wd.getCopies()[i].getBaseAddress() );
+      newCopies[i].setHostBaseAddress( (uint64_t) cd.getBaseAddress() );
       newCopies[i].setRemoteHost( true );
-      //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
+      //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - cd.getOffset() ) );
       newCopies[i].setBaseAddress( (void *) wd._mcontrol.getAddress( i ) );
       newCopies[i].setHostRegionId( wd._mcontrol._memCacheCopies[i]._reg.id );
-      dimensionIndex += wd.getCopies()[i].getNumDimensions();
+      dimensionIndex += cd.getNumDimensions();
    }
 }
 

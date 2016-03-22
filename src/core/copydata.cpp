@@ -68,7 +68,7 @@ void CopyData::getFitDimensions( nanos_region_dimension_internal_t *outDimension
 }
 
 
-void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
+void CopyData::deductCd( CopyData const &ref, nanos_region_dimension_internal_t *newDims ) const {
    if ( ref.getNumDimensions() < this->getNumDimensions() ) {
       fatal("Can not deduct the region, provided reference has more " <<
             "dimensions (" << this->getNumDimensions() << ") than registered " <<
@@ -78,7 +78,6 @@ void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
       std::size_t elemSize[ ref.getNumDimensions() ];
       nanos_region_dimension_internal_t const *refDims = ref.getDimensions();
       nanos_region_dimension_internal_t const *thisDims = this->getDimensions();
-      nanos_region_dimension_internal_t *outDims = out->getDimensions();
       unsigned int dimIdx;
       std::size_t current_elem_size = 1;
       std::size_t current_offset = 0;
@@ -86,9 +85,9 @@ void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
       for ( dimIdx = 0; dimIdx < this->getNumDimensions(); dimIdx += 1) {
          if ( refDims[ dimIdx ].size == thisDims[ dimIdx ].size ) {
             matching += 1;
-            outDims[ dimIdx ].size = thisDims[ dimIdx ].size;
-            outDims[ dimIdx ].accessed_length = thisDims[ dimIdx ].accessed_length;
-            outDims[ dimIdx ].lower_bound = thisDims[ dimIdx ].lower_bound;
+            newDims[ dimIdx ].size = thisDims[ dimIdx ].size;
+            newDims[ dimIdx ].accessed_length = thisDims[ dimIdx ].accessed_length;
+            newDims[ dimIdx ].lower_bound = thisDims[ dimIdx ].lower_bound;
             current_offset += thisDims[ dimIdx ].lower_bound * current_elem_size;
             current_elem_size *= refDims[ dimIdx ].size;
             elemSize[ dimIdx ] = current_elem_size;
@@ -120,23 +119,24 @@ void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
          //uint64_t toff = ((off - current_offset) % elemSize[idx]) % elemSize[ idx-1 ];
          //std::cerr << " offset: " << current_offset << " off: " << off << " elemSize(" << idx << "): " << elemSize[idx] << " elemSize(" << idx-1 << ") " << elemSize[idx-1]<< std::endl;
          uint64_t lower_bound = (off % elemSize[idx]) / elemSize[ idx-1 ];
-         outDims[ idx ].size = refDims[ idx ].size;
-         outDims[ idx ].lower_bound = lower_bound;
-         outDims[ idx ].accessed_length = 1;
+         newDims[ idx ].size = refDims[ idx ].size;
+         newDims[ idx ].lower_bound = lower_bound;
+         newDims[ idx ].accessed_length = 1;
          //std::cerr << idx << " this dim lower bound: " << lower_bound << " size: " << refDims[ idx ].size << " off: "<< current_offset << std::endl;
       }
    } else {
       if ( this->getNumDimensions() == 1 ) {
          uint64_t off = (uint64_t)this->getBaseAddress() - (uint64_t)ref.getBaseAddress();
-         nanos_region_dimension_internal_t *outDims = out->getDimensions();
          nanos_region_dimension_internal_t const *refDims = ref.getDimensions();
          nanos_region_dimension_internal_t const *thisDims = this->getDimensions();
-         outDims[0].size = refDims[0].size;
-         outDims[0].lower_bound = off;
-         outDims[0].accessed_length = thisDims[0].accessed_length;
+         newDims[0].size = refDims[0].size;
+         newDims[0].lower_bound = off;
+         newDims[0].accessed_length = thisDims[0].accessed_length;
+         //std::cerr << "set newDims " << &(newDims[0]) << " used refDims " << refDims << " and this dims " << thisDims << std::endl;
       } else {
          message("Warning: deductCd not properly implemented when there are the same number of dimensions and more than 1 dimension.");
-         ::memcpy(out->getDimensions(), this->getDimensions(), sizeof(nanos_region_dimension_internal_t) * this->getNumDimensions());
+         //std::cerr << "Warning: deductCd not properly implemented when there are the same number of dimensions and more than 1 dimension." << std::endl;
+         ::memcpy(newDims, this->getDimensions(), sizeof(nanos_region_dimension_internal_t) * this->getNumDimensions());
       }
    }
 }

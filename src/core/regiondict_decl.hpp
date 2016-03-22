@@ -184,8 +184,8 @@ typedef unsigned int reg_t;
       RegionDictionary( GlobalRegionDictionary &dict );
       ~RegionDictionary();
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
-      reg_t obtainRegionId( CopyData const &cd, WorkDescriptor const &wd, unsigned int idx );
-      reg_t obtainRegionId( nanos_region_dimension_internal_t region[] );
+      reg_t obtainRegionId( CopyData &cd, WorkDescriptor const &wd, unsigned int idx );
+      reg_t obtainRegionId( nanos_region_dimension_internal_t const region[] );
       //reg_t tryObtainRegionId( CopyData const &cd );
       void addLeaf( RegionNode *leaf );
 

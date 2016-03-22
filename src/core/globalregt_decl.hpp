@@ -46,7 +46,7 @@ struct global_reg_t {
    std::size_t getBreadth() const;
    std::size_t getDataSize() const;
    unsigned int getNumDimensions() const;
-   void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
+   void fillDimensionData( nanos_region_dimension_internal_t *region) const;
    bool operator<( global_reg_t const &reg ) const;
    bool operator!=( global_reg_t const &reg ) const;
    memory_space_id_t getFirstLocation() const;
