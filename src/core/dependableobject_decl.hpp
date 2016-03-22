@@ -86,7 +86,8 @@ namespace nanos
    class DependableObject
    {
       public:
-         typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
+         typedef std::pair< unsigned int, DependableObject * > DependableObjectVectorKey;
+         typedef std::set<DependableObjectVectorKey> DependableObjectVector; /**< Type vector of successors  */
          typedef std::vector<BaseDependency*> TargetVector; /**< Type vector of output objects */
          
       private:

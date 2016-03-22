@@ -78,16 +78,16 @@ void DependableObject::finished ( )
          WD** pIS = immediateSucc;
          
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
-            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+            NANOS_INSTRUMENT ( instrument ( *(it->second) ); ) 
             // If this dependable object can't be released in batch
-            if ( !(*it)->canBeBatchReleased() )
+            if ( !it->second->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL, this, false, false );
+               it->second->decreasePredecessors( NULL, this, false, false );
                continue;
             }
             
             // Release this Dependable Object without triggering submission
-            DependableObject& dSucc = **it;
+            DependableObject& dSucc = *it->second;
             // Decrease predecessors
             int numPred = dSucc.decreasePredecessors( NULL, this, true, false );
             
@@ -119,8 +119,8 @@ void DependableObject::finished ( )
       else 
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
-            NANOS_INSTRUMENT ( instrument ( *(*it) ); )
-            (*it)->decreasePredecessors( NULL, this, false, false );
+            NANOS_INSTRUMENT ( instrument ( *it->second ); )
+            it->second->decreasePredecessors( NULL, this, false, false );
          }
       }
    }
@@ -149,8 +149,8 @@ void DependableObject::releaseReadDependencies ()
    //Decrease predecessor for sucessor tasks
    //Only decrease if they are NOT writing or reading something that we write
    for ( DependableObject::DependableObjectVector::iterator currSucessorIt = succ.begin(); currSucessorIt != succ.end(); ) {
-      DependableObject::TargetVector const &sucessorWrites = (*currSucessorIt)->getWrittenTargets();
-      DependableObject::TargetVector const &sucessorReads = (*currSucessorIt)->getReadTargets();
+      DependableObject::TargetVector const &sucessorWrites = currSucessorIt->second->getWrittenTargets();
+      DependableObject::TargetVector const &sucessorReads = currSucessorIt->second->getReadTargets();
       bool canRemovePredecessor=true;
       for ( DependableObject::TargetVector::const_iterator itCurrWrites = writes.begin(); itCurrWrites != writes.end() && canRemovePredecessor; itCurrWrites++ ) {
          BaseDependency const & currWrite = *(*itCurrWrites);
@@ -168,8 +168,8 @@ void DependableObject::releaseReadDependencies ()
       }
       if (canRemovePredecessor) {
          //DependenciesDomain::decreaseTasksInGraph();
-         NANOS_INSTRUMENT ( instrument ( *(*currSucessorIt) ); ) 
-         (*currSucessorIt)->decreasePredecessors( NULL, this, false, false );
+         NANOS_INSTRUMENT ( instrument ( *currSucessorIt->second ); ) 
+         currSucessorIt->second->decreasePredecessors( NULL, this, false, false );
          succ.erase(currSucessorIt++);
       }
       else 
@@ -197,13 +197,14 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
       // NOTE: it gets incremented in the erase
       for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
          // Is this an immediate successor? 
-         if ( (*it)->numPredecessors() == 1 && condition(**it) && !((*it)->waits()) ) {
-            if ((*it)->isSubmitted()) {
+         if ( it->second->numPredecessors() == 1 && condition(*it->second) && !(it->second->waits()) ) {
+            if (it->second->isSubmitted()) {
                // remove it
-               found = *it;
+               found = it->second;
+               unsigned int wdId = it->first;
                succ.erase(it++);
                if ( found->numPredecessors() != 1 ) {
-                  incorrectlyErased.insert( found );
+                  incorrectlyErased.insert( std::make_pair( wdId, found ) );
                   found = NULL;
                } else {
                   NANOS_INSTRUMENT ( instrument ( *found ); )
@@ -215,7 +216,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      // because someone else will do it
                      // Keep the dependency to signal when the WD can actually be run respecting dependencies
                      found->disableSubmission();
-                     succ.insert( found );
+                     succ.insert( std::make_pair( wdId, found ) );
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
                      if(sys.getPredecessorLists()) {

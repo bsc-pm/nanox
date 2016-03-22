@@ -42,7 +42,7 @@ inline DependableObject::~DependableObject ( )
    {
       SyncLockBlock lock( this->getLock() );
       for ( DependableObjectVector::iterator it = _predecessors.begin(); it != _predecessors.end(); it++ ) {
-         ( *it )->deleteSuccessor( *this );
+         it->second->deleteSuccessor( *this );
       }
    }
 
@@ -131,7 +131,8 @@ inline void DependableObject::decreasePredecessorsInLock ( DependableObject * fi
 
       //remove the predecessor from the list!
       if ( _predecessors.size() != 0 ) {
-         DependableObjectVector::iterator it = _predecessors.find( finishedPred );
+         unsigned int wdId = finishedPred->getWD()->getId();
+         DependableObjectVector::iterator it = _predecessors.find( std::make_pair( wdId, finishedPred ) );
          if ( it != _predecessors.end() )
             _predecessors.erase( it );
       }
@@ -165,7 +166,7 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    bool inserted = false;
    {
       SyncLockBlock lock( this->getLock() );
-      inserted = _predecessors.insert ( &depObj ).second;
+      inserted = _predecessors.insert ( std::make_pair( depObj.getWD()->getId(), &depObj ) ).second;
    }
 
    return inserted;
@@ -182,12 +183,12 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 
    sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
 
-   return _successors.insert ( &depObj ).second;
+   return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
 }
 
 inline bool DependableObject::deleteSuccessor ( DependableObject *depObj )
 {
-   return _successors.erase( depObj ) > 0;
+   return _successors.erase( std::make_pair( depObj->getWD()->getId(), depObj ) ) > 0;
 }
 
 inline bool DependableObject::deleteSuccessor ( DependableObject &depObj )

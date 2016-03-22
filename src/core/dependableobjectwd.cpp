@@ -60,7 +60,7 @@ void DOSubmit::instrument ( DependableObject &successor )
                       if ( succ == NULL ) {
                          DependableObject::DependableObjectVector &succ2 = successor.getSuccessors();
                          for ( DependableObject::DependableObjectVector::iterator it = succ2.begin(); it != succ2.end(); it++ ) {
-                            instrument ( *(*it) ); 
+                            instrument ( *(it->second) ); 
                          }
                          return;
                       }
@@ -116,7 +116,7 @@ void DOWait::instrument ( DependableObject &successor )
                       if ( succ == NULL ) {
                          DependableObject::DependableObjectVector &succ2 = successor.getSuccessors();
                          for ( DependableObject::DependableObjectVector::iterator it = succ2.begin(); it != succ2.end(); it++ ) {
-                            instrument ( *(*it) ); 
+                            instrument ( *(it->second) ); 
                          }
                          return;
                       }
