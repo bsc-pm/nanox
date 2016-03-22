@@ -1379,6 +1379,12 @@ void RegionCache::_copyIn( global_reg_t const &reg, uint64_t devAddr, uint64_t h
    if ( VERBOSE_DEV_OPS ) {
       *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() << ")._copyIn( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< wd->getId() << " ["<< (wd->getDescription() != NULL ? wd->getDescription() : "no description") << "] );" <<std::endl;
    }
+   if ( sys._watchAddr != NULL ) {
+   if ( (uint64_t) sys._watchAddr >= hostAddr && ((uint64_t) sys._watchAddr ) < hostAddr + len ) {
+      *myThread->_file << "WATCH " ;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() << ")._copyIn( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< wd->getId() << " ["<< (wd->getDescription() != NULL ? wd->getDescription() : "no description") << "] );" <<std::endl;
+   }
+   }
    if (!fake) _device._copyIn( devAddr, hostAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
 }
@@ -1396,6 +1402,12 @@ void RegionCache::_copyOut( global_reg_t const &reg, uint64_t hostAddr, uint64_t
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
    if ( VERBOSE_DEV_OPS ) {
       *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() <<")._copyOut( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< (wd != NULL ? wd->getId() : -1 ) << " ["<< ( wd != NULL && wd->getDescription() != NULL ? wd->getDescription() : "no description") <<"] );" <<std::endl;
+   }
+   if ( sys._watchAddr != NULL ) {
+      if ( (uint64_t) sys._watchAddr >= hostAddr && ((uint64_t) sys._watchAddr ) < hostAddr + len ) {
+         *myThread->_file << "WATCH " ;
+         *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() <<")._copyOut( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< (wd != NULL ? wd->getId() : -1 ) << " ["<< ( wd != NULL && wd->getDescription() != NULL ? wd->getDescription() : "no description") <<"] );" <<std::endl;
+      }
    }
    if (!fake) _device._copyOut( hostAddr, devAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
@@ -1434,6 +1446,12 @@ bool RegionCache::_copyDevToDev( global_reg_t const &reg, memory_space_id_t copy
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    if ( VERBOSE_DEV_OPS ) {
       *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() <<")._copyDevToDev( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len=" << len << ", _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd->getId() << " ["<< (wd->getDescription() != NULL ? wd->getDescription() : "no description") << "] );" <<std::endl;
+   }
+   if ( sys._watchAddr != NULL ) {
+   if ( (uint64_t) sys._watchAddr >= hostAddr && ((uint64_t) sys._watchAddr ) < hostAddr + len ) {
+      *myThread->_file << "WATCH " ;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ", #" << _device.increaseNumOps() <<")._copyDevToDev( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len=" << len << ", _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd->getId() << " ["<< (wd->getDescription() != NULL ? wd->getDescription() : "no description") << "] );" <<std::endl;
+   }
    }
    if (!fake) {
       result = _device._copyDevToDev( devAddr, origDevAddr, len, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );

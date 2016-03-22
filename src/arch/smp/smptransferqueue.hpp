@@ -38,7 +38,23 @@ void SMPTransfer::execute() {
    NANOS_INSTRUMENT ( static nanos_event_key_t key_out = ID->getEventKey("cache-copy-out"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( _in ? key_in : key_out , (nanos_event_value_t) _count * _len ); )
    for ( std::size_t count = 0; count < _count; count += 1) {
+      if ( sys.getVerboseDevOps()){ 
+         std::cerr << "memcpy( " << (void*)(_dst + count) << ", " << (void*)(_src + count *_ld) << ", " << _len << " ) [ld= " << _ld << " count= " << _count << " _dst= " << (void*)_dst << " _src= " << (void*)_src << " ]" << std::endl;
+      }
+      if (sys._watchAddr != NULL ) {
+         if ((uint64_t )sys._watchAddr >= (uint64_t)(_dst + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count *_ld + _len)) {
+            *myThread->_file << "WATCH update: old value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+         if ((uint64_t )sys._watchAddr >= (uint64_t)(_src + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count * _ld + _len)) {
+            *myThread->_file << "WATCH read: value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+      }
       ::memcpy( _dst + count * _ld, _src + count * _ld, _len );
+      if (sys._watchAddr != NULL ) {
+         if ((uint64_t )sys._watchAddr >= (uint64_t)(_dst + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count * _ld + _len)) {
+            *myThread->_file << "WATCH update: new value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+      }
    }
    //*myThread->_file << "Execueted op " << (void *) _dst  << " ops: " << (void *) _ops << " is in " << _in << " content (dst): [" << ((double *)_dst)[0] << " " << ((double *)_dst)[1] << "]" << std::endl; 
    _ops->completeOp();

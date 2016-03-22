@@ -28,6 +28,7 @@
 #include "copydescriptor.hpp"
 #include "system_decl.hpp"
 #include "smptransferqueue.hpp"
+#include "globalregt.hpp"
 
 namespace nanos
 {
@@ -74,6 +75,11 @@ void SMPDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+      if (sys._watchAddr != NULL ) {
+         if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
+            *myThread->_file << "WATCH update dev: value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+      }
       ::memcpy( (void *) devAddr, (void *) hostAddr, len );
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key, (nanos_event_value_t) 0 ); )
       ops->completeOp();
@@ -88,7 +94,17 @@ void SMPDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-out"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+      if (sys._watchAddr != NULL ) {
+         if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
+            *myThread->_file << "WATCH update host: old value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+      }
       ::memcpy( (void *) hostAddr, (void *) devAddr, len );
+      if (sys._watchAddr != NULL ) {
+         if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
+            *myThread->_file << "WATCH update host: new value " << *((double *) sys._watchAddr )<< std::endl;
+         }
+      }
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key, (nanos_event_value_t) 0 ); )
       ops->completeOp();
    }
@@ -102,6 +118,14 @@ bool SMPDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+      if (sys._watchAddr != NULL ) {
+         global_reg_t reg( hostRegionId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ) );
+         uint64_t target_addr = reg.getKeyFirstAddress();
+         if ((uint64_t )sys._watchAddr >= target_addr && (uint64_t )sys._watchAddr < target_addr + reg.getBreadth() ) {
+            uint64_t offset = (uint64_t) sys._watchAddr - target_addr;
+            *myThread->_file << "WATCH update dev from dev: old value [ " << (void *)(devDestAddr + offset) << " ] " << *((double *) (devDestAddr + offset) ) << " set value [from " << (void *)(devOrigAddr + offset) << " ] " << *((double *) (devOrigAddr + offset) )<< std::endl;
+         }
+      }
       ::memcpy( (void *) devDestAddr, (void *) devOrigAddr, len );
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key, (nanos_event_value_t) 0 ); )
       ops->completeOp();
