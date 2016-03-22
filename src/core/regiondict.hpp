@@ -638,14 +638,17 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 								metadata_regs.insert(*sit);
 							}
 						}
+                  if ( this_id == 1 ) {
+                     metadata_regs.insert( 1 );
+                  }
 						if ( metadata_regs.size() >= 1 ) {
-							// if ( metadata_regs.size() > 1 ) {
-							// 	*myThread->_file << "Multiple regions can be the parent region: ";
-							// 	for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
-							// 		*myThread->_file << *sit << " ";
-							// 	}
-							// 	*myThread->_file << std::endl;
-							// }
+							//  if ( metadata_regs.size() > 1 ) {
+							//  	*myThread->_file << "Multiple regions can be the parent region: ";
+							//  	for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
+							//  		*myThread->_file << *sit << " ";
+							//  	}
+							//  	*myThread->_file << std::endl;
+							//  }
 							reg_t max_version_reg = 0;
 							unsigned int current_version = 0;
 							//bool has_own_region = false;
@@ -662,13 +665,13 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 									max_version_reg = *sit;
 								}
 							}
-							//if ( metadata_regs.size() > 1 && max_version_reg != 0 ) {
-							//	*myThread->_file << "[w/id " << this_id << "] Selected region (by version: " << current_version <<") : " << max_version_reg << " own_version: " << own_version << std::endl;
-							//	for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
-							//		*myThread->_file << *sit << " ";
-							//	}
-							//	*myThread->_file << std::endl;
-							//}
+							// if ( metadata_regs.size() > 1 && max_version_reg != 0 ) {
+							// 	*myThread->_file << "[w/id " << this_id << "] Selected region (by version: " << current_version <<") : " << max_version_reg << " own_version: " << own_version << std::endl;
+							// 	for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
+							// 		*myThread->_file << *sit << " ";
+							//    }
+							// 	*myThread->_file << std::endl;
+							// }
 							if ( own_version == current_version && max_version_reg != 0 ) {
 								max_version_reg = this_id;
 							}
