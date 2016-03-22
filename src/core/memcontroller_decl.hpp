@@ -81,6 +81,7 @@ public:
    bool isMultipleRooted( std::list<memory_space_id_t> &locs ) const ;
    void setMainWD();
    void synchronize();
+   void synchronize( std::size_t numDataAccesses, DataAccess *data);
    bool isMemoryAllocated() const;
    void setCacheMetaData();
    bool ownsRegion( global_reg_t const &reg );

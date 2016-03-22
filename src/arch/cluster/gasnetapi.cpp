@@ -960,11 +960,12 @@ void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t ar
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
-void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
+void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi ) {
    DisableAM c;
    WorkDescriptor *wds[4];
    unsigned int numWDs = 0;
    gasnet_node_t src_node;
+   void * addr = (void *) MERGE_ARG( addrHi, addrLo );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
@@ -985,7 +986,7 @@ void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
    wds[numWDs] = getInstance()->_rwgs[src_node][3];
    numWDs += 1;
 #endif
-   getInstance()->_net->notifySynchronizeDirectory( numWDs, wds );
+   getInstance()->_net->notifySynchronizeDirectory( numWDs, wds, addr );
 }
 
 void GASNetAPI::amIdle( gasnet_token_t token ) {
@@ -1627,9 +1628,9 @@ void GASNetAPI::sendRegionMetadata( unsigned int dest, CopyData *cd, unsigned in
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRegionMetadata done" << std::endl; );
 }
 
-void GASNetAPI::synchronizeDirectory(unsigned int dest) {
+void GASNetAPI::synchronizeDirectory(unsigned int dest, void *addr ) {
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amSynchronizeDirectory" << std::endl; );
-   if ( gasnet_AMRequestShort0( dest, 225 ) != GASNET_OK )
+   if ( gasnet_AMRequestShort2( dest, 225, ARG_LO( addr ), ARG_HI( addr ) ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }

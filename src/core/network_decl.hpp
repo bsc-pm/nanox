@@ -206,14 +206,15 @@ namespace nanos {
          class SyncWDs {
             unsigned int _numWDs;
             WD **_wds;
+            void *_addr;
             public:
-            SyncWDs( int num, WD **wds ) : _numWDs( num ) {
+            SyncWDs( int num, WD **wds, void *addr ) : _numWDs( num ), _addr( addr ) {
                _wds = NEW WD*[num];
                for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
                   _wds[idx] = wds[idx];
                }
             }
-            SyncWDs( SyncWDs const &s ) : _numWDs( s._numWDs ) {
+            SyncWDs( SyncWDs const &s ) : _numWDs( s._numWDs ), _addr( s._addr ) {
                _wds = NEW WD*[_numWDs];
                for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
                   _wds[idx] = s._wds[idx];
@@ -221,6 +222,7 @@ namespace nanos {
             }
             SyncWDs &operator=( SyncWDs const &s ) {
                this->_numWDs = s._numWDs;
+               this->_addr = s._addr;
                this->_wds = NEW WD*[this->_numWDs];
                for ( unsigned int idx = 0; idx < this->_numWDs; idx += 1 ) {
                   this->_wds[idx] = s._wds[idx];
@@ -230,6 +232,7 @@ namespace nanos {
             ~SyncWDs() { delete[] _wds; }
             unsigned int getNumWDs() const { return _numWDs; }
             WD **getWDs() const { return _wds; }
+            void *getAddr() const { return _addr; }
          };
          std::list<SyncWDs> _syncReqs;
          RecursiveLock _syncReqsLock;
@@ -309,7 +312,7 @@ namespace nanos {
          void notifyRequestPut( SendDataRequest *req );
          void notifyGet( SendDataRequest *req );
          void notifyRegionMetaData( CopyData *cd, unsigned int seq );
-         void notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds );
+         void notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds, void *addr );
          void notifyIdle( unsigned int node );
          void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
@@ -327,7 +330,7 @@ namespace nanos {
          unsigned int getMetadataSequenceNumber( unsigned int dest );
          unsigned int checkMetadataSequenceNumber( unsigned int dest );
          unsigned int updateMetadataSequenceNumber( unsigned int value );
-         void synchronizeDirectory();
+         void synchronizeDirectory( void *addr );
          void broadcastIdle();
          void processSyncRequests();
          void setParentWD(WD *wd);

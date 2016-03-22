@@ -203,7 +203,7 @@ namespace ext {
          void processSendDataRequest( SendDataRequest *req );
          unsigned int getNumNodes() const;
          unsigned int getNodeNum() const;
-         void synchronizeDirectory( unsigned int dest );
+         void synchronizeDirectory( unsigned int dest, void *addr );
          void broadcastIdle();
 
 
@@ -311,7 +311,7 @@ namespace ext {
                gasnet_handlerarg_t waitObjHi);
          static void amRegionMetadata(gasnet_token_t token,
                void *arg, std::size_t argSize, gasnet_handlerarg_t seq );
-         static void amSynchronizeDirectory(gasnet_token_t token);
+         static void amSynchronizeDirectory(gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi);
          static void amIdle(gasnet_token_t token);
    };
 }

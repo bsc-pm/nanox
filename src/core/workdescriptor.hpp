@@ -374,6 +374,7 @@ inline void WorkDescriptor::waitOn( size_t numDeps, DataAccess* deps )
 {
    _doWait->setWD(this);
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
+   _mcontrol.synchronize( numDeps, deps );
 }
 
 class DOIsSchedulable : public DependableObjectPredicate

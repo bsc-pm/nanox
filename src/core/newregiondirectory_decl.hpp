@@ -154,7 +154,7 @@ namespace nanos
 
          GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd );
          GlobalRegionDictionary *getRegionDictionary( CopyData const &cd );
-         GlobalRegionDictionary *getRegionDictionary( uint64_t addr );
+         GlobalRegionDictionary *getRegionDictionary( uint64_t addr, bool canFail );
          static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
          uint64_t _getKey( uint64_t addr, std::size_t len, WD const *wd );
          uint64_t _getKey( uint64_t addr ) const;
@@ -168,6 +168,8 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd );
          void synchronize( WD &wd );
+         void synchronize( WD &wd, void *addr );
+         void synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data );
 
          /*! \brief NewDirectory default constructor
           */

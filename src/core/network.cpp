@@ -937,7 +937,7 @@ void Network::notifyRegionMetaData( CopyData *cd, unsigned int seq ) {
       }
       //std::cerr << " processing " << __FUNCTION__ << " " << seq << std::endl;
    }
-   sys.getHostMemory().getRegionId( *cd, reg, *((WD *)0), 0 );
+   sys.getHostMemory().getRegionId( *cd, reg, *(myThread->getCurrentWD()), 0 );
 
    reg_t master_id = cd->getHostRegionId();
 
@@ -971,11 +971,11 @@ void Network::deleteDirectoryObject( GlobalRegionDictionary const *obj ) {
    }
 }
 
-void Network::synchronizeDirectory() {
+void Network::synchronizeDirectory( void *addr ) {
    if ( this->getNodeNum() == 0 ) { //this is called by the slaves by the handler of this message, avoid the recursive call
       if ( _api != NULL ) {
          for (unsigned int idx = 1; idx < getNumNodes(); idx += 1) {
-            _api->synchronizeDirectory( idx );
+            _api->synchronizeDirectory( idx, addr );
          }
       }
       this->nodeBarrier(); //slave node barrier is in notifySynchronizeDirectory
@@ -988,9 +988,9 @@ void Network::broadcastIdle() {
    }
 }
 
-void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds ) {
+void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds, void *addr ) {
    _syncReqsLock.acquire();
-   _syncReqs.push_back( SyncWDs( numWDs, wds ) );
+   _syncReqs.push_back( SyncWDs( numWDs, wds, addr ) );
    _syncReqsLock.release();
 }
 
@@ -1004,7 +1004,11 @@ void Network::processSyncRequests() {
                _syncReqsLock.release();
 
                for ( unsigned int idx = 0; idx < s.getNumWDs(); idx += 1 ) {
-                  sys.getHostMemory().synchronize( *(s.getWDs()[idx]) );
+                  if ( s.getAddr() != NULL ) {
+                     sys.getHostMemory().synchronize( *(s.getWDs()[idx]), s.getAddr() );
+                  } else {
+                     sys.getHostMemory().synchronize( *(s.getWDs()[idx]) );
+                  }
                }
                this->nodeBarrier(); //matches the call in synchronizeDirectory
             } else {

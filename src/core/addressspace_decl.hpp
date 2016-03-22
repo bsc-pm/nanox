@@ -103,6 +103,8 @@ class HostAddressSpace {
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
 
    void synchronize( WD &wd );
+   void synchronize( WD &wd, void *addr );
+   void synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data );
    memory_space_id_t getMemorySpaceId() const;
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
    NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );

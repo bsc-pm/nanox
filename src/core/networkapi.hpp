@@ -66,7 +66,7 @@ namespace nanos {
          virtual void *allocateReceiveMemory( std::size_t len ) = 0;
          virtual void freeReceiveMemory( void * addr ) = 0;
          virtual void processSendDataRequest( SendDataRequest *req ) = 0;
-         virtual void synchronizeDirectory( unsigned int node ) = 0;
+         virtual void synchronizeDirectory( unsigned int node, void *addr ) = 0;
          virtual void broadcastIdle() = 0;
    };
 }
