@@ -281,7 +281,7 @@ bool GPUThread::processDependentWD ( WD * wd )
    if ( doSubmit != NULL ) {
       DependableObject::DependableObjectVector & preds = wd->getDOSubmit()->getPredecessors();
       for ( DependableObject::DependableObjectVector::iterator it = preds.begin(); it != preds.end(); it++ ) {
-         WD * wdPred = ( WD * ) ( *it )->getRelatedObject();
+         WD * wdPred = ( WD * ) it->second->getRelatedObject();
          if ( wdPred != NULL ) {
             if ( wdPred->isTiedTo() == NULL || wdPred->isTiedTo() == ( BaseThread * ) this ) {
                if ( wdPred->getCudaStreamIdx() != -1 ) {
