@@ -143,6 +143,7 @@ System::System () :
       , _cgAlloc( false )
       , _inIdle( false )
 	  , _lazyPrivatizationEnabled (false)
+	  , _watchAddr (NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
 

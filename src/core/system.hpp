@@ -530,6 +530,10 @@ inline ThreadTeam *System::getMainTeam() {
    return _mainTeam;
 }
 
+inline void System::setVerboseDevOps(bool value) {
+   _verboseDevOps = value;
+}
+
 inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
 }

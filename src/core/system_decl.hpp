@@ -255,6 +255,7 @@ namespace nanos
          bool _cgAlloc;
          bool _inIdle;
          bool _lazyPrivatizationEnabled;
+         void *_watchAddr;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -666,6 +667,7 @@ namespace nanos
          bool isSimulator() const;
          ThreadTeam *getMainTeam();
          bool getVerboseDevOps() const;
+         void setVerboseDevOps(bool value);
          bool getVerboseCopies() const;
          bool getSplitOutputForThreads() const;
          std::string getRegionCachePolicyStr() const;
