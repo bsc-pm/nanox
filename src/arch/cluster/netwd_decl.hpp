@@ -23,8 +23,8 @@ namespace ext {
       char *getDataAddr() const;
       std::size_t getTotalDimensions() const;
       std::size_t getDataSize() const;
-      void (*getXlateFunc())(void *, void*) const;
-      void (*getOutline())(void *) const;
+      void (*getXlateFunc() const)(void *, void*);
+      void (*getOutline() const)(void *);
       unsigned int getArchId() const;
       unsigned int getWDId() const;
       WD const *getWDAddr() const;

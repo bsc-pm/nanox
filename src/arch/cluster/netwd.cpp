@@ -2,6 +2,10 @@
 #include "workdescriptor.hpp"
 #include "system_decl.hpp"
 #ifdef OpenCL_DEV
+#include "gpudd.hpp"
+#
+
+#ifdef OpenCL_DEV
 #include "opencldd.hpp"
 #endif
 
@@ -128,7 +132,7 @@ std::size_t SerializedWDFields::getDataSize() const {
    return _dataSize;
 }
 
-void (*SerializedWDFields::getXlateFunc())(void *, void*) const {
+void (*SerializedWDFields::getXlateFunc() const)(void *, void*) {
    return _xlate;
 }
 
@@ -144,7 +148,7 @@ WD const *SerializedWDFields::getWDAddr() const {
    return _wd;
 }
 
-void (*SerializedWDFields::getOutline())(void *) const {
+void (*SerializedWDFields::getOutline() const)(void *) {
    return _outline;
 }
 
