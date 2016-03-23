@@ -471,14 +471,17 @@ void NewNewRegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, Da
    std::map< uint64_t, MemoryMap< Object > * > objects_to_clear;
 
    for ( std::size_t idx = 0; idx < numDataAccesses; idx += 1 ) {
-      CopyData cd( (uint64_t) data[idx].getAddress(), NANOS_SHARED, true, true,
-            data[idx].getNumDimensions(), data[idx].getDimensions(), data[idx].getOffset(), 0, 0 );
+   uint64_t objectAddr = (uint64_t) data[idx].getAddress(); //FIXME: make sure this is the host base address
+   //   CopyData cd( (uint64_t) data[idx].getAddress(), NANOS_SHARED, true, true,
+   //         data[idx].getNumDimensions(), data[idx].getDimensions(), data[idx].getOffset(), 0, 0 );
       //o << cd << std::endl;
-      GlobalRegionDictionary *dict = getRegionDictionary( cd );
+   //uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
+      GlobalRegionDictionary *dict = getRegionDictionary( objectAddr, true ); 
+      if ( dict == NULL )
+         continue;
       //reg_t r = dict->obtainRegionId( cd.getDimensions() );
       //dict->printRegion(o, r);
       //o << std::endl;
-      uint64_t objectAddr = (uint64_t) data[idx].getAddress();
 
 
       std::list< std::pair< reg_t, reg_t > > missingParts;
