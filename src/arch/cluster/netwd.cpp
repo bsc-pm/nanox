@@ -1,13 +1,6 @@
 #include "netwd_decl.hpp"
 #include "workdescriptor.hpp"
 #include "system_decl.hpp"
-#ifdef OpenCL_DEV
-#include "gpudd.hpp"
-#
-
-#ifdef OpenCL_DEV
-#include "opencldd.hpp"
-#endif
 
 namespace nanos {
 namespace ext {
@@ -15,6 +8,7 @@ namespace ext {
 
 #ifdef GPU_DEV
 //FIXME: GPU Support
+#include "gpudd.hpp"
 void * local_nanos_gpu_factory( void *args );
 void * local_nanos_gpu_factory( void *args )
 {
