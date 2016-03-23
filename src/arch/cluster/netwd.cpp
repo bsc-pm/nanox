@@ -2,8 +2,34 @@
 #include "workdescriptor.hpp"
 #include "system_decl.hpp"
 
-namespace nanos {
-namespace ext {
+void * local_nanos_smp_factory( void *args );
+void * local_nanos_smp_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::SMPDD( smp->outline );
+}
+
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#include "opencldevice_decl.hpp"
+void * local_nanos_ocl_factory( void *args );
+void * local_nanos_ocl_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::OpenCLDD( smp->outline );
+}
+#endif
+
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#include "fpgadevice_decl.hpp"
+void * local_nanos_fpga_factory( void *args );
+void * local_nanos_fpga_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::FPGADD( smp->outline );
+}
+#endif
 
 
 #ifdef GPU_DEV
@@ -24,33 +50,10 @@ void * local_nanos_gpu_factory( void *args )
    //}
 }
 #endif
-void * local_nanos_smp_factory( void *args );
-void * local_nanos_smp_factory( void *args )
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::SMPDD( smp->outline );
-}
 
-#ifdef OpenCL_DEV
-#include "opencldd.hpp"
-#include "opencldevice_decl.hpp"
-void * local_nanos_ocl_factory( void *args );
-void * local_nanos_ocl_factory( void *args )
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::OpenCLDD( smp->outline );
-}
-#endif
-#ifdef FPGA_DEV
-#include "fpgadd.hpp"
-#include "fpgadevice_decl.hpp"
-void * local_nanos_fpga_factory( void *args );
-void * local_nanos_fpga_factory( void *args )
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::FPGADD( smp->outline );
-}
-#endif
+namespace nanos {
+namespace ext {
+
 
 std::size_t SerializedWDFields::getTotalSize( WD const &wd ) {
    unsigned int totalDimensions = 0;
