@@ -53,4 +53,3 @@ pm-tools-users-join\*.
 
 (\*) All our email accounts are hosted at bsc.es (i.e. \<account-name\>@bsc.es).
 
-<<[AUTHORS]
