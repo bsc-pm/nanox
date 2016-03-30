@@ -1,4 +1,5 @@
-[Back to README](README.md) > [Developers guide](developers_guide.md)
+[Back to README](README.md) > [developers guide](developers_guide.md)
+
 Git guidelines
 ==============
 

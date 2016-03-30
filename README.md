@@ -23,6 +23,9 @@ architectural level. This extensibility does not come for free. The runtime
 overheads are slightly increased, but there should be low enough for results to
 be meaningful except for cases of extreme-fine grain applications.
 
+You can find further information about the Nanos++ RTL in our
+[developers guide](doc/developers_guide.md).
+
 Creating New Issues
 -------------------
 

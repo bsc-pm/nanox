@@ -1,6 +1,8 @@
-[Back to README](README.md) > [Developers guide](developers_guide.md)
+[Back to README](README.md) > [developers guide](developers_guide.md)
+
 Coding Guidelines
 =================
+
 * Indenting should use 3 spaces (not tabs!).
 * Brackets should start on the opening statement (if, for,...) except for function blocks.
 * Labels, classes, cases should all be indented.
