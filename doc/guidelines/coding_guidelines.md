@@ -1,4 +1,4 @@
-**Back to:** [README](README.md) > [developers guide](developers_guide.md) >
+**Back to:** [README](../../README.md) > [developers guide](../developers_guide.md) >
 
 Coding Guidelines
 =================
