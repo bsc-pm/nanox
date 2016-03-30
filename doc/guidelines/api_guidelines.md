@@ -14,7 +14,7 @@ All services and types are documented in this manual:
 * Nanos++ Fortran API. All previous C services have an alias which allow alsoto
   use them in Fortran application.
 
-````
+````cpp
   __attribute__((alias nanos_service))) void nanos_service_ ( nanos_type_t nanos );
 
   void nanos_service ( nanos_type_t nanos )
@@ -27,21 +27,27 @@ Interface Usage
 ---------------
 
 * All types and services are defined in the **nanos.h** header.
-* Use **-INANOX_INSTALL_PREFIX/include** in the compilation step.
-* Use **-LNANOX_INSTALL_PREFIX/lib/<version> -lnanox-c** in the linkage step. Where version can be:
-   * **performance**: Runtime performance implementation.
-   * **debug**: Include debug information.
-   * **instrumentation**: Raises events which can be managed through a instrumentation plugin.
-   * **instrumentation-debug**: A combination of debug and instrumentation versions.
-* The API offers a default error handler `nanos_handle_error(nanos_err_t err)`. List of return values:
+* Use `-INANOX_INSTALL_PREFIX/include` in the compilation step.
+* Use `-LNANOX_INSTALL_PREFIX/lib/\<version\> -lnanox-c` in the linkage step.
+  Where version can be:
+   * **performance**: the default  implementation.
+   * **debug**: this version also includes debug information.
+   * **instrumentation**: raises runtime internal events which can be managed
+     through one the instrumentation plugins.
+   * **instrumentation-debug**: a combination of debug and instrumentation
+     versions.
+* The API offers a default error handler `nanos_handle_error(nanos_err_t err)`.
+  List of return values:
   * `NANOS_OK`: Everything was ok.
   * `NANOS_UNKNOW_ERR`: Not specified error.
   * `NANOS_UNIMPLEMENTED`: This service is not implemented yet.
 * Easier to use surrounding all library calls with the `NANOS_SAFE` macro. E.g.:
-````
+
+````cpp
 NANOS_SAFE(nanos_wd_create(...));
 ````
- * `NANOS_SAFE` will try to execute and it will handle the error (if any):
+
+* `NANOS_SAFE` will try to execute and it will handle the error (if any):
 
 ````cpp
 #define NANOS_SAFE( call ) \
@@ -50,4 +56,3 @@ do {\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
 ````
-
