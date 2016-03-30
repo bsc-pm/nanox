@@ -37,13 +37,13 @@ taken on them. Sometimes it is not obvious what is duplicated or not and you
 will have serious doubts about it. In this case just create the issue and add
 references to those issues you believe related with in its description.
 
-  1. Please, try to make a useful report. Where useful means we can figure out
+  2. Please, try to make a useful report. Where useful means we can figure out
 the source of your problem. A gdb backtrace it can be useful to use, be sure to
 use the debug version of Nanos++ in order to obtain an accurate backtrace. The
 debug version can be enabled passing the --debug flag to Mercurium when the
 application is built.
 
-  1. Use the CC field to stay tuned to changes in a bug. Add your username or
+  3. Use the CC field to stay tuned to changes in a bug. Add your username or
 e-mail there to track a bug and receive all the notifications due the different
 actions taken in this ticket.
 
