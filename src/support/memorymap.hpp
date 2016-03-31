@@ -772,48 +772,50 @@ void MemoryMap< _Type >::insertWithOverlapButNotGenerateIntersects( const Memory
          hint--;
       do {
          if ( hint->first.equal( iterKey ) ) {
-            fatal("unhandled");
-         }
-         switch ( hint->first.checkOverlap( iterKey ) )
-         {
-            case MemoryChunk::NO_OVERLAP:
-               if ( iterKey.getAddress() < hint->first.getAddress() )
-               {
-                  local.insertNoOverlap();
+            lastChunk = true;
+            ptrList.push_back( MemChunkPair ( &(hint->first), &(hint->second) ) );
+         } else {
+            switch ( hint->first.checkOverlap( iterKey ) )
+            {
+               case MemoryChunk::NO_OVERLAP:
+                  if ( iterKey.getAddress() < hint->first.getAddress() )
+                  {
+                     local.insertNoOverlap();
+                     lastChunk = true;
+                  }
+                  break;
+               case MemoryChunk::BEGIN_OVERLAP:
+                  local.insertBeginOverlap();
+                  lastChunk = true; //this is a final situation since the to-be-inserted chunk ends.
+                  break;
+               case MemoryChunk::END_OVERLAP:
+                  local.insertEndOverlap();
+                  break;
+               case MemoryChunk::TOTAL_OVERLAP:
+                  local.insertTotalOverlap();
+                  break;
+               case MemoryChunk::SUBCHUNK_OVERLAP:
+                  local.insertSubchunkOverlap();
                   lastChunk = true;
-               }
-               break;
-            case MemoryChunk::BEGIN_OVERLAP:
-               local.insertBeginOverlap();
-               lastChunk = true; //this is a final situation since the to-be-inserted chunk ends.
-               break;
-            case MemoryChunk::END_OVERLAP:
-               local.insertEndOverlap();
-               break;
-            case MemoryChunk::TOTAL_OVERLAP:
-               local.insertTotalOverlap();
-               break;
-            case MemoryChunk::SUBCHUNK_OVERLAP:
-               local.insertSubchunkOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::TOTAL_BEGIN_OVERLAP:
-               local.insertTotalBeginOverlap();
-               break;
-            case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
-               local.insertSubchunkBeginOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::TOTAL_END_OVERLAP:
-               local.insertTotalEndOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::SUBCHUNK_END_OVERLAP:
-               local.insertSubchunkEndOverlap();
-               lastChunk = true;
-               break;
+                  break;
+               case MemoryChunk::TOTAL_BEGIN_OVERLAP:
+                  local.insertTotalBeginOverlap();
+                  break;
+               case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
+                  local.insertSubchunkBeginOverlap();
+                  lastChunk = true;
+                  break;
+               case MemoryChunk::TOTAL_END_OVERLAP:
+                  local.insertTotalEndOverlap();
+                  lastChunk = true;
+                  break;
+               case MemoryChunk::SUBCHUNK_END_OVERLAP:
+                  local.insertSubchunkEndOverlap();
+                  lastChunk = true;
+                  break;
+            }
+            hint++;
          }
-         hint++;
       } while ( hint != this->end() && !lastChunk );
       if ( hint == this->end() && !lastChunk )
       {
@@ -1092,48 +1094,50 @@ void MemoryMap< _Type >::getWithOverlapNoExactKey( const MemoryChunk &key, const
       do {
          //*myThread->_file << "iterKey " << iterKey.getAddress() << " " << iterKey.getLength() << ", hint " << hint->first.getAddress() << " " << hint->first.getLength() << " " << MemoryChunk::strOverlap[ hint->first.checkOverlap( iterKey ) ] << std::endl;
          if ( hint->first.equal( iterKey ) ) {
-            fatal("unhandled");
-         }
-         switch ( hint->first.checkOverlap( iterKey ) )
-         {
-            case MemoryChunk::NO_OVERLAP:
-               if ( iterKey.getAddress() < hint->first.getAddress() )
-               {
-                  local.getNoOverlap();
+            lastChunk = true;
+            ptrList.push_back( ConstMemChunkPair ( MemoryChunk( hint->first ), hint->second ) );
+         } else {
+            switch ( hint->first.checkOverlap( iterKey ) )
+            {
+               case MemoryChunk::NO_OVERLAP:
+                  if ( iterKey.getAddress() < hint->first.getAddress() )
+                  {
+                     local.getNoOverlap();
+                     lastChunk = true;
+                  }
+                  break;
+               case MemoryChunk::BEGIN_OVERLAP:
+                  local.getBeginOverlap();
+                  lastChunk = true; //this is a final situation since the to-be-inserted chunk ends.
+                  break;
+               case MemoryChunk::END_OVERLAP:
+                  local.getEndOverlap();
+                  break;
+               case MemoryChunk::TOTAL_OVERLAP:
+                  local.getTotalOverlap();
+                  break;
+               case MemoryChunk::SUBCHUNK_OVERLAP:
+                  local.getSubchunkOverlap();
                   lastChunk = true;
-               }
-               break;
-            case MemoryChunk::BEGIN_OVERLAP:
-               local.getBeginOverlap();
-               lastChunk = true; //this is a final situation since the to-be-inserted chunk ends.
-               break;
-            case MemoryChunk::END_OVERLAP:
-               local.getEndOverlap();
-               break;
-            case MemoryChunk::TOTAL_OVERLAP:
-               local.getTotalOverlap();
-               break;
-            case MemoryChunk::SUBCHUNK_OVERLAP:
-               local.getSubchunkOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::TOTAL_BEGIN_OVERLAP:
-               local.getTotalBeginOverlap();
-               break;
-            case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
-               local.getSubchunkBeginOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::TOTAL_END_OVERLAP:
-               local.getTotalEndOverlap();
-               lastChunk = true;
-               break;
-            case MemoryChunk::SUBCHUNK_END_OVERLAP:
-               local.getSubchunkEndOverlap();
-               lastChunk = true;
-               break;
+                  break;
+               case MemoryChunk::TOTAL_BEGIN_OVERLAP:
+                  local.getTotalBeginOverlap();
+                  break;
+               case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
+                  local.getSubchunkBeginOverlap();
+                  lastChunk = true;
+                  break;
+               case MemoryChunk::TOTAL_END_OVERLAP:
+                  local.getTotalEndOverlap();
+                  lastChunk = true;
+                  break;
+               case MemoryChunk::SUBCHUNK_END_OVERLAP:
+                  local.getSubchunkEndOverlap();
+                  lastChunk = true;
+                  break;
+            }
+            hint++;
          }
-         hint++;
       } while ( hint != this->end() && !lastChunk );
    } else {
       ptrList.push_back( ConstMemChunkPair ( MemoryChunk(key), NULL ) );
