@@ -673,7 +673,7 @@ inline std::map<unsigned int, PE *> const &System::getPEs() const {
 
 inline void System::allocLock() {
    while ( !_allocLock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 }
 

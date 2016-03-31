@@ -274,7 +274,7 @@ reg_t ContainerDense< T >::getMaxRegionId() const {
 template <class T>
 void ContainerDense< T >::invalLock() {
    while ( !_invalidationsLock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 }
 
@@ -346,7 +346,7 @@ template <class T>
 Version *ContainerSparse< T >::getRegionData( reg_t id ) {
    //_containerLock.acquire();
    while ( !_containerLock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    std::map< reg_t, RegionVectorEntry >::iterator it = _container.lower_bound( id );
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
@@ -465,7 +465,7 @@ template < template <class> class Sparsity>
 void RegionDictionary< Sparsity >::lockObject() {
    //_lock.acquire();
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 }
 

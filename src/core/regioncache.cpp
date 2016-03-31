@@ -136,7 +136,7 @@ void AllocatedChunk::lock( bool setVerbose ) {
    //*myThread->_file << ": " << myThread->getId() <<" : Locked chunk " << (void *) this << std::endl;
    //_lock.acquire();
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    //sys.printBt();
    //*myThread->_file << "x " << myThread->getId() <<" x Locked chunk " << (void *) this << std::endl;
@@ -1600,7 +1600,7 @@ void RegionCache::copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, De
 
 void RegionCache::lock() {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 }
 void RegionCache::unlock() {
@@ -1613,7 +1613,7 @@ bool RegionCache::tryLock() {
 }
 void RegionCache::MAPlock() {
    while ( !_MAPlock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 }
 void RegionCache::MAPunlock() {
