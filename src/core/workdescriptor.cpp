@@ -359,6 +359,12 @@ void WorkDescriptor::done ()
 #endif
       _parent = NULL;
    }
+
+   #ifdef NANOX_TASK_CALLBACK
+   typedef void (* notify_t) ( void * );
+   notify_t notify = (notify_t) _callback;
+   if (notify ) notify(_arguments);
+   #endif
 }
 
 void WorkDescriptor::prepareCopies()

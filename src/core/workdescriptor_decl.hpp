@@ -273,6 +273,8 @@ typedef std::set<const Device *>  DeviceList;
          void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
          BaseThread const             *_notifyThread;
          void const                   *_remoteAddr;
+         void                         *_callback;
+         void                         *_arguments;
       public:
          MemController                 _mcontrol;
       private: /* private methods */
@@ -746,6 +748,9 @@ typedef std::set<const Device *>  DeviceList;
 
          void setCriticality ( int cr );
          int getCriticality ( void ) const;
+
+         void setCallback ( void *cb );
+         void setArguments ( void *a );
    };
 
    typedef class WorkDescriptor WD;

@@ -156,6 +156,9 @@ AX_CHECK_DLB
 # Check for Zynq Xilinx DMA driver library (fpga)
 AX_CHECK_XDMA
 
+# Enable Task callback feature
+AX_ENABLE_TASK_CALLBACK
+
 # Extrae check
 MPITRACE_HOME=""
 MPITRACE_INC=""
