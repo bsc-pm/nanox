@@ -34,9 +34,10 @@ class TransferListEntry {
    DeviceOps      *_ops;
    AllocatedChunk *_destinationChunk;
    AllocatedChunk *_sourceChunk;
+   uint64_t        _srcAddress;
    unsigned int    _copyIndex;
    public:
-   TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, unsigned int copyIdx );
+   TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, uint64_t srcAddr, unsigned int copyIdx );
    TransferListEntry( TransferListEntry const &t );
    TransferListEntry &operator=( TransferListEntry const &t );
    global_reg_t getRegion() const;
@@ -45,14 +46,15 @@ class TransferListEntry {
    AllocatedChunk *getDestinationChunk() const;
    AllocatedChunk *getSourceChunk() const;
    unsigned int getCopyIndex() const;
+   uint64_t getSrcAddress() const;
 };
 
-inline TransferListEntry::TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, unsigned int copyIdx ) :
-   _reg( reg ), _version( version ), _ops( ops ), _destinationChunk( destinationChunk ), _sourceChunk( sourceChunk ), _copyIndex( copyIdx ) {
+inline TransferListEntry::TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, uint64_t srcAddr, unsigned int copyIdx ) :
+   _reg( reg ), _version( version ), _ops( ops ), _destinationChunk( destinationChunk ), _sourceChunk( sourceChunk ), _srcAddress( srcAddr ), _copyIndex( copyIdx ) {
 }
 
 inline TransferListEntry::TransferListEntry( TransferListEntry const &t ) : 
-   _reg( t._reg ), _version( t._version ), _ops( t._ops ), _destinationChunk( t._destinationChunk ), _sourceChunk( t._sourceChunk ), _copyIndex( t._copyIndex ) {
+   _reg( t._reg ), _version( t._version ), _ops( t._ops ), _destinationChunk( t._destinationChunk ), _sourceChunk( t._sourceChunk ), _srcAddress( t._srcAddress ), _copyIndex( t._copyIndex ) {
 }
 
 inline TransferListEntry &TransferListEntry::operator=( TransferListEntry const &t ) {
@@ -61,6 +63,7 @@ inline TransferListEntry &TransferListEntry::operator=( TransferListEntry const 
    _ops = t._ops;
    _destinationChunk = t._destinationChunk;
    _sourceChunk = t._sourceChunk;
+   _srcAddress = t._srcAddress;
    _copyIndex = t._copyIndex;
    return *this;
 }
@@ -87,6 +90,10 @@ inline AllocatedChunk *TransferListEntry::getSourceChunk() const {
 
 inline unsigned int TransferListEntry::getCopyIndex() const {
    return _copyIndex;
+}
+
+inline uint64_t TransferListEntry::getSrcAddress() const {
+   return _srcAddress;
 }
 
 typedef std::list< TransferListEntry > TransferList;
@@ -159,6 +166,7 @@ class SeparateAddressSpace {
    bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
    void registerOwnedMemory(global_reg_t reg);
    Device const &getDevice() const;
+   AllocatedChunk *getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx );
 };
 
 template <class T>

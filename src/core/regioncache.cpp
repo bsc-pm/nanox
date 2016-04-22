@@ -363,9 +363,10 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                               } else if ( location != _owner.getMemorySpaceId() ) {
                                  sys.getSeparateMemory( location ).getCache().lock();
                                  AllocatedChunk *orig_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk( region_shape, wd, copyIdx );
+                                 uint64_t orig_dev_addr = orig_chunk->getAddress() + ( region_shape.getRealFirstAddress() - orig_chunk->getHostAddress() );
                                  sys.getSeparateMemory( location ).getCache().unlock();
                                  orig_chunk->unlock();
-                                 ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, orig_chunk, wd, copyIdx );
+                                 ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, orig_chunk, orig_dev_addr, wd, copyIdx );
                               }
                            } else {
                               ops.getOtherOps().insert( entryToCopyOps );
@@ -376,9 +377,10 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                            } else if ( location != _owner.getMemorySpaceId() ) {
                               sys.getSeparateMemory( location ).getCache().lock();
                               AllocatedChunk *orig_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk( region_shape, wd, copyIdx );
+                              uint64_t orig_dev_addr = orig_chunk->getAddress() + ( region_shape.getRealFirstAddress() - orig_chunk->getHostAddress() );
                               sys.getSeparateMemory( location ).getCache().unlock();
                               orig_chunk->unlock();
-                              ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, orig_chunk, wd, copyIdx );
+                              ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, orig_chunk, orig_dev_addr, wd, copyIdx );
                            }
                         }
                      }// else {
@@ -1244,6 +1246,15 @@ AllocatedChunk *RegionCache::getAddress( uint64_t hostAddr, std::size_t len ) {
    allocChunkPtr->lock();
    return allocChunkPtr;
 }
+
+//AllocatedChunk *RegionCache::getAndReferenceAllocatedChunk( global_reg_t const &reg, WD const *wd, unsigned int copyIdx ) const {
+//   this->lock();
+//   AllocatedChunk *chunk = _getAllocatedChunk( reg, true, true, wd, copyIdx );
+//   chunk->addReference( wd, 22 );
+//   chunk->unlock();
+//   this->unlock();
+//   return chunk;
+//}
 
 AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const {
    return _getAllocatedChunk( reg, true, true, wd, copyIdx );

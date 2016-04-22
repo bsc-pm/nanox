@@ -67,6 +67,9 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
+   if ( lwd->getHostId() != 0 ) {
+      id = lwd->getHostId();
+   }
 
    return id;
 }

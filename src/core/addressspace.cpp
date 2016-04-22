@@ -205,4 +205,8 @@ Device const &SeparateAddressSpace::getDevice() const {
    return _cache.getDevice();
 }
 
+//AllocatedChunk *SeparateAddressSpace::getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx ) {
+//   return _cache.getAndReferenceAllocatedChunk( reg, wd, copyIdx );
+//}
+
 }

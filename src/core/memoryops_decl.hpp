@@ -78,7 +78,7 @@ class BaseAddressSpaceInOps : public BaseOps {
    BaseAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit );
    virtual ~BaseAddressSpaceInOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const &wd,  unsigned int copyIdx );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, uint64_t srcDevAddr, WD const &wd,  unsigned int copyIdx );
    void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );

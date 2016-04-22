@@ -211,6 +211,9 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
 
                   DependenciesDomain::decreaseTasksInGraph();
 
+                  if ( found->getWD() != NULL ) {
+                     found->getWD()->predecessorFinished( this->getWD() );
+                  }
                   if ( keepDeps ) {
                      // This means that the WD related to this DO does not need to be submitted,
                      // because someone else will do it
@@ -249,4 +252,35 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
       }
    }
    return found;
+}
+bool DependableObject::addSuccessor ( DependableObject &depObj )
+{
+   // Avoiding create cycles in dependence graph
+   if ( this == &depObj ) return false;
+
+   if (depObj._num < _num + 1) {
+      depObj._num = _num + 1;
+
+      if(sys.getPredecessorLists()) {
+         for ( DependableObjectVector::const_iterator it = depObj._predecessors.begin();
+               it != depObj._predecessors.end(); it++ ) {
+            int value = (it->second->_lss == -1 ) ? depObj._num - 1 : (it->second->_lss < depObj._num - 1 ? depObj._num - 1 : it->second->_lss );
+            it->second->_lss = value;
+         }
+      }
+   }
+   if ( _lss == -1 ) {
+      _lss = depObj._num - 1;
+   } else if ( depObj._num < _lss ) {
+      _lss = depObj._num - 1;
+   }
+
+   //Maintain the list of predecessors
+   if(sys.getPredecessorLists()) {
+      depObj.addPredecessor( *this );
+   }
+
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
+
+   return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
 }

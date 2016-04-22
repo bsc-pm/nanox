@@ -113,7 +113,7 @@ System::System () :
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
-      _predecessorLists( false ), _throttlePolicy ( NULL ),
+      _predecessorLists( true ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -142,8 +142,10 @@ System::System () :
       , _invalControl( false )
       , _cgAlloc( true )
       , _inIdle( false )
-	  , _lazyPrivatizationEnabled (false)
-	  , _watchAddr (NULL)
+	   , _lazyPrivatizationEnabled (false)
+	   , _preSchedule (false)
+      , _slots()
+	   , _watchAddr (NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -457,6 +459,10 @@ void System::config ()
 		   "Enable lazy reduction privatization" );
    cfg.registerArgOption ( "enable-lazy-privatization", "enable-lazy-privatization" );
 
+   cfg.registerConfigOption( "preschedule", NEW Config::FlagOption( _preSchedule ),
+                             "Enables pre scheduling" );
+   cfg.registerArgOption( "preschedule", "preschedule" );
+
    _schedConf.config( cfg );
 
    _hwloc.config( cfg );
@@ -718,6 +724,16 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
 
+//   for ( std::map<int, std::set< WD * > >::const_iterator it = _slots.begin();
+//         it != _slots.end(); it++ ) {
+//      std::cerr << "["<< it->first << "]: ";
+//      for ( std::set< WD * >::const_iterator sit = it->second.begin();
+//            sit != it->second.end(); sit++ ) {
+//         std::cerr << (*sit)->getId() << " ";
+//      }
+//      std::cerr << std::endl;
+//   }
+
    //! \note waiting for remaining tasks
    myThread->getCurrentWD()->waitCompletion( true );
 
@@ -850,6 +866,9 @@ void System::finish ()
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
+
+   // FIXME: if we enable this, the program may crash calling _net.finalize():
+   _pluginManager.unloadPlugins();
 
    verbose0 ( "NANOS++ shutting down.... end" );
    //! \note printing execution summary
@@ -1805,4 +1824,199 @@ void System::notifyIdle( unsigned int node ) {
 }
 
 void System::disableHelperNodes() {
+}
+
+void System::preSchedule() {
+   if ( _preSchedule ) {
+   unsigned int max_wd_per_level = 0;
+   for ( std::map<int, std::set< WD * > >::const_iterator it = _slots.begin();
+         it != _slots.end(); it++ ) {
+      max_wd_per_level = it->second.size() > max_wd_per_level ? it->second.size() : max_wd_per_level;
+       //std::cerr << "["<< it->first << "]: ";
+       //for ( std::set< WD * >::const_iterator sit = it->second.begin();
+       //      sit != it->second.end(); sit++ ) {
+       //   std::cerr << "[" << (*sit)->getId() << ", " << (*sit)->getDOSubmit()->getNum() << ", " << (*sit)->getDOSubmit()->getLSS() << "] ";
+       //}
+       //std::cerr << std::endl;
+   }
+      std::cerr << "Computed max_wd_per_level " << max_wd_per_level << std::endl;
+   int max_prio = max_wd_per_level + 1;
+   for ( std::map<int, std::set< WD * > >::const_iterator it = _slots.begin();
+         it != _slots.end(); it++ ) {
+      int this_level_prio = max_prio - it->second.size();
+      unsigned int this_level_count = 0;
+      for ( std::set< WD * >::const_iterator sit = it->second.begin();
+            sit != it->second.end(); sit++ ) {
+         WD *wd = *sit;
+         wd->setPriority( this_level_prio );
+         if ( sys.getNetwork()->getNodeNum() == 0 ) {
+            wd->tieToLocation( this_level_count % sys.getNumClusterNodes() );
+         }
+         this_level_count += 1;
+      }
+   }
+
+   memory_space_id_t max_mem_id = 0;
+   for( std::set<memory_space_id_t>::const_iterator locit = getActiveMemorySpaces().begin();
+         locit != getActiveMemorySpaces().end(); locit++ ) {
+      std::cerr << "this loc " << *locit << std::endl;
+      max_mem_id = max_mem_id < *locit ? *locit : max_mem_id;
+   }
+   std::vector< std::map< unsigned int, std::set< WD * > > * > memspace_usage_sets( max_mem_id+1, NULL );
+   for( std::set<memory_space_id_t>::const_iterator locit = getActiveMemorySpaces().begin();
+         locit != getActiveMemorySpaces().end(); locit++ ) {
+      memspace_usage_sets[*locit] = NEW std::map< unsigned int, std::set< WD * > >();
+   }
+   std::vector< int > memspace_usage( max_mem_id+1, -1 );
+   for( std::set<memory_space_id_t>::const_iterator locit = getActiveMemorySpaces().begin();
+         locit != getActiveMemorySpaces().end(); locit++ ) {
+      memspace_usage[*locit] = 0;
+   }
+
+
+   for ( std::map<int, std::set< WD * > >::const_reverse_iterator it = _slots.rbegin();
+         it != _slots.rend(); it++ ) {
+
+      {
+         std::cerr << "=== start process slot " << it->first << std::endl;
+
+         /* assign */
+         unsigned int max_wd_count = 0;
+         std::vector< int > this_slot_memspace_usage( memspace_usage );
+         std::vector< std::map< unsigned int, std::set< WD * > > * > this_slot_memspace_usage_sets( memspace_usage_sets );
+         std::set<memory_space_id_t>::const_iterator locs = getActiveMemorySpaces().begin();
+         for ( std::set< WD * >::const_iterator sit = it->second.begin();
+               sit != it->second.end(); sit++ ) {
+            WD *wd = *sit;
+            memory_space_id_t target_loc = (memory_space_id_t) -1;
+            if ( !wd->_schedPredecessorLocs.empty() ) {
+               //FIXME: elaborate
+               std::map<memory_space_id_t, unsigned int>::const_iterator it2 = (*sit)->_schedPredecessorLocs.begin();
+               memory_space_id_t selected = it2->first;
+               unsigned int max_count = it2->second;
+               it2++;
+               while ( it2 != (*sit)->_schedPredecessorLocs.end() ) {
+                  if ( it2->second > max_count ) {
+                     selected = it2->first;
+                  }
+                  it2++;
+               }
+               target_loc = selected;
+            } else {
+               target_loc = *locs;
+               locs++;
+               if ( locs == getActiveMemorySpaces().end() ) {
+                  locs = getActiveMemorySpaces().begin();
+               }
+            }
+            int criticality = wd->getDOSubmit()->getLSS() < 0 ? 0 : wd->getDOSubmit()->getLSS() - wd->getDOSubmit()->getNum() ;
+
+            (*this_slot_memspace_usage_sets[ target_loc ])[criticality].insert( wd );
+            this_slot_memspace_usage[ target_loc ] += 1;
+            max_wd_count = this_slot_memspace_usage[ target_loc ] > (int)max_wd_count ? this_slot_memspace_usage[ target_loc ] : max_wd_count;
+            wd->_schedValues[0] = target_loc;
+         }
+
+         /* balance */
+         int num_wds_per_memspace = it->second.size() / getActiveMemorySpaces().size();
+
+         for ( unsigned int idx = 0; idx < max_mem_id + 1; idx += 1 ) {
+            if ( this_slot_memspace_usage[ idx ] != -1 ) {
+               if ( this_slot_memspace_usage[ idx ] < (num_wds_per_memspace-1) ) {
+                  std::cerr << "slot " << it->first << " should rebalance (ADD) for memspace " << idx << " current assign " << this_slot_memspace_usage[idx] << " max is " << max_wd_count << " target balance is " << num_wds_per_memspace << std::endl;
+                  for (std::map< unsigned int, std::set<WD *> >::reverse_iterator sit = this_slot_memspace_usage_sets[ idx ]->rbegin();
+                        sit != this_slot_memspace_usage_sets[ idx ]->rend(); sit++ ) {
+                     std::cerr << " WDs at level " << sit->first << ": ";
+                     for (std::set<WD *>::const_iterator isit = sit->second.begin(); isit != sit->second.end(); isit++ ) {
+                        std::cerr << (*isit)->getId() << " ";
+                     }
+                     std::cerr << std::endl;
+                  }
+               } else if ( this_slot_memspace_usage[ idx ] > (num_wds_per_memspace+1) ) {
+                  std::cerr << "slot " << it->first << " should rebalance (REMOVE) for memspace " << idx << " current assign " << this_slot_memspace_usage[idx] << " max is " << max_wd_count << " target balance is " << num_wds_per_memspace << std::endl;
+                  for (std::map< unsigned int, std::set<WD *> >::reverse_iterator sit = this_slot_memspace_usage_sets[ idx ]->rbegin();
+                        sit != this_slot_memspace_usage_sets[ idx ]->rend(); sit++ ) {
+                     std::cerr << " WDs at level " << sit->first << ": ";
+                     for (std::set<WD *>::const_iterator isit = sit->second.begin(); isit != sit->second.end(); isit++ ) {
+                        std::cerr << (*isit)->getId() << " ";
+                     }
+                     std::cerr << std::endl;
+                  }
+                  int rebalance_wds = this_slot_memspace_usage[ idx ]- (num_wds_per_memspace+1);
+                  std::cerr << "Should rebalance " << rebalance_wds << " this: " << this_slot_memspace_usage[ idx ] << " target " << num_wds_per_memspace << std::endl;
+                  for (std::map< unsigned int, std::set<WD *> >::reverse_iterator sit = this_slot_memspace_usage_sets[ idx ]->rbegin();
+                        sit != this_slot_memspace_usage_sets[ idx ]->rend() && rebalance_wds > 0; sit++ ) {
+                     for (std::set<WD *>::const_iterator isit = sit->second.begin(); isit != sit->second.end() && rebalance_wds > 0; isit++ ) {
+                        unsigned int start_idx = (idx + 1) % (max_mem_id + 1);
+                        memory_space_id_t found_loc = (*isit)->_schedValues[0];
+                        memory_space_id_t initial_loc = (*isit)->_schedValues[0];
+
+                        for ( memory_space_id_t search_idx = start_idx; search_idx != initial_loc && found_loc == initial_loc; search_idx = (search_idx + 1) % (max_mem_id + 1)) {
+                           if ( this_slot_memspace_usage[ search_idx ] > -1 && this_slot_memspace_usage[ search_idx ] < num_wds_per_memspace + 1 ) {
+                              found_loc = search_idx;
+                           }
+                        }
+                        (*isit)->_schedValues[0] = found_loc;
+                        (*isit)->_schedValues[1] = 0;
+                        std::cerr << "SET SCHED LOC " << found_loc << " FOR WD " << (*isit)->getId() << " this idx " << idx << std::endl;
+                        rebalance_wds -= 1;
+                        this_slot_memspace_usage[ idx ] -= 1;
+                        this_slot_memspace_usage[ found_loc ] += 1;
+                     }
+                  }
+               }
+            }
+         }
+         for( std::set<memory_space_id_t>::const_iterator locit = getActiveMemorySpaces().begin();
+               locit != getActiveMemorySpaces().end(); locit++ ) {
+            memspace_usage_sets[*locit]->clear();
+         }
+         std::cerr << "=== end process slot " << it->first << std::endl;
+      }
+
+      /* propagate to predecessors */
+      for ( std::set< WD * >::const_iterator sit = it->second.begin();
+            sit != it->second.end(); sit++ ) {
+         WD *wd = *sit;
+         // for each predecessor
+         //    insert my loc to the predecessor
+         DOSubmit *d = (*sit)->getDOSubmit();
+         for (DependableObject::DependableObjectVector::const_iterator pit = d->getPredecessors().begin();
+               pit != d->getPredecessors().end(); pit++ ) {
+            WD *predecessor_wd = pit->second->getWD();
+            predecessor_wd->_schedPredecessorLocs[ wd->_schedValues[0] ] += 1;
+         }
+      }
+
+   }
+
+   for ( std::map<int, std::set< WD * > >::const_iterator it = _slots.begin();
+         it != _slots.end(); it++ ) {
+       std::cerr << "["<< it->first << "]: ";
+       for ( std::set< WD * >::const_iterator sit = it->second.begin();
+             sit != it->second.end(); sit++ ) {
+          std::cerr << "[" << (*sit)->getId() /* << ", " << (*sit)->getDOSubmit()->getNum() << ", " << (*sit)->getDOSubmit()->getLSS() << " /" */<< " " << (*sit)->_schedValues[0] << ( (*sit)->_schedValues[1] == 0 ? "*" : "" ) << " { ";
+          for (std::map<memory_space_id_t, unsigned int>::const_iterator it2 = (*sit)->_schedPredecessorLocs.begin(); it2 != (*sit)->_schedPredecessorLocs.end(); it2++)
+             std::cerr << it2->first << "," << it2->second << " ";
+          std::cerr << "}] ";
+       }
+       std::cerr << std::endl;
+   }
+
+   for ( std::map<int, std::set< WD * > >::const_iterator it = _slots.begin();
+         it != _slots.end(); it++ ) {
+      int this_level_prio = max_prio - it->second.size();
+      unsigned int this_level_count = 0;
+      for ( std::set< WD * >::const_iterator sit = it->second.begin();
+            sit != it->second.end(); sit++ ) {
+         WD *wd = *sit;
+         wd->setPriority( this_level_prio );
+         if ( sys.getNetwork()->getNodeNum() == 0 ) {
+            wd->tieToLocation( wd->_schedValues[0] );
+         }
+         this_level_count += 1;
+      }
+   }
+   _slots.clear();
+   }
 }

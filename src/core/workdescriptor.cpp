@@ -531,6 +531,13 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
+   sys.preSchedule();
+   _reachedTaskwait = true;
+   if ( _submittedWDs != NULL && _submittedWDs->size() > 0 ) {
+      Scheduler::_submit( &(*_submittedWDs)[0], _submittedWDs->size() );
+      delete _submittedWDs;
+      _submittedWDs = NULL;
+   }
    _depsDomain->finalizeAllReductions();
    // Ask for more resources once we have finished creating tasks
    if ( sys.getPMInterface().isMalleable() ) {
@@ -541,6 +548,7 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
    }
+   _reachedTaskwait = false;
 
    _depsDomain->clearDependenciesDomain();
 }
@@ -769,4 +777,29 @@ int WorkDescriptor::getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) co
    }
 
    return num_wds;
+}
+
+void WorkDescriptor::addPresubmittedWDs( unsigned int numWDs, WD **wds ) {
+   bool delay = false;
+   if ( wds[0]->_parent == this ) {
+      /* Im the parent of these WDs */
+      delay = !_reachedTaskwait;
+   } else if ( _parent != NULL && wds[0]->_parent == _parent ) {
+      /* Im a sibling */
+      delay = !(_parent->_reachedTaskwait);
+
+   }
+   if ( delay ) {
+      if ( _submittedWDs == NULL ) {
+         _submittedWDs = NEW std::vector< WD * >( &wds[0], &wds[numWDs] );
+      } else {
+         std::size_t orig_size = _submittedWDs->size();
+         _submittedWDs->resize( orig_size + numWDs );
+         for ( std::size_t idx = orig_size; idx < orig_size + numWDs; idx += 1 ) {
+            (*_submittedWDs)[idx] = wds[idx - orig_size];
+         }
+      }
+   } else {
+      Scheduler::_submit( wds, numWDs );
+   }
 }
