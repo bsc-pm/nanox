@@ -74,6 +74,11 @@ inline unsigned int SchedulerConf::getNumStealAfterSpins ( void ) const
    return _numStealAfterSpins;
 }
 
+inline bool SchedulerConf::getHoldTasksEnabled ( void ) const
+{
+   return _holdTasks;
+}
+
 inline const std::string & SchedulePolicy::getName () const
 {
    return _name;

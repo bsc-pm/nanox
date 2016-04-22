@@ -262,6 +262,8 @@ namespace nanos {
          bool _cgAlloc;
          bool _inIdle;
          bool _lazyPrivatizationEnabled;
+         bool _preSchedule;
+         std::map<int, std::set<WD *> > _slots;
          void *_watchAddr;
 
       private:
@@ -728,6 +730,7 @@ global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t
          void notifyOutOfBlockingMPICall();
          void notifyIdle( unsigned int node );
          void disableHelperNodes();
+         void preSchedule();
    };
 
    extern System sys;

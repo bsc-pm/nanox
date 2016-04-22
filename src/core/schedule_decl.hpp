@@ -60,11 +60,13 @@ namespace nanos {
          static bool inlineWorkAsync ( WD *wd, bool schedule );
          static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
-         static void submit ( WD &wd, bool force_queue = false  );
+         static void submit ( WD &wd, bool force_queue = false );
+         static void _submit ( WD &wd, bool force_queue = false );
          /*! \brief Submits a set of wds. It only calls the policy's queue()
           *  method!
           */
-         static void submit ( WD ** wds, size_t numElems  );
+         static void submit ( WD ** wds, size_t numElems );
+         static void _submit ( WD ** wds, size_t numElems );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
@@ -96,11 +98,14 @@ namespace nanos {
          unsigned int                  _numChecks;         //!< Number of checks before schedule
          bool                          _schedulerEnabled;  //!< Scheduler is enabled
          int                           _numStealAfterSpins;//!< Steal every so spins
+         bool                          _holdTasks;         //!< Submit tasks when a taskwait is reached
       private: /* PRIVATE METHODS */
         //! \brief SchedulerConf default constructor (private)
-        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true), _numStealAfterSpins(1) {}
+        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true),
+        _numStealAfterSpins(1), _holdTasks(false) {}
         //! \brief SchedulerConf copy constructor (private)
-        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _schedulerEnabled()
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(),
+        _schedulerEnabled(), _holdTasks()
         {
            fatal("SchedulerConf: Illegal use of class");
         }
@@ -121,6 +126,8 @@ namespace nanos {
          unsigned int getNumStealAfterSpins ( void ) const;
          //! \brief Returns if scheduler is enabled 
          bool getSchedulerEnabled () const;
+         //! \brief Returns if holding tasks is enabled 
+         bool getHoldTasksEnabled () const;
 
          //! \brief Configure scheduler runtime options
          void config ( Config &cfg );

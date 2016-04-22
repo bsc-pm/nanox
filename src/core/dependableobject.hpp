@@ -63,6 +63,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _submitted = depObj._submitted;
    _needsSubmission = depObj._needsSubmission;
    _wd = depObj._wd;
+   _num = depObj._num;
    return *this;
 }
 
@@ -172,19 +173,46 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    return inserted;
 }
 
-inline bool DependableObject::addSuccessor ( DependableObject &depObj )
-{
-   // Avoiding create cycles in dependence graph
-   if ( this == &depObj ) return false;
-
-   //Maintain the list of predecessors
-   if(sys.getPredecessorLists())
-      depObj.addPredecessor( *this );
-
-   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
-
-   return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
-}
+// inline bool DependableObject::addSuccessor ( DependableObject &depObj )
+// {
+//    // Avoiding create cycles in dependence graph
+//    if ( this == &depObj ) return false;
+// 
+//    //Maintain the list of predecessors
+//    if(sys.getPredecessorLists())
+//       depObj.addPredecessor( *this );
+// 
+//    sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
+// 
+//    return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
+// }
+//inline bool DependableObject::addSuccessor ( DependableObject &depObj )
+//{
+//   // Avoiding create cycles in dependence graph
+//   if ( this == &depObj ) return false;
+//
+//   if (depObj._num < _num + 1) {
+//      depObj._num = _num + 1;
+//      if(sys.getPredecessorLists()) {
+//         std::cerr << "UPDATE LSS " << std::endl;
+//         for ( DependableObjectVector::const_iterator it = depObj._predecessors.begin();
+//               it != depObj._predecessors.end(); it++ ) {
+//            int value = ((*it)->_lss == -1 ) ? depObj._num - 1 : ( (*it)->_lss <= depObj._num - 1 ? (*it)->_lss : depObj._num - 1 );
+//            std::cerr << "set value " << value << " for wd " << (*it)->getWD()->getId() << std::endl;
+//            (*it)->_lss = value;
+//         }
+//      }
+//   }
+//
+//   //Maintain the list of predecessors
+//   if(sys.getPredecessorLists()) {
+//      std::cerr << "added predecessor " << depObj.addPredecessor( *this ) << std::endl;
+//   }
+//
+//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
+//
+//   return _successors.insert ( &depObj ).second;
+//}
 
 inline bool DependableObject::deleteSuccessor ( DependableObject *depObj )
 {

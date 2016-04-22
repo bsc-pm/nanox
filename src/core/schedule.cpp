@@ -47,9 +47,24 @@ void SchedulerConf::config (Config &cfg)
 
    cfg.registerConfigOption ( "num-steal", NEW Config::PositiveVar( _numStealAfterSpins ), "Try to steal every so spins (default = 1)" );
    cfg.registerArgOption ( "num-steal", "spins-steal" );
+
+   cfg.registerConfigOption ( "hold-tasks", NEW Config::FlagOption( _holdTasks ), "Do not submit tasks until a taskwait is reached." );
+   cfg.registerArgOption ( "hold-tasks", "hold-tasks" );
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
+{
+   if ( sys.getSchedulerConf().getHoldTasksEnabled() && 
+         sys.getNetwork()->getNodeNum() == 0) {
+      WD *current = myThread->getCurrentWD();
+      WD *wd_to_submit = &wd;
+      current->addPresubmittedWDs( 1, &wd_to_submit );
+   } else {
+      _submit( wd, force_queue );
+   }
+}
+
+void Scheduler::_submit ( WD &wd, bool force_queue )
 {
    NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING, true) );
    BaseThread *mythread = myThread;
@@ -109,7 +124,18 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 
 }
 
-void Scheduler::submit ( WD ** wds, size_t numElems )
+void Scheduler::submit ( WD ** wds, size_t numElems ) 
+{
+   if ( sys.getSchedulerConf().getHoldTasksEnabled() && 
+         sys.getNetwork()->getNodeNum() == 0) {
+      WD *current = myThread->getCurrentWD();
+      current->addPresubmittedWDs( numElems, wds );
+   } else {
+      _submit( wds, numElems );
+   }
+}
+
+void Scheduler::_submit ( WD ** wds, size_t numElems )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
    if ( numElems == 0 ) return;
@@ -408,7 +434,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    verbose("Wait on condition");
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
       if ( checks == 0 ) {
-         verbose("   starting idle loop"); //FIXME:xteruel
+         //verbose("   starting idle loop"); //FIXME:xteruel
          condition->lock();
          if ( !( condition->check() ) ) {
 
@@ -416,6 +442,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             //! First checking prefetching queue
             WD * next = thread->getNextWD();
+            if ( next != NULL ) {
+                verbose("Got wd through getNextWD");
+            }
 
             if ( !thread->isSleeping() ) {
                //! Second calling scheduler policy at block
@@ -424,12 +453,20 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                      if ( sys.getSchedulerConf().getSchedulerEnabled() )
                         next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            if ( next != NULL ) {
+                verbose("Got wd through atBlock");
+            }
                   }
                }
             }
 
             //! Finally coming back to our Thread's WD (idle task)
-            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(thread->getThreadWD());
+            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) {
+               next = &(thread->getThreadWD());
+            if ( next != NULL ) {
+                verbose("Got wd through getThreadWD");
+            }
+            }
 
             //! If found a wd to switch to, execute it
             if ( next ) {

@@ -121,6 +121,7 @@ namespace nanos {
                char tmpbuf[64];
                sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
                _file = NEW std::ofstream(tmpbuf);
+               *_file << "This is thread " << _id << std::endl;
             }
          } else {
             _file = &std::cerr;
