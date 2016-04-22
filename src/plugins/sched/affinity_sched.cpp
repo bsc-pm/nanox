@@ -272,7 +272,7 @@ namespace nanos {
          }
 
          void insert( WD *wd ) {
-            while ( !_lock.tryAcquire() ) { myThread->idle(); }
+            while ( !_lock.tryAcquire() ) { myThread->processTransfers(); }
             this->_insert(wd);
             _lock.release();
          }
@@ -352,7 +352,7 @@ namespace nanos {
                   top_wd = _topWDsQueue.pop_front( thread );
                   _lock.release();
                } else {
-                  myThread->idle();
+                  myThread->processTransfers();
                }
                if ( top_wd == NULL ) {
                   if ( _lock.tryAcquire() ) {
@@ -479,7 +479,7 @@ namespace nanos {
 
          void remove( WD *wd ) {
             while ( !_lock.tryAcquire() ) {
-               myThread->idle();
+               myThread->processTransfers();
             }
             //*myThread->_file << myThread->getId() << " remove (from remove) wd " << wd->getId() << std::endl;
             this->_remove(wd);
@@ -1482,7 +1482,7 @@ namespace nanos {
                   do {
                      result = wd->_mcontrol.allocateTaskMemory();
                      if ( !result ) {
-                        myThread->idle();
+                        myThread->processTransfers();
                      }
                   } while( result == false );
                   wd->init();
@@ -1525,7 +1525,7 @@ namespace nanos {
                         do {
                            result = wd->_mcontrol.allocateTaskMemory();
                            if ( !result ) {
-                              myThread->idle();
+                              myThread->processTransfers();
                            }
                         } while( result == false );
 
@@ -1569,7 +1569,7 @@ namespace nanos {
                      do {
                         result = wd->_mcontrol.allocateTaskMemory();
                         if ( !result ) {
-                           myThread->idle();
+                           myThread->processTransfers();
                         }
                      } while( result == false );
                      wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
@@ -1808,7 +1808,7 @@ namespace nanos {
                            do {
                               result = helpWD->_mcontrol.allocateTaskMemory();
                               if ( !result ) {
-                                 myThread->idle();
+                                 myThread->processTransfers();
                               }
                            } while( result == false );
                            helpWD->init(); //WithPE( myThread->runningOn() );
@@ -1828,7 +1828,7 @@ namespace nanos {
                            do {
                               result = helpWD->_mcontrol.allocateTaskMemory();
                               if ( !result ) {
-                                 myThread->idle();
+                                 myThread->processTransfers();
                               }
                            } while( result == false );
                            helpWD->init(); //WithPE( myThread->runningOn() );

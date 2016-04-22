@@ -140,7 +140,7 @@ System::System () :
       , _immediateSuccessorDisabled( false )
       , _predecessorCopyInfoDisabled( false )
       , _invalControl( false )
-      , _cgAlloc( false )
+      , _cgAlloc( true )
       , _inIdle( false )
 	  , _lazyPrivatizationEnabled (false)
 	  , _watchAddr (NULL)
@@ -1312,7 +1312,7 @@ void System::inlineWork ( WD &work )
       do {
          result = work._mcontrol.allocateTaskMemory();
          if ( !result ) {
-            myThread->idle();
+            myThread->processTransfers();
          }
       } while( result == false );
       Scheduler::inlineWork( &work, /*schedule*/ false );

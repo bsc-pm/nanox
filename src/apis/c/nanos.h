@@ -421,6 +421,8 @@ NANOS_API_DECL(void, nanos_out_of_blocking_mpi_call, (void) );
 NANOS_API_DECL(void, nanos_thread_print, (char *str));
 NANOS_API_DECL(void, nanos_set_watch_addr, (void *addr));
 NANOS_API_DECL(void, nanos_print_bt, (void));
+NANOS_API_DECL(void, nanos_enable_verbose_copies, (void));
+NANOS_API_DECL(void, nanos_disable_verbose_copies, (void));
 
 #ifdef __cplusplus
 }

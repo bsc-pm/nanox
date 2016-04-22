@@ -73,10 +73,10 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    Version::operator=( de );
    //_writeLocation = de._writeLocation;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    while ( !de._setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    _location.clear();
    _pes.clear();
@@ -105,7 +105,7 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
 
 inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    //*myThread->_file << "+++++++++++++++++v entry " << (void *) this << " v++++++++++++++++++++++" << std::endl;
    if ( version > this->getVersion() ) {
@@ -140,7 +140,7 @@ inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_s
 
 inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    ensure(version == this->getVersion(), "addRootedAccess of already accessed entry." );
    _location.clear();
@@ -154,7 +154,7 @@ inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, un
 inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    _location.erase( from );
    std::set< ProcessingElement * >::iterator it = _pes.begin();
@@ -175,7 +175,7 @@ inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
 inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    if ( _location.empty() ) {
       *myThread->_file << " Warning: empty _location set, it is likely that an invalidation is ongoing for this region. " << std::endl;
@@ -192,7 +192,7 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
 inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = ( _location.count( loc ) > 0 );
    if ( !result && _location.size() == 0 ) { //locations.size = 0 means we are invalidating
@@ -213,7 +213,7 @@ inline void NewNewDirectoryEntryData::print(std::ostream &o) const {
 inline int NewNewDirectoryEntryData::getFirstLocation() {
    int result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = *(_location.begin());
    _setLock.release();
@@ -223,7 +223,7 @@ inline int NewNewDirectoryEntryData::getFirstLocation() {
 inline int NewNewDirectoryEntryData::getNumLocations() {
    int result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = _location.size();
    _setLock.release();
@@ -265,7 +265,7 @@ inline memory_space_id_t NewNewDirectoryEntryData::getHome() const {
 
 inline void NewNewDirectoryEntryData::lock() {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
 }
 

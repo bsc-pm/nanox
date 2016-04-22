@@ -281,7 +281,7 @@ void WorkDescriptor::waitOutputCopies ()
 {
    if ( getNumCopies() > 0 ) {
       while ( !_mcontrol.isOutputDataReady( *this ) ) {
-         myThread->idle();
+         myThread->processTransfers();
       }
    }
 }

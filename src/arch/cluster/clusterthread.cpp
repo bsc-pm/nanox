@@ -521,7 +521,7 @@ void ClusterThread::workerClusterLoop ()
          }
       }
       //sys.getNetwork()->poll(parent->getId());
-      myThread->idle();
+      myThread->processTransfers();
       current_thread = ( myThread = myThread->getNextThread() );
    }
 
