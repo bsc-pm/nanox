@@ -31,7 +31,7 @@ RegionSet::RegionSet() : _lock(), _set() {
 
 void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    reg_set_t &regs = _set[ reg.key ];
    reg_set_t::iterator elem = regs.lower_bound( reg.id );
@@ -54,7 +54,7 @@ void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
 
 bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    bool i_has_it = ( _set.find( reg.key ) != _set.end() );
    // std::cerr << "asking for " << reg.key << "  My Objects ( " << this << " ) : ";
@@ -69,7 +69,7 @@ bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
 unsigned int RegionSet::hasRegion( global_reg_t const &reg ) {
    unsigned int version = (unsigned int) -1;
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    _lock.release();
    return version;

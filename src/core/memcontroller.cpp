@@ -226,7 +226,7 @@ void MemController::initialize( ProcessingElement &pe ) {
       if ( _pe->getMemorySpaceId() == 0 /* HOST_MEMSPACE_ID */) {
          _inOps = NEW HostAddressSpaceInOps( _pe, false );
       } else {
-         _inOps = NEW SeparateAddressSpaceInOps( _pe, false, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
+         _inOps = NEW SeparateAddressSpaceInOps( _pe, true, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
       }
       _initialized = true;
    } else {
@@ -355,10 +355,12 @@ void MemController::copyDataIn() {
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 333 );)
+      sys.allocLock();
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd->getId() << std::endl;
    for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd->getCopies()[index].isInput(), _wd->getCopies()[index].isOutput(), *_wd, index );
    }
+      sys.allocUnlock();
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)

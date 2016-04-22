@@ -176,3 +176,14 @@ NANOS_API_DEF(void, nanos_print_bt, (void))
 {
    printBt(std::cerr);
 }
+
+NANOS_API_DEF(void, nanos_enable_verbose_copies, (void))
+{
+   sys.setVerboseCopies(true);
+   sys.setVerboseDevOps(true);
+}
+NANOS_API_DEF(void, nanos_disable_verbose_copies, (void))
+{
+   sys.setVerboseCopies(false);
+   sys.setVerboseDevOps(false);
+}

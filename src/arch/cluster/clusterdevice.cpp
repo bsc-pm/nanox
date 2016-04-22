@@ -71,7 +71,7 @@ void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t l
    do { 
       recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
       if ( !recvAddr ) {
-         myThread->idle( true );
+         myThread->processTransfers();
       }
    } while ( recvAddr == NULL );
 
@@ -98,7 +98,7 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
    do {
       packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
       if (!packedAddr ) {
-         myThread->idle( true );
+         myThread->processTransfers();
       }
    } while ( packedAddr == NULL );
       //*myThread->_file << "Got address " << (void *)packedAddr << std::endl;
@@ -129,7 +129,7 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
          do {
             packedAddr = (char *) _packer.give_pack( hostAddr, len, thisCount );
             if (!packedAddr ) {
-               myThread->idle( true );
+               myThread->processTransfers();
             }
          } while ( packedAddr == NULL );
 

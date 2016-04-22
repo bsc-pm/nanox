@@ -678,6 +678,7 @@ namespace nanos {
          bool getVerboseDevOps() const;
          void setVerboseDevOps(bool value);
          bool getVerboseCopies() const;
+         void setVerboseCopies(bool value);
          bool getSplitOutputForThreads() const;
          std::string getRegionCachePolicyStr() const;
          void setRegionCachePolicyStr( std::string policy );

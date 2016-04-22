@@ -758,7 +758,7 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
          do {
             result = wd->_mcontrol.allocateTaskMemory();
             if ( !result ) {
-               myThread->idle();
+               myThread->processTransfers();
             }
          } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
@@ -891,7 +891,7 @@ void Scheduler::switchTo ( WD *to )
          do {
             result = to->_mcontrol.allocateTaskMemory();
             if ( !result ) {
-               myThread->idle();
+               myThread->processTransfers();
             }
          } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
@@ -987,7 +987,7 @@ void Scheduler::exitTo ( WD *to )
        do {
           result = to->_mcontrol.allocateTaskMemory();
          if ( !result ) {
-            myThread->idle();
+            myThread->processTransfers();
          }
        } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )

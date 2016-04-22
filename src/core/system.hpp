@@ -540,6 +540,10 @@ inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
 }
 
+inline void System::setVerboseCopies(bool value) {
+   _verboseCopies = value;
+}
+
 inline bool System::getVerboseCopies() const {
    return _verboseCopies;
 }
