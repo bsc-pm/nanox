@@ -40,7 +40,7 @@ namespace nanos
           */
          PMInterface& operator= ( PMInterface &pmi );
       public:
-         enum Interfaces{ OmpSs, OpenMP }; 
+         enum Interfaces{ OmpSs, OpenMP, None }; 
       public:
          /*! \brief PMInterface default constructor
           */

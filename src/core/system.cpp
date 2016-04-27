@@ -313,13 +313,6 @@ void System::config ()
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
    
-#if 0
-   if ( !_pmInterface ) {
-      // bare bone run
-      _pmInterface = NEW PMInterface();
-   }
-#endif
-
    //! Declare all configuration core's flags
    verbose0( "Preparing library configuration" );
 

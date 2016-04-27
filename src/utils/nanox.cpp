@@ -38,13 +38,43 @@ typedef std::list<PluginInfo> PluginList;
 PluginList* pluginNames;
 
 namespace nanos {
-namespace PMInterfaceType
-{
-   int * ssCompatibility = 0;
-   void set_interface_cb( void * );
-   void set_interface_cb( void * p  ) {}
-   void (*set_interface)( void * ) = set_interface_cb;
-}
+	class NoneInterface : public PMInterface
+	{
+		public:
+			virtual void start () {}
+			virtual int getInternalDataSize() const { return 0; }
+			virtual int getInternalDataAlignment() const { return 1; }
+			virtual void initInternalData( void *data ) {}
+			virtual void setupWD( WD &wd ) {}
+			virtual int getMaxThreads() const { return 0; }
+			virtual void setNumThreads( int nthreads ) {}
+			virtual void setNumThreads_globalState ( int nthreads ) {}
+			virtual bool setCpuProcessMask( const CpuSet& cpu_set ) { return true; }
+			const CpuSet& getCpuProcessMask() const
+			{
+				return sys.getCpuProcessMask();
+			}
+
+			virtual void addCpuProcessMask( const CpuSet& cpu_set ) {}
+			virtual bool setCpuActiveMask( const CpuSet& cpu_set ) { return true; }
+			const CpuSet& getCpuActiveMask() const
+			{
+				return sys.getCpuActiveMask();
+			}
+			virtual void addCpuActiveMask( const CpuSet& cpu_set ) {}
+			virtual PMInterface::Interfaces getInterface() const { return PMInterface::None; }
+	};
+
+	namespace PMInterfaceType
+	{
+		int * ssCompatibility = 0;
+		void set_interface_cb( void * );
+		void set_interface_cb( void * p  )
+		{
+			sys.setPMInterface(NEW nanos::NoneInterface());
+		}
+		void (*set_interface)( void * ) = set_interface_cb;
+	}
 }
 
 void utilInit ( void * );
