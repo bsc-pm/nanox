@@ -1,6 +1,20 @@
 #include "netwd_decl.hpp"
 #include "workdescriptor.hpp"
 #include "system_decl.hpp"
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#include "opencldevice_decl.hpp"
+#endif
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#include "fpgadevice_decl.hpp"
+#endif
+#ifdef GPU_DEV
+#include "gpudd.hpp"
+#endif
+
+
+using namespace nanos;
 
 void * local_nanos_smp_factory( void *args );
 void * local_nanos_smp_factory( void *args )
@@ -10,8 +24,6 @@ void * local_nanos_smp_factory( void *args )
 }
 
 #ifdef OpenCL_DEV
-#include "opencldd.hpp"
-#include "opencldevice_decl.hpp"
 void * local_nanos_ocl_factory( void *args );
 void * local_nanos_ocl_factory( void *args )
 {
@@ -21,8 +33,6 @@ void * local_nanos_ocl_factory( void *args )
 #endif
 
 #ifdef FPGA_DEV
-#include "fpgadd.hpp"
-#include "fpgadevice_decl.hpp"
 void * local_nanos_fpga_factory( void *args );
 void * local_nanos_fpga_factory( void *args )
 {
@@ -31,10 +41,7 @@ void * local_nanos_fpga_factory( void *args )
 }
 #endif
 
-
 #ifdef GPU_DEV
-//FIXME: GPU Support
-#include "gpudd.hpp"
 void * local_nanos_gpu_factory( void *args );
 void * local_nanos_gpu_factory( void *args )
 {
