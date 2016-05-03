@@ -20,9 +20,10 @@
 #ifndef _ASYNC_THREAD_ELEMENT_FWD_H
 #define _ASYNC_THREAD_ELEMENT_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class AsyncThread;
-};
+
+} // namespace nanos
 
 #endif //_ASYNC_THREAD_ELEMENT_FWD_H

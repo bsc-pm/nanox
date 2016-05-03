@@ -24,10 +24,8 @@
 
 #include "system_decl.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
 
       class FPGAConfig
       {
@@ -94,6 +92,7 @@ namespace nanos
          NANOS_FPGA_WAIT_INPUT_DMA_EVENT,
          NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT
       }in_xdma_event_value;
-   }
-}
+
+} // namespace ext
+} // namespace nanos
 #endif

@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 
-using namespace nanos;
+namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
@@ -483,5 +483,7 @@ inline void Instrumentation::Event::reverseType ( )
 }
 
 #endif
+
+} // namespace nanos
 
 #endif

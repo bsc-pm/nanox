@@ -36,7 +36,7 @@
 #include "system.hpp"
 #include "slicer_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, const char *description )
@@ -566,6 +566,8 @@ inline int  WorkDescriptor::getCriticality () const { return _criticality; }
 inline void WorkDescriptor::setCallback ( void *cb ) { _callback = cb; }
 
 inline void WorkDescriptor::setArguments ( void *a ) { _arguments = a; }
+
+} // namespace nanos
 
 #endif
 

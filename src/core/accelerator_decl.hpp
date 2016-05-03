@@ -27,8 +27,7 @@
 #include "atomic_decl.hpp"
 #include "copydescriptor_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
 //   class Accelerator : public ProcessingElement
 //   {
@@ -63,6 +62,6 @@ namespace nanos
 //         virtual void waitInputsDependent( WorkDescriptor &wd ) = 0;
 //   };
 
-};
+} // namespace nanos
 
 #endif

@@ -21,6 +21,7 @@
 #define ADDRESSSPACE_H
 #include "addressspace_decl.hpp"
 #include "newregiondirectory.hpp"
+
 namespace nanos {
 
 template < class T >
@@ -39,5 +40,6 @@ inline void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg
    //reg.id = reg.key->obtainRegionId( cd, wd, idx );
 }
 
-}
+} // namespace nanos
+
 #endif /* ADDRESSSPACE_H */

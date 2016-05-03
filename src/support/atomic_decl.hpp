@@ -28,8 +28,8 @@
 #endif
 */
 
-namespace nanos
-{
+namespace nanos {
+
    template<typename T>
    class Atomic
    {
@@ -113,6 +113,6 @@ namespace nanos
    bool compareAndSwap( volatile T *ptr, T oldval, T  newval );
 #endif
 
-}
+} // namespace nanos
 
 #endif

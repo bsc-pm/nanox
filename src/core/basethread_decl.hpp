@@ -35,8 +35,8 @@
 #include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
 
    /*!
@@ -423,6 +423,6 @@ namespace nanos
 
    BaseThread * getMyThreadSafe();
 
-}
+} // namespace nanos
 
 #endif

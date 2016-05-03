@@ -33,6 +33,6 @@ class SMPTransferQueue {
    void tryExecuteOne();
 };
 
-}
+} // namespace nanos
 
 #endif

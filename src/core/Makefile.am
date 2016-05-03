@@ -80,6 +80,7 @@ devinclude_HEADERS = \
 	dependableobjectwd_fwd.hpp \
 	dependableobjectwd_decl.hpp \
 	dependableobjectwd.hpp \
+	commutationdepobj_fwd.hpp \
 	commutationdepobj_decl.hpp \
 	commutationdepobj.hpp \
 	dependenciesdomain_fwd.hpp \

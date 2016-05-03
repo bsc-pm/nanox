@@ -26,8 +26,7 @@
 #include "atomic_decl.hpp"
 #include "lock_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class TrackableObject
    *  \brief Object associated to an address with which different DependableObject operate
@@ -154,8 +153,8 @@ namespace nanos
    //! \param o the output stream
    //! \param regionStatus the region status
    //! \returns the output stream
-   inline std::ostream & operator<<( std::ostream &o, nanos::TrackableObject const &status);
+   inline std::ostream & operator<<( std::ostream &o, TrackableObject const &status);
 
-};
+} // namespace nanos
 
 #endif

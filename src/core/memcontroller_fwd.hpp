@@ -19,7 +19,10 @@
 
 #ifndef MEMCONTROLLER_FWD
 #define MEMCONTROLLER_FWD
+
 namespace nanos {
+
    class MemController;
-}
+
+} // namespace nanos
 #endif /* MEMCONTROLLER_FWD */

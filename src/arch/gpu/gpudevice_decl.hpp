@@ -25,8 +25,7 @@
 #include "copydescriptor_decl.hpp"
 #include "gpuprocessor_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
 /* \brief Device specialization for GPU architecture
  * provides functions to allocate and copy data in the device
@@ -201,6 +200,7 @@ namespace nanos
 
          void syncTransfer( uint64_t hostAddress, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
    };
-}
+
+} // namespace nanos
 
 #endif

@@ -26,8 +26,7 @@
 #include "config.hpp"
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    //extern SMPDevice SMP;
    SMPDevice &getSMPDevice();
@@ -107,7 +106,7 @@ namespace ext
       return *this;
    }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

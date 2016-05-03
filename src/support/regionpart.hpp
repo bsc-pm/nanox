@@ -27,7 +27,7 @@
 #include "region.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 inline int const & RegionPart::getPartitionLevel() const
 {
@@ -175,5 +175,7 @@ inline void RegionPart::partition(Region const &other, /* Output: */ CONTAINER_T
       }
    }
 }
+
+} // namespace nanos
 
 #endif // _NANOS_REGION_PART

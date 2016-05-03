@@ -57,8 +57,7 @@
 #include "openclprocessor_fwd.hpp"
 #endif
 
-namespace nanos
-{
+namespace nanos {
 
 // This class initializes/finalizes the library
 // All global variables MUST be declared inside
@@ -722,6 +721,6 @@ global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t
 
    extern System sys;
 
-};
+} // namespace nanos
 
 #endif

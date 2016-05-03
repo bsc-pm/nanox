@@ -20,9 +20,10 @@
 #ifndef _NANOS_PROCESSING_ELEMENT_FWD_H
 #define _NANOS_PROCESSING_ELEMENT_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class ProcessingElement;
-};
+
+} // namespace nanos
 
 #endif

@@ -78,7 +78,7 @@ inline void GPUMemorySpace::freeOutputPinnedMemory ()
    _outputPinnedMemoryBuffer.reset();
 }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif /* GPUMEMORYSPACE_H */

@@ -25,7 +25,7 @@
 #include "basethread_decl.hpp"
 #include "schedule_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline void GenericSyncCond::lock()
 {
@@ -88,6 +88,8 @@ inline void SynchronizedCondition< _T>::signal_one()
    }
    unlock();
 }
+
+} // namespace nanos
 
 #endif
 

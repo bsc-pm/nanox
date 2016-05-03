@@ -24,9 +24,7 @@
 #include "containeradapter_decl.hpp"
 #include "containertraits.hpp"
 
-
-using namespace nanos;
-
+namespace nanos {
 
 template <class CONTAINER_T,bool IS_ASSOCIATIVE >
 inline void ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
@@ -57,6 +55,8 @@ inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::po
    container.pop_back();
    return value;
 }
+
+} // namespace nanos
 
 
 #endif // _NANOS_CONTAINER_ADAPTER

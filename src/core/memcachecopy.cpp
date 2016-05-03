@@ -27,6 +27,7 @@
 #include "basethread.hpp"
 #include "regiondict.hpp"
 
+using namespace nanos;
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );

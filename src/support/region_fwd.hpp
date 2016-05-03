@@ -26,7 +26,7 @@ namespace nanos {
    
    class Region;
    
-}
+} // namespace nanos
 
 
 #endif // _NANOS_REGION_FWD

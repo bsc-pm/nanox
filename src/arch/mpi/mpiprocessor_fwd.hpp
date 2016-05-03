@@ -26,7 +26,7 @@ namespace nanos {
 namespace ext
 {
    class MPIProcessor;
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

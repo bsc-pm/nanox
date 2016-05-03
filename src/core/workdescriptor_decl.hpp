@@ -46,8 +46,7 @@
 #include "simpleallocator_decl.hpp"
 #include "schedule_fwd.hpp"   // ScheduleWDData
 
-namespace nanos
-{
+namespace nanos {
 
 typedef std::set<const Device *>  DeviceList;
 
@@ -757,7 +756,7 @@ typedef std::set<const Device *>  DeviceList;
 
    typedef class DeviceData DD;
 
-};
+} // namespace nanos
 
 #endif
 

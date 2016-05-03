@@ -26,6 +26,7 @@
 #define TEE_ERR_MSG(id) "Signal raised during the execution of task "+toString<int>(id)+".\n"
 
 namespace nanos {
+
    TaskExecutionException::TaskExecutionException (
          WD const *task_wd, siginfo_t const &info,
          ucontext_t const &context ) throw () :
@@ -64,6 +65,7 @@ namespace nanos {
    {
       return task_context;
    }
-}
+
+} // namespace nanos
 
 #endif /* _NANOS_TASKEXECUTIONEXCEPTION */

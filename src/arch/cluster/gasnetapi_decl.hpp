@@ -314,6 +314,7 @@ namespace ext {
          static void amSynchronizeDirectory(gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi);
          static void amIdle(gasnet_token_t token);
    };
-}
-}
+} // namespace ext
+} // namespace nanos
+
 #endif /* _GASNETAPI_DECL */

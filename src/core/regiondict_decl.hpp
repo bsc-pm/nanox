@@ -213,5 +213,7 @@ typedef unsigned int reg_t;
    
    typedef RegionDictionary<ContainerSparse>::citerator CacheRegionDictionaryIterator;
    std::ostream& operator<< (std::ostream& o, RegionNode const &rn);
-}
+
+} // namespace nanos
+
 #endif /* REGIONDICTIONARY_DECL_HPP */

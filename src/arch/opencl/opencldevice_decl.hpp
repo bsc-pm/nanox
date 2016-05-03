@@ -83,6 +83,6 @@ public:
 
 };
 
-} // End namespace nanos.
+} // namespace nanos
 
 #endif // _OpenCL_DEVICE_DECL

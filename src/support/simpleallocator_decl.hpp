@@ -94,5 +94,5 @@ namespace nanos {
          void reset ();
    };
 
-}
+} // namespace nanos
 #endif /* _NANOS_SIMPLEALLOCATOR */

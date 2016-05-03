@@ -344,6 +344,6 @@ public:
 typedef std::map<Dims, Execution> DimsBest;
 typedef std::map<Dims, unsigned long> DimsExecutions;
 
-}
+} // namespace nanos
 
 #endif /* _NANOS_OpenCL_PROFILER */

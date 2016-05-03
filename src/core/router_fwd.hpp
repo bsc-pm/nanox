@@ -21,7 +21,9 @@
 #define NANOS_ROUTER_FWD_HPP
 
 namespace nanos {
+
 class Router;
-}
+
+} // namespace nanos
 
 #endif /* NANOS_ROUTER_FWD_HPP */

@@ -24,6 +24,7 @@
 #include "addressspace.hpp"
 #include "globalregt.hpp"
 
+using namespace nanos;
 
 RegionSet::RegionSet() : _lock(), _set() {
 }

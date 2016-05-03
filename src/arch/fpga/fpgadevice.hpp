@@ -26,8 +26,7 @@
 #include "copydescriptor_decl.hpp"
 #include "basethread.hpp" //for getMyThreadSafe() in warning/verbose, etc.
 
-namespace nanos
-{
+namespace nanos {
 
    /* \brief Device specialization for FPGA architecture
     * provides functions to allocate and copy data in the device
@@ -142,5 +141,5 @@ namespace nanos
          static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe);
 
    };
-}
+} // namespace nanos
 #endif

@@ -162,4 +162,5 @@ namespace nanos {
     {
         return node_colors[ wd_id % HASH_SIZE ];
     }
-}
+
+} // namespace nanos

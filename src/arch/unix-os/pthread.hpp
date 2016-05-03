@@ -24,12 +24,14 @@
 #include "smpprocessor.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 inline int PThread::getCpuId() const { return _core->getBindingId(); }
 
 inline size_t PThread::getStackSize () { return _stackSize; }
 
 inline void PThread::setStackSize( size_t size ) { _stackSize = size; }
+
+} // namespace nanos
 
 #endif

@@ -20,9 +20,10 @@
 #ifndef _NANOS_TRACKABLE_OBJECT_FWD_H
 #define _NANOS_TRACKABLE_OBJECT_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class TrackableObject;
-};
+
+} // namespace nanos
 
 #endif

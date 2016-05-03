@@ -77,7 +77,7 @@ namespace nanos {
 #endif
    };
 
-}
+} // namespace nanos
 
 void * os_bootthread ( void *arg );
 

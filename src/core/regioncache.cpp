@@ -48,6 +48,8 @@
  #define _VERBOSE_CACHE 0
 #endif
 
+using namespace nanos;
+
 LockedObjects::LockedObjects() : _lockedObjects() {
 }
 

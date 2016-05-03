@@ -27,8 +27,7 @@
 //#include "system.hpp"
 #include "xstring.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    class FatalError : public  std::runtime_error
    {
@@ -56,10 +55,12 @@ namespace nanos
 
    void printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set );
 
+} // namespace nanos
+
 #define _nanos_ostream ( /* myThread ? *(myThread->_file) : */ std::cerr )
 
-#define fatal(msg) { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
-#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str()); }
+#define fatal(msg) { std::stringstream sts; sts<<msg ; throw ::nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
+#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw ::nanos::FatalError(sts.str()); }
 #define fatal_cond(cond,msg) if ( cond ) fatal(msg);
 #define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 
@@ -77,8 +78,8 @@ namespace nanos
    do { if (sys.getNetwork()->getNodeNum() == 0) { _nanos_ostream << "MSG: m:[?] " << msg << std::endl; } } while (0)
 
 #ifdef NANOS_DEBUG_ENABLED
-#define ensure(cond,msg)  do { if ( !(cond) ) { printBt(_nanos_ostream); throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId()); } } while (0)
-#define ensure0(cond,msg) do { if ( !(cond) ) { printBt(_nanos_ostream); throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg ); } } while (0)
+#define ensure(cond,msg)  do { if ( !(cond) ) { printBt(_nanos_ostream); throw ::nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId()); } } while (0)
+#define ensure0(cond,msg) do { if ( !(cond) ) { printBt(_nanos_ostream); throw ::nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg ); } } while (0)
 
 #define verbose(msg) \
    if (sys.getVerbose()) _nanos_ostream << "[" << std::dec << getMyThreadSafe()->getId() << "]" << msg << std::endl;
@@ -97,7 +98,5 @@ namespace nanos
 #define debug(msg)
 #define debug0(msg)
 #endif
-
-};
 
 #endif

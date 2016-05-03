@@ -36,7 +36,7 @@ namespace nanos {
          static int _finishBurst;
 
    };
-}
+} // namespace nanos
 
 #endif
 

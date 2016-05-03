@@ -25,8 +25,7 @@
 #include "copydescriptor_decl.hpp"
 #include "regioncache_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    //class CachedAccelerator : public Accelerator
    //{
@@ -55,6 +54,6 @@ namespace nanos
    //      void waitInputsDependent( WorkDescriptor &wd );
    //};
 
-};
+} // namespace nanos
 
 #endif

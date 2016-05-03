@@ -28,8 +28,7 @@
 #define MAX_PRESEND 1024
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class ClusterThread : public BaseThread
    {
@@ -123,7 +122,8 @@ namespace ext
    };
 
 
-}
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* _CLUSTERTHREAD_DECL */

@@ -20,9 +20,10 @@
 #ifndef _NANOS_BASE_DEPENDENCY_FWD_H
 #define _NANOS_BASE_DEPENDENCY_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class BaseDependency;
-};
+
+} // namespace nanos
 
 #endif

@@ -24,8 +24,8 @@
 #include "basedependency_decl.hpp"
 #include "task_reduction_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
   /*! \class CommutationDO
    *  \brief DependableObject used as closing dependency for commutation tasks
    */
@@ -78,7 +78,8 @@ namespace nanos
 
          void setTaskReduction( TaskReduction *tr );
    };
-};
+
+} // namespace nanos
 
 #endif
 

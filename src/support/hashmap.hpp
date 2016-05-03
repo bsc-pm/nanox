@@ -24,7 +24,7 @@
 #include "list.hpp"
 #include <algorithm>
 
-using namespace nanos;
+namespace nanos {
 
 template <typename _KeyType, typename _T, bool _invalidate, size_t _tsize, typename _HashFunction>
 _T& HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::operator[]( _KeyType key )
@@ -168,6 +168,8 @@ void HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::flush( ItemList& rem
       }
    }
 }
+
+} // namespace nanos
 
 #endif
 

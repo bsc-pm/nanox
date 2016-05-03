@@ -36,8 +36,8 @@
 
 #include "system.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    inline TeamData::~TeamData ()
    {
       delete _schedData;
@@ -300,6 +300,7 @@ namespace nanos
    inline ThreadTeam* BaseThread::getNextTeam() const { return _nextTeam; }
 
    inline void BaseThread::setNextTeam( ThreadTeam *team ) { _nextTeam = team; }
-}
+
+} // namespace nanos
 
 #endif

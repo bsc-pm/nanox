@@ -22,7 +22,9 @@
 
 #include "addressspace_decl.hpp"
 #include "memcachecopy_fwd.hpp"
+
 namespace nanos {
+
 class BaseOps {
    public:
    struct OwnOp {
@@ -119,6 +121,6 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    void cancel( WD const &wd );
 };
 
-}
+} // namespace nanos
 
 #endif /* MEMORYOPS_DECL */

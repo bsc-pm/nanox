@@ -34,8 +34,7 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
    class AsyncThread : public BaseThread
    {
       public:
@@ -146,6 +145,6 @@ namespace nanos
          virtual bool keepWDDeps() { return true; }
 
    };
-}
+} // namespace nanos
 
 #endif //_ASYNC_THREAD_DECL

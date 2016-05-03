@@ -25,7 +25,7 @@
 #include "config.hpp"
 #include "plugin_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline const char * Plugin::getName() const
 {
@@ -52,19 +52,21 @@ inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name,
    return loadAndGetPlugin( plugin_name.c_str(), initPlugin );
 }
 
+} // namespace nanos
+
 #ifdef PIC 
 #define DECLARE_PLUGIN(name,type)     \
    extern "C" {                       \
-      Plugin * NanosXPluginFactory(); \
+      nanos::Plugin * NanosXPluginFactory(); \
    }                                  \
-   Plugin * NanosXPluginFactory() {   \
+   nanos::Plugin * NanosXPluginFactory() {   \
       return new type();              \
    }
 #else
 #define INITX {_registerPlugin, NULL} 
 #define DECLARE_PLUGIN(name,type) \
        static void _registerPlugin (void *arg); \
-       static void _registerPlugin (void *arg) { sys.registerPlugin(name, *NEW type()); } \
+       static void _registerPlugin (void *arg) { nanos::sys.registerPlugin(name, *NEW type()); } \
        LINKER_SECTION(nanos_init, nanos_init_desc_t, INITX);
 #endif
 

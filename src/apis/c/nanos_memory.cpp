@@ -36,6 +36,8 @@
  *  \{
  */
 
+using namespace nanos;
+
 NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","malloc",NANOS_RUNTIME ) );
@@ -77,7 +79,7 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","cmalloc",NANOS_RUNTIME ) );
 
-   if ( node < sys.getNetwork()->getNumNodes() ) {
+   if ( node < nanos::sys.getNetwork()->getNumNodes() ) {
       try 
       {
          nanos::OSAllocator tmp_allocator;
@@ -86,7 +88,7 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
          } else {
             *p = tmp_allocator.allocate_none( size );
          }
-         sys.registerNodeOwnedMemory(node, *p, size);
+         nanos::sys.registerNodeOwnedMemory(node, *p, size);
       } catch ( nanos_err_t e ) {
          return e;
       }
@@ -102,15 +104,15 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc_2dim_distributed, ( void **p, size_t ro
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","cmalloc",NANOS_RUNTIME ) );
 
    if ( start_node > 0 && num_nodes > 0 &&
-         start_node < sys.getNetwork()->getNumNodes() &&
-         start_node + (num_nodes-1) < sys.getNetwork()->getNumNodes() ) {
+         start_node < nanos::sys.getNetwork()->getNumNodes() &&
+         start_node + (num_nodes-1) < nanos::sys.getNetwork()->getNumNodes() ) {
       try 
       {
          size_t size = cols * rows * elem_size;
          nanos::OSAllocator tmp_allocator;
          *p = tmp_allocator.allocate_none( size );
-         global_reg_t reg = sys._registerMemoryChunk_2dim(*p, rows, cols, elem_size);
-         sys._distributeObject( reg, start_node, num_nodes );
+         nanos::global_reg_t reg = nanos::sys._registerMemoryChunk_2dim(*p, rows, cols, elem_size);
+         nanos::sys._distributeObject( reg, start_node, num_nodes );
       } catch ( nanos_err_t e ) {
          return e;
       }
@@ -127,7 +129,7 @@ NANOS_API_DEF(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ))
 
    try 
    {
-      sys.stickToProducer(p, size);
+      nanos::sys.stickToProducer(p, size);
    } catch ( nanos_err_t e ) {
       return e;
    }
@@ -168,13 +170,13 @@ NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n)
 
 NANOS_API_DEF(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_data_t *obj))
 {
-   sys.registerObject( num_objects, obj );
+   nanos::sys.registerObject( num_objects, obj );
    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_unregister_object, (int num_objects, void *base_addresses))
 {
-   sys.unregisterObject( num_objects, base_addresses );
+   nanos::sys.unregisterObject( num_objects, base_addresses );
    return NANOS_OK;
 }
 

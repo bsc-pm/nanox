@@ -24,7 +24,8 @@
 namespace nanos {
 
    class CopyDescriptor;
-}
+
+} // namespace nanos
 
 #endif
 

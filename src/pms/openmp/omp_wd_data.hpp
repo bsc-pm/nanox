@@ -190,7 +190,7 @@ namespace nanos {
 
       extern OmpState *globalState;
    }
-}
+} // namespace nanos
 
 #endif
 

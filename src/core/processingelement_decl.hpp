@@ -27,11 +27,11 @@
 #include "schedule_fwd.hpp"
 #include "location_decl.hpp"
 
-namespace nanos
-{
-   namespace ext {
+namespace nanos {
+
+namespace ext {
    class SMPMultiThread;
-   };
+} // namespace ext
 
    class ProcessingElement : public Location
    {
@@ -133,6 +133,7 @@ namespace nanos
 
    typedef class ProcessingElement PE;
    typedef PE * ( *peFactory ) ( int pid, int uid );
-};
+
+} // namespace nanos
 
 #endif

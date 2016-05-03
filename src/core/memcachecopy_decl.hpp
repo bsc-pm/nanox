@@ -50,5 +50,5 @@ namespace nanos {
          unsigned int getChildrenProducedVersion() const;
          void setChildrenProducedVersion( unsigned int version );
    };
-}
+} // namespace nanos
 #endif /* MEMCACHECOPY_DECL */

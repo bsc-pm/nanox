@@ -36,7 +36,7 @@
 #include <climits>
 
 
-using namespace nanos;
+namespace nanos {
 
 // methods to access configuration variable
 //inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
@@ -688,5 +688,7 @@ inline bool System::useFineAllocLock() const {
 inline SMPDevice &System::_getSMPDevice() {
    return _SMP;
 }
+
+} // namespace nanos
 
 #endif

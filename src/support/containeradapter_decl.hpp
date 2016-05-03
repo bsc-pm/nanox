@@ -24,8 +24,7 @@
 #include "containertraits.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
 
    template <class CONTAINER_T,bool IS_ASSOCIATIVE = container_traits<CONTAINER_T>::is_associative>
    class ContainerAdapter
@@ -45,7 +44,8 @@ namespace nanos
          
          static typename CONTAINER_T::value_type pop(CONTAINER_T &container);
    };
-}
+
+} // namespace nanos
 
 
 #endif // _NANOS_CONTAINER_ADAPTER_DECL

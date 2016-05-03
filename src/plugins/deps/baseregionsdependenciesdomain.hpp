@@ -170,7 +170,7 @@ inline void BaseRegionsDependenciesDomain::submitDependableObjectOutputDataAcces
    setAsWriter( depObj, targetStatus, target );
 }
 
-}
+} // namespace nanos
 
 #endif
 

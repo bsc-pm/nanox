@@ -28,8 +28,7 @@
 #include "copydescriptor.hpp"
 #include "smptransferqueue_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
   /* \brief Device specialization for SMP architecture
    * provides functions to allocate and copy data in the device
@@ -75,6 +74,6 @@ namespace nanos
          void tryExecuteTransfer();
 
    };
-}
+} // namespace nanos
 
 #endif

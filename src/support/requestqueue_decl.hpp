@@ -23,7 +23,9 @@
 #include <map>
 #include "atomic_decl.hpp"
 #include "lock_decl.hpp"
+
 namespace nanos {
+
 template <class T>
 class RequestQueue {
    std::list< T * > _queue;
@@ -47,5 +49,7 @@ class RequestMap {
    T *fetch( uint64_t key );
    T *tryFetch( uint64_t key );
 };
-}
+
+} // namespace nanos
+
 #endif /* _REQUESTQUEUE_DECL */

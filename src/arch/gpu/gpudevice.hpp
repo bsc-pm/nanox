@@ -25,8 +25,7 @@
 #include "gpuprocessor.hpp"
 #include "gpumemoryspace_decl.hpp"
 
-using namespace nanos;
-
+namespace nanos {
 
 GPUDevice::GPUDevice ( const char *n ) : Device ( n )
 {
@@ -140,5 +139,7 @@ void GPUDevice::syncTransfer( uint64_t hostAddress, SeparateMemoryAddressSpace &
    // Anyway, we can help the system and tell that somebody is waiting for it
    gpu->getOutTransferList()->requestTransfer( ( void * ) hostAddress );
 }
+
+} // namespace nanos
 
 #endif

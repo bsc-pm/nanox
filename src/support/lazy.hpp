@@ -24,6 +24,8 @@
 #include "atomic.hpp"
 #include "lock.hpp"
 
+namespace nanos {
+
 template <class T>
 inline void LazyInit<T>::construct ()
 {
@@ -72,5 +74,7 @@ inline bool LazyInit<T>::isInitialized()
    // NULL for all the lifetime of this object.
    return _ptr != NULL;
 }
+
+} // namespace nanos
 
 #endif

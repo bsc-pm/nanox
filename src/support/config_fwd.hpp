@@ -20,10 +20,11 @@
 #ifndef _NANOS_CONFIG_FWD_H
 #define _NANOS_CONFIG_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Config;
-};
+
+} // namespace nanos
 
 #endif
 

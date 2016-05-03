@@ -30,10 +30,8 @@
 #include "cachedaccelerator.hpp"
 #include "fpgapinnedallocator.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
 
 //As in gpu, we could keep track of copied data
 
@@ -131,7 +129,7 @@ namespace nanos
             BaseThread &startFPGAThread();
             static  FPGAPinnedAllocator& getPinnedAllocator() { return _allocator; }
       };
-   }
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

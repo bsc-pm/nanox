@@ -53,5 +53,6 @@ namespace ext {
       ~Net2WD();
       WD *getWD();
    };
-}
-}
+} // namespace ext
+} // namespace nanos
+

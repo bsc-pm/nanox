@@ -17,52 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_COPY_DESCRIPTOR_DECL
-#define _NANOS_COPY_DESCRIPTOR_DECL
-
-#include "compatibility.hpp"
-#include "regioncache_decl.hpp"
-#include "functor_decl.hpp"
-
-#include <stdint.h>
+#ifndef _NANOS_DEPENDABLE_OBJECT_FWD
+#define _NANOS_DEPENDABLE_OBJECT_FWD
 
 namespace nanos {
 
-   /*! \breif Class representing a copy used to synchronize the device with the cache */
-   class CopyDescriptor {
-      private:
-         uint64_t _tag;
-         unsigned int _dirVersion;
+class CommutationDO;
 
-      public:
-         DeviceOps *_ops;
-        /*! \brief Default constructor
-         */
-         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion), _ops (NULL) {}
-
-        /*! \brief Copy constructor
-         *  \param Another CopyDescriptor
-         */
-         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ), _ops( cd._ops ) {}
-
-        /* \brief Destructor
-         */
-         ~CopyDescriptor() {}
-
-        /* \brief Assign operator
-         */
-         CopyDescriptor& operator=( const CopyDescriptor &cd )
-         {
-            if ( this == &cd ) return *this;
-            this->_tag = cd._tag;
-            this->_dirVersion = cd._dirVersion;
-            this->_ops = cd._ops;
-            return *this;
-         }
-
-         uint64_t getTag() const;
-         unsigned int getDirectoryVersion() const;
-   };
 } // namespace nanos
 
 #endif

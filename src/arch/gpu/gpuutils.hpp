@@ -27,8 +27,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class GPUUtils
    {

@@ -21,8 +21,7 @@
 #define _REMOTEWORKDESCRIPTOR_DECL
 
 #include "workdescriptor_decl.hpp"
-namespace nanos
-{
+namespace nanos {
    class RemoteWorkDescriptor : public WorkDescriptor
    {
       private:
@@ -33,6 +32,7 @@ namespace nanos
          virtual void exitWork( WorkDescriptor &work );
    };
 
-};
+} // namespace nanos
+
 
 #endif /* _REMOTEWORKDESCRIPTOR_DECL */

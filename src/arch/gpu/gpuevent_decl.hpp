@@ -25,8 +25,7 @@
 #include <cuda_runtime.h>
 
 
-namespace nanos
-{
+namespace nanos {
 
    class GPUEvent : public GenericEvent
    {
@@ -67,6 +66,6 @@ namespace nanos
          // event synchronization related methods
          void waitForEvent();
    };
-}
+} // namespace nanos
 
 #endif //_GPU_EVENT_DECL

@@ -20,9 +20,10 @@
 #ifndef _NANOS_REGION_STATUS_FWD_H
 #define _NANOS_REGION_STATUS_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class RegionStatus;
-};
+
+} // namespace nanos
 
 #endif

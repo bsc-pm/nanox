@@ -28,7 +28,7 @@
 //! reduction: reducers.
 //
 
-using namespace nanos;
+namespace nanos {
 
 class TaskReduction {
 
@@ -160,5 +160,7 @@ class TaskReduction {
 
       bool isInitialized( size_t id );
 };
+
+} // namespace nanos
 
 #endif

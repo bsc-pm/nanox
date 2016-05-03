@@ -604,6 +604,7 @@ class List {
 #endif
 };
 
-}
+} // namespace nanos
+
 #endif
 

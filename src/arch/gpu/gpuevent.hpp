@@ -25,8 +25,7 @@
 #include "gpuutils.hpp"
 
 
-using namespace nanos;
-
+namespace nanos {
 
 inline void GPUEvent::updateState()
 {
@@ -286,5 +285,7 @@ inline void GPUEvent::waitForEvent()
 
    _state = RAISED;
 }
+
+} // namespace nanos
 
 #endif //_GPU_EVENT

@@ -89,5 +89,5 @@ public:
    bool containsAllCopies( MemController const &target ) const;
 };
 
-}
+} // namespace nanos
 #endif /* MEMCONTROLLER_DECL */

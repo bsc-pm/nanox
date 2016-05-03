@@ -23,6 +23,7 @@
 #include "deviceops.hpp"
 #include "version.hpp"
 
+namespace nanos {
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    //, _writeLocation( -1 )
@@ -290,5 +291,7 @@ inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t
    dict->registerRegion( reg, missingParts, version );
    dict->unlockObject();
 }
+
+} // namespace nanos
 
 #endif

@@ -417,7 +417,7 @@ private:
 
 };
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_OpenCL_PROCESSOR_DECL

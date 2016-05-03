@@ -24,7 +24,7 @@ namespace nanos {
 namespace ext
 {
    class GPUProcessor;
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

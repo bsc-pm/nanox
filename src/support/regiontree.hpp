@@ -32,10 +32,7 @@
 
 
 namespace nanos  {
-
-
 namespace region_tree_private {
-
 
 //! \struct TraversalNode
 //! \brief A structure used to traverse the tree
@@ -1232,10 +1229,6 @@ void RegionTree<T>::defragment(/* Inout */ iterator_list_t &candidates)
    }
 }
 
-} // namespace nanos
-
-
-
 //! \brief RegionTree iterator formatter
 //! \tparam T the type of the contents of the tree
 //! \param o the output stream
@@ -1247,14 +1240,13 @@ inline std::ostream & operator<< (std::ostream &o, typename RegionTree<T>::itera
    return o << it.m_node->getFullRegion();
 }
 
-
 //! \brief RegionTree graphviz formatter
 //! \tparam T the type of the contents of the tree
 //! \param o the output stream
 //! \param regionTree the tree to be formatted
 //! \returns the output stream
 template<typename T>
-inline std::ostream & nanos::operator<< (std::ostream &o, RegionTree<T> const &regionTree)
+inline std::ostream & operator<< (std::ostream &o, RegionTree<T> const &regionTree)
 {
    o << "digraph {" << std::endl;
    o << "node[shape=record];" << std::endl;
@@ -1268,5 +1260,6 @@ inline std::ostream & nanos::operator<< (std::ostream &o, RegionTree<T> const &r
    return o << "}" << std::endl;;
 }
 
+} // namespace nanos
 
 #endif // _NANOS_REGION_TREE

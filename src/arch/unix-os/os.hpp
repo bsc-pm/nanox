@@ -29,8 +29,7 @@
 #include "nanos-int.h"
 #include "cpuset.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
 // this is UNIX-like OS
 // TODO: ABS and virtualize
@@ -164,7 +163,7 @@ namespace nanos
 
       return res;
    }
-};
+} // namespace nanos
 
 
 #endif

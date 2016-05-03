@@ -28,8 +28,7 @@
 #include "mpiprocessor_decl.hpp"
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    extern MPIDevice MPI;
    
@@ -94,7 +93,7 @@ namespace ext
       return *this;
    }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

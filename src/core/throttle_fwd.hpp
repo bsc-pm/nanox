@@ -20,9 +20,10 @@
 #ifndef __NANOS_THROTTLE_POLICY_FWD_H
 #define __NANOS_THROTTLE_POLICY_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class ThrottlePolicy;
-};
+
+} // namespace nanos
 
 #endif

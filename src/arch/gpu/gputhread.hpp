@@ -29,8 +29,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
 int GPUThread::getGPUDevice ()
 {
@@ -74,7 +73,7 @@ GenericEvent * GPUThread::createPostRunEvent( WD * wd )
 #endif
 }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

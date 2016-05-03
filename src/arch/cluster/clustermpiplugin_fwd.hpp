@@ -19,9 +19,13 @@
 
 #ifndef CLUSTERMPIPLUGIN_FWD_H
 #define CLUSTERMPIPLUGIN_FWD_H
+
 namespace nanos {
 namespace ext {
+
 class ClusterMPIPlugin;
-}
-}
+
+} // namespace ext
+} // namespace nanos
+
 #endif /* CLUSTERMPIPLUGIN_FWD_H */

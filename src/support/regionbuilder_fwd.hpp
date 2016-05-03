@@ -26,7 +26,7 @@ namespace nanos {
    
    class RegionBuilder;
    
-}
+} // namespace nanos
 
 
 #endif // _NANOS_REGION_BUILDER_FWD

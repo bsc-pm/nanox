@@ -22,8 +22,7 @@
 #define _DEV_INSTR
 
 
-namespace nanos
-{
+namespace nanos {
 
    class InstrCopyDirDevices {
 
@@ -49,6 +48,6 @@ namespace nanos
 		sys.getInstrumentation()->raiseCloseBurstEvent ( \
             sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "copy-dir-devices" ), 0 ); )
 
-}
+} // namespace nanos
 
 #endif

@@ -4,6 +4,7 @@
 #include "memoryops_decl.hpp"
 
 namespace nanos {
+
    class InvalidationController {
       public:
          SeparateAddressSpaceOutOps   *_invalOps;
@@ -25,5 +26,6 @@ namespace nanos {
          void preIssueActions( memory_space_id_t id, WD const &wd );
          void postIssueActions( memory_space_id_t id );
    };
-}
+
+} // namespace nanos
 #endif /* INVALIDATIONCONTROLLER_DECL_H */

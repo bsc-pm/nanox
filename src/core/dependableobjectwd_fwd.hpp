@@ -20,11 +20,12 @@
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD_FWD_H
 #define _NANOS_DEPENDABLE_OBJECT_WD_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class DOSubmit;
    class DOWait;
-};
+
+} // namespace nanos
 
 #endif
 

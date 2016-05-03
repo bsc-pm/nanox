@@ -19,7 +19,11 @@
 
 #ifndef MEMCHACHECOPY_FWD_H
 #define MEMCHACHECOPY_FWD_H
+
 namespace nanos {
+
    class MemCacheCopy;
-}
+
+} // namespace nanos
+
 #endif /* MEMCHACHECOPY_FWD_H */

@@ -81,7 +81,8 @@ class ClusterMPIPlugin : public ArchPlugin
       virtual BaseThread *getClusterThread() const;
 };
 
-}
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* CLUSTERMPIPLUGIN_DECL_H */

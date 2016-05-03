@@ -22,8 +22,7 @@
 
 #include "nanos-int.h"
 
-namespace nanos
-{
+namespace nanos {
 
    class Lock : public nanos_lock_t
    {
@@ -98,6 +97,6 @@ namespace nanos
        ~SyncLockBlock ( );
    };
 
-}
+} // namespace nanos
 
 #endif

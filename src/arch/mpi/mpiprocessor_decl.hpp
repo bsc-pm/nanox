@@ -31,7 +31,7 @@
 #include "mpiremotenode_decl.hpp"
 
 namespace nanos {
-    namespace ext {
+namespace ext {
 
         class MPIProcessor : public ProcessingElement {
         private:
@@ -233,7 +233,6 @@ namespace nanos {
            NANOS_MPI_GENERIC_EVENT                         /* 26 */
         } in_mpi_runtime_event_value;
 
-    }
-
-}
+} // namespace ext
+} // namespace nanos
 #endif

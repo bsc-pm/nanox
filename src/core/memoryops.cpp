@@ -32,6 +32,7 @@
 #include "deviceops.hpp"
 #include "regiondict.hpp"
 #include "regioncache.hpp"
+#include "trackableobject.hpp"
 #include "memcachecopy.hpp"
 #include "globalregt.hpp"
 
@@ -41,7 +42,7 @@
  #define _VERBOSE_CACHE 0
 #endif
 
-namespace nanos {
+using namespace nanos;
 
 BaseOps::OwnOp::OwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t loc ) :
    _ops( ops ), _reg( reg ), _version( version ), _location( loc ) {
@@ -351,4 +352,3 @@ void SeparateAddressSpaceOutOps::cancel( WD const &wd ) {
    releaseLockedSourceChunks( wd );
 }
 
-}

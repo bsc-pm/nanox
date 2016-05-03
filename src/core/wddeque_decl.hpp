@@ -37,8 +37,7 @@
 #define NANOS_ABA_CTR(x) (((uintptr_t)(x))&NANOS_ABA_MASK)
 #define NANOS_ABA_COMPOSE(x, y) (void *)(((uintptr_t)NANOS_ABA_PTR(x)) | ((NANOS_ABA_CTR(y) + 1)&NANOS_ABA_MASK))
 
-namespace nanos
-{
+namespace nanos {
 
    class SchedulePredicate
    {
@@ -413,7 +412,7 @@ namespace nanos
    };
 
 
-}
+} // namespace nanos
 
 #endif
 

@@ -34,8 +34,8 @@
 
 #include "dataaccess_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    class DependableObject;
 
    class DOSchedulerData
@@ -328,6 +328,6 @@ namespace nanos
          void setSchedulerData ( DOSchedulerData * scData );
    };
 
-};
+} // namespace nanos
 
 #endif

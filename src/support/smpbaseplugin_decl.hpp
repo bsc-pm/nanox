@@ -66,6 +66,6 @@ class SMPBasePlugin : public ArchPlugin {
       virtual bool asyncTransfersEnabled() const = 0;
 };
 
-}
+} // namespace nanos
 
 #endif /* _NANOS_SMPBASEPLUGIN_DECL */

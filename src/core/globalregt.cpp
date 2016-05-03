@@ -25,6 +25,8 @@
 #include "debug.hpp"
 #include "router.hpp"
 
+using namespace nanos;
+
 uint64_t global_reg_t::getKeyFirstAddress() const {
    return getFirstAddress( key->getKeyBaseAddress() );
 }

@@ -20,8 +20,11 @@
 #ifndef CLUSTERNODE_FWD
 #define CLUSTERNODE_FWD
 namespace nanos {
-   namespace ext {
+namespace ext {
+
       class ClusterNode;
-   }
-}
+
+} // namespace ext
+} // namespace nanos
+
 #endif

@@ -23,7 +23,7 @@
 #include "copydata_decl.hpp"
 //#include "system_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress, reg_t hostRegionId )
 {
@@ -206,5 +206,7 @@ inline void CopyData::setDeductedCD( CopyData *cd ) {
 inline CopyData *CopyData::getDeductedCD() {
    return (CopyData *) deducted_cd;
 }
+
+} // namespace nanos
 
 #endif

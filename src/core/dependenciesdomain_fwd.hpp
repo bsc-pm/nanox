@@ -20,11 +20,12 @@
 #ifndef _NANOS_DEPENDENCIES_DOMAIN_FWD
 #define _NANOS_DEPENDENCIES_DOMAIN_FWD
 
-namespace nanos
-{
+namespace nanos {
+
    class DependenciesDomain;
    class DependenciesManager;
-};
+
+} // namespace nanos
 
 #endif
 

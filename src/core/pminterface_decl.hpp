@@ -25,8 +25,8 @@
 #include "threadteam_decl.hpp"
 #include "cpuset.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    class PMInterface
    {
       protected:
@@ -80,6 +80,7 @@ namespace nanos
          //! By default, OmpSs is assumed (required for the bare run in system.cpp)
          virtual Interfaces getInterface() const { return PMInterface::OmpSs; }
    };
-}
+
+} // namespace nanos
 
 #endif /* PM_INTERFACE_HPP_ */

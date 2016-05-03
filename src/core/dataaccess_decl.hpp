@@ -24,8 +24,7 @@
 #include <cstddef>
 #include <iosfwd>
 // 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class DataAccess
    * 
@@ -184,6 +183,7 @@ namespace nanos
          friend std::ostream &operator<<( std::ostream &o, AccessType const &accessType);
       };
    } // namespace dependencies_domain_internal
-}
+
+} // namespace nanos
 
 #endif

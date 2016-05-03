@@ -3,6 +3,7 @@
 #include "smptransferqueue_decl.hpp"
 #include "atomic.hpp"
 #include "deviceops.hpp"
+
 namespace nanos {
 
 SMPTransfer::SMPTransfer() :
@@ -123,5 +124,6 @@ void SMPTransferQueue::tryExecuteOne() {
    }
 }
 
-}
+} // namespace nanos
+
 #endif

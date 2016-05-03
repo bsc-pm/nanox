@@ -100,6 +100,6 @@ private:
    virtual void cleanPreparedStmts() = 0;
 };
 
-}
+} // namespace nanos
 
 #endif /* DBMANAGER_HPP_ */

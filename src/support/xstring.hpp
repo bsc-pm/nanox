@@ -23,8 +23,7 @@
 #include <sstream>
 #include <string>
 
-namespace nanos
-{
+namespace nanos {
 
    template <class T>
    inline std::string toString ( const T& t )
@@ -34,7 +33,7 @@ namespace nanos
       return ss.str();
    }
 
-}
+} // namespace nanos
 
 #endif
 

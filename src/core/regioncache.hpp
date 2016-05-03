@@ -25,6 +25,7 @@
 #include "processingelement_decl.hpp"
 #include "atomic.hpp"
 
+namespace nanos {
 
 inline uint64_t AllocatedChunk::getAddress() const {
    return _address;
@@ -159,6 +160,6 @@ inline std::size_t RegionCache::getUnallocatedBytes() const {
    return _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) - _allocatedBytes;
 }
 
-
+} // namespace nanos
 
 #endif /* REGIONCACHE_HPP */

@@ -22,8 +22,10 @@
 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 namespace nanos {
+
    class Memtracker;
-};
+
+} // namespace nanos
 #endif
 
 #endif

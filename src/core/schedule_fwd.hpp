@@ -20,8 +20,8 @@
 #ifndef _NANOS_SCHEDULE_FWD_H
 #define _NANOS_SCHEDULE_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Scheduler;
    class SchedulerStats;
    class ScheduleTeamData;
@@ -33,7 +33,8 @@ namespace nanos
    class SchedulingGroup;
    class SchedulingData;
    class SchedulingConf;
-};
+
+} // namespace nanos
 
 #endif
 

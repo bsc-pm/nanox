@@ -24,8 +24,7 @@
 #include "config_decl.hpp"
 #include "compatibility.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    class Plugin
    {
@@ -85,6 +84,6 @@ namespace nanos
          void unloadPlugins();
    };
 
-}
+} // namespace nanos
 
 #endif

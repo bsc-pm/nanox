@@ -22,6 +22,8 @@
 
 #include "task_reduction_decl.hpp"
 
+namespace nanos {
+
 inline bool TaskReduction::has( const void *ptr)
 {
 	return ( ptr == _dependence ) || ( (ptr >= _min) && (ptr < _max) );
@@ -117,5 +119,7 @@ inline  void * TaskReduction::initialize( size_t id )
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
 	return _storage[id].data;
 }
+
+} // namespace nanos
 
 #endif

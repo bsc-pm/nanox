@@ -25,7 +25,8 @@ namespace ext {
 
    class SMPThread;
    class SMPMultiThread;
-}
-}
+
+} // namespace ext
+} // namespace nanos
 
 #endif /* SMPTHREAD_FWD_H */

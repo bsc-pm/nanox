@@ -60,8 +60,7 @@ enum {
 
 
 
-namespace nanos
-{
+namespace nanos {
 
 /* \brief Device specialization for MPI architecture
  * provides functions to allocate and copy data in the device
@@ -116,6 +115,6 @@ namespace nanos
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const { fatal0(__PRETTY_FUNCTION__ << " not implemented if offload"); }
 
    };
-}
+} // namespace nanos
 
 #endif

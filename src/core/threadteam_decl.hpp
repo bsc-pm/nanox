@@ -28,8 +28,7 @@
 #include "task_reduction_decl.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
 
    class ThreadTeamData
    {
@@ -231,6 +230,6 @@ namespace nanos
          void removeExpectedThread( BaseThread *thread );
    };
 
-}
+} // namespace nanos
 
 #endif

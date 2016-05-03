@@ -27,7 +27,7 @@
 #include "location.hpp"
 #include "basethread.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline ProcessingElement::~ProcessingElement()
 {
@@ -64,6 +64,8 @@ inline unsigned int ProcessingElement::getActiveDevice() const {
 }
 
 inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
+
+} // namespace nanos
 
 #endif
 

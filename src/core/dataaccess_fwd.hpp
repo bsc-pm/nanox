@@ -20,14 +20,14 @@
 #ifndef _NANOS_DATA_ACCESS_FWD_H
 #define _NANOS_DATA_ACCESS_FWD_H
 
-namespace nanos
-{
+namespace nanos {
    class DataAccess;
 
    namespace dependencies_domain_internal {
       class AccessType;
    }
-};
+
+} // namespace nanos
 
 #endif
 

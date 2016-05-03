@@ -30,8 +30,8 @@
 
 #define NANOX_MULTIPLE_SYNC_COND_SIZE 100
 
-namespace nanos
-{
+namespace nanos {
+
   /*! \brief Represents an object that checks a given condition.
    */
    class ConditionChecker
@@ -425,6 +425,6 @@ namespace nanos
             return reslt;
          }
    };
-}
+} // namespace nanos
 
 #endif

@@ -103,6 +103,6 @@ private:
    void cleanPreparedStmts();
 };
 
-}
+} // namespace nanos
 
 #endif /* SQLITE3DBMANAGER_HPP_ */

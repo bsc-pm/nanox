@@ -28,8 +28,7 @@
 //TODO: Make mpi independent from pthreads? move it to OS?
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class MPIThread : public SMPThread
    {
@@ -143,7 +142,7 @@ namespace ext
    };
 
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

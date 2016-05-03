@@ -19,9 +19,13 @@
 
 #ifndef ADDRESSSPACE_FWD
 #define ADDRESSSPACE_FWD
+
 namespace nanos {
+
    class SeparateAddressSpace;
    class HostAddressSpace;
    template <class T> class MemSpace;
-}
+
+} // namespace nanos
+
 #endif /* ADDRESSSPACE_FWD */

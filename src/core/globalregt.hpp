@@ -37,7 +37,6 @@ inline memory_space_id_t global_reg_t::getFirstLocation() const {
    return NewNewRegionDirectory::getFirstLocation( key, id );
 }
 
+} // namespace nanos
 
-
-}
 #endif

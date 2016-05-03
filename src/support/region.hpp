@@ -26,7 +26,7 @@
 #include "region_decl.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 
 inline bool Region::combine(Region const &other, /* Outputs: */ Region &result) const
@@ -80,5 +80,6 @@ inline bool Region::overlap ( const BaseDependency &obj ) const
     return matches(region);
 }
 
+} // namespace nanos
 
 #endif // _NANOS_REGION

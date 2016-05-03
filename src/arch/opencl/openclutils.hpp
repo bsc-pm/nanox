@@ -103,7 +103,7 @@ inline bool wgChecker( size_t *global, size_t * local, unsigned int dims )
    return true;
 }
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_OpenCL_UTILS

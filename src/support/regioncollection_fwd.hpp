@@ -27,7 +27,7 @@ namespace nanos {
    template < class container_t >
    class RegionCollection;
    
-}
+} // namespace nanos
 
 
 #endif // _NANOS_REGION_COLLECTION_FWD

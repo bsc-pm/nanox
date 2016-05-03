@@ -35,10 +35,8 @@
 #define STRIDE  0x0             /* Stride control */
 
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
       /*!
        * The only purpose of this class is to wrap some device dependent info dependeing
        * on an external library ir order to keep the system as clean as possible
@@ -80,7 +78,7 @@ namespace nanos
                return _deviceHandle;
             }
       };
-   }  //ext
-}  //nanos
+} // namespace ext
+} // namespace nanos
 
 #endif

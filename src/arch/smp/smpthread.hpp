@@ -31,8 +31,7 @@
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
    class SMPMultiThread;
 
    class SMPThread : public BaseThread
@@ -147,7 +146,7 @@ namespace ext
          void addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs);
          virtual bool canBlock() { return false;}
    };
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

@@ -33,8 +33,8 @@ namespace ext {
 
 class OpenCLProcessor;
 
-}
-};
+} // namespace ext
+} // namespace nanos
 
 #endif	/* OPENCLPROCESSOR_FWD_HPP */
 

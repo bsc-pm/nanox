@@ -23,7 +23,7 @@
 #include "atomic_decl.hpp"
 #include "lock_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 template <class T>
 class LazyInit {
@@ -47,5 +47,8 @@ class LazyInit {
 
       bool isInitialized();
 };
+
+
+} // namespace nanos
 
 #endif

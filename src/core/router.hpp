@@ -22,7 +22,7 @@
 
 #include "router_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline Router::Router() : _lastSource( (memory_space_id_t)-1 ), _memSpaces() {
 }
@@ -96,5 +96,7 @@ inline memory_space_id_t Router::getSource( memory_space_id_t destination,
    }
    return selected;
 }
+
+} // namespace nanos
 
 #endif /* NANOS_ROUTER_HPP */

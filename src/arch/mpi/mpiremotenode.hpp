@@ -35,8 +35,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-using namespace nanos;
-using namespace ext;
+namespace nanos {
+namespace ext {
     
 Lock MPIRemoteNode::_taskLock;
 pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait for completion
@@ -142,5 +142,8 @@ static void releaseLock( int fd, char const *lockName )
     //remove( lockName );
     close( fd );
 }
+
+} // namespace ext
+} // namespace nanos
 
 #endif

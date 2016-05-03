@@ -24,10 +24,9 @@
 #include "fpgadevice.hpp"
 #include "workdescriptor.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
+
       extern FPGADevice FPGA;
       class FPGADD : public DD
       {
@@ -68,8 +67,8 @@ namespace nanos
       }
 
 
-   }
-}
+} // namespace ext
+} // namespace nanos
 
 #endif
 

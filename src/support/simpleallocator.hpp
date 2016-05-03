@@ -24,7 +24,7 @@
 #include <map>
 #include "simpleallocator_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline uint64_t SimpleAllocator::getBaseAddress ()
 {
@@ -36,5 +36,7 @@ inline void * BufferManager::getBaseAddress ()
 {
    return _baseAddress;
 }
+
+} // namespace nanos
 
 #endif /* _NANOS_SIMPLEALLOCATOR */

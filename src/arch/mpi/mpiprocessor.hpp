@@ -32,9 +32,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-using namespace nanos;
-using namespace ext;
-    
+namespace nanos {
+namespace ext {
 
 System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
 size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
@@ -197,5 +196,8 @@ void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
 void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
     _pendingReqs.push_back(req);
 }
+
+} // namespace ext
+} // namespace nanos
 
 #endif

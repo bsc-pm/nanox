@@ -20,11 +20,12 @@
 #ifndef _NANOS_COMMUTATIONDEPOBJ
 #define _NANOS_COMMUTATIONDEPOBJ
 
+#include "dependenciesdomain_decl.hpp"
 #include "commutationdepobj_decl.hpp"
 #include "task_reduction.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 inline void CommutationDO::dependenciesSatisfied ( )
 {
@@ -54,6 +55,7 @@ inline void CommutationDO::setTaskReduction( TaskReduction *tr )
    _taskReduction = tr;
 }
 
-#endif
+} // namespace nanos
 
+#endif
 

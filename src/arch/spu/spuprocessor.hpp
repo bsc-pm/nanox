@@ -47,8 +47,8 @@ namespace ext {
         BaseThread & createThread ( WorkDescriptor &wd );
    };
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 
 #endif

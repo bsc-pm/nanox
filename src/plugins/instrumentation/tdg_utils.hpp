@@ -460,4 +460,5 @@ namespace nanos {
         std::tr1::hash<std::string> hash_fn;
         return node_colors[ hash_fn(description) % HASH_SIZE ];
     }
-}
+
+} // namespace nanos

@@ -1460,6 +1460,6 @@ void MemoryMap< _Type >::eraseByAddress( uint64_t addr ) {
    }
 }
 
-}
+} // namespace nanos
 
 #endif /* _NANOS_MEMORYMAP_H */

@@ -28,8 +28,7 @@
 #include "basethread.hpp"
 #include "workdescriptor.hpp"
 
-using namespace nanos;
-
+namespace nanos {
 
 inline WDDeque::WDDeque( bool enableDeviceCounter ) : _dq(), _lock(), _nelems(0), _ndevs(), _deviceCounter( enableDeviceCounter )
 {
@@ -1018,6 +1017,8 @@ inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks, int decrement 
    _nelems -= decrement;
    fatal_cond( _dq.size() != _nelems, "List size does not match queue size (decrease)" );
 }
+
+} // namespace nanos
 
 #endif
 

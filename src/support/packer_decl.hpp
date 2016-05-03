@@ -72,6 +72,6 @@ class Packer {
       void setAllocator( SimpleAllocator *alloc );
 };
 
-}
+} // namespace nanos
 
 #endif

@@ -32,8 +32,8 @@
 #define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
 #define NANOS_OBJECTS_PER_ARENA 1000
 
-namespace nanos
-{
+namespace nanos {
+
 /*! \class InternalAllocator
  */
 template<typename T>
@@ -205,7 +205,7 @@ class Allocator
 Allocator & getAllocator ( void );
 
 
-} // namespace: nanos
+} // namespace nanos
 
 #endif
 

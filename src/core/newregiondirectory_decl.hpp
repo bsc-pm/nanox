@@ -26,8 +26,8 @@
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    class NewNewDirectoryEntryData : public Version {
       private:
          //int _writeLocation;
@@ -215,6 +215,7 @@ namespace nanos
          void registerObject(nanos_copy_data_internal_t *obj);
          void unregisterObject(void *baseAddr);
    };
-}
+
+} // namespace nanos
 
 #endif

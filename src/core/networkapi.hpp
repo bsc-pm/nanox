@@ -69,6 +69,7 @@ namespace nanos {
          virtual void synchronizeDirectory( unsigned int node, void *addr ) = 0;
          virtual void broadcastIdle() = 0;
    };
-}
+
+} // namespace nanos
 
 #endif

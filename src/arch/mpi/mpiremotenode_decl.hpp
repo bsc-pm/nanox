@@ -30,7 +30,7 @@
 #include "processingelement.hpp"
 
 namespace nanos {
-    namespace ext {
+namespace ext {
 
         /**
          * Class which implements all the remote-node logic which is not in the cache (executing tasks etc...)
@@ -286,7 +286,6 @@ namespace nanos {
             
         };   
 
-    }
-
-}
+} // namespace ext
+} // namespace nanos
 #endif

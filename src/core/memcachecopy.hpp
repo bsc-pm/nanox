@@ -9,6 +9,8 @@
 #include "addressspace.hpp"
 #include "basethread.hpp"
 
+namespace nanos {
+
 inline MemCacheCopy::MemCacheCopy() : 
    _version( 0 ), _childrenProducedVersion( 0 )
    , _reg( 0, (reg_key_t) NULL )
@@ -121,5 +123,7 @@ inline void MemCacheCopy::setChildrenProducedVersion( unsigned int version ) {
 inline unsigned int MemCacheCopy::getChildrenProducedVersion() const {
    return _childrenProducedVersion;
 }
+
+} // namespace nanos
 
 #endif

@@ -62,6 +62,6 @@ namespace nanos {
          }
    };
 
-}
+} // namespace nanos
 #endif	/* SHAREDMEMALLOCATOR_DECL_HPP */
 

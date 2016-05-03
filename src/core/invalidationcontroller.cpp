@@ -7,6 +7,8 @@
 #include <limits>
 #include <iomanip>
 
+using namespace nanos;
+
 InvalidationController::InvalidationController() : 
    _invalOps( NULL )
    , _invalChunk( NULL )

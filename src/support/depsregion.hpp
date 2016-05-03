@@ -22,7 +22,7 @@
 
 #include "depsregion_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline const DepsRegion& DepsRegion::operator= ( const DepsRegion &obj )
 {
@@ -73,5 +73,7 @@ inline size_t DepsRegion::getSize () const
 {
    return (uint64_t)_endAddress-(uint64_t)_address;
 }
+
+} // namespace nanos
 
 #endif

@@ -23,8 +23,7 @@
 #include <iostream>
 #include "nanos-int.h"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class CopyData
    *  \brief Contains information about Copies
@@ -123,6 +122,7 @@ namespace nanos
 
    };
    std::ostream& operator<< (std::ostream& o, CopyData const &cd);
-}
+
+} // namespace nanos
 
 #endif

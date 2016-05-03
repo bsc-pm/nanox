@@ -42,7 +42,7 @@ public:
 };
 
 
-}
+} // namespace nanos
 
 
 #endif // _NANOS_CONTAINER_TRAITS

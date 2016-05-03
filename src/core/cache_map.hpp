@@ -22,7 +22,7 @@
 #include "cache_map_decl.hpp"
 #include "new_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline unsigned int CacheMap::registerCache()
 {
@@ -101,5 +101,7 @@ inline unsigned int CacheAccessMap::getAccesses( unsigned int cacheId )
    ensure( cacheId <= _size, "Checking an invalid CacheAccessMap id > size.")
    return _cacheAccessesById[cacheId - 1].value();
 }
+
+} // namespace nanos
 
 #endif

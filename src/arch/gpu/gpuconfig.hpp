@@ -31,8 +31,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    typedef enum {
       NANOS_GPU_TRANSFER_NORMAL,         //!  Basic transfer mode with no overlap
@@ -114,7 +113,8 @@ namespace ext
 
          static void printConfiguration( void );
    };
-}
-}
+
+} // namespace ext
+} // namespace nanos
 
 #endif

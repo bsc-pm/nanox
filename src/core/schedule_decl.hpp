@@ -34,8 +34,8 @@
 #include "basethread_decl.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
+
    class Config; // FIXME: this should be on config_fwd
 
 // singleton class to encapsulate scheduling data and methods
@@ -366,7 +366,7 @@ namespace nanos
       void operator() ( DependableObject *predecessor, DependableObject *successor );
    };
    
-};
+} // namespace nanos
 
 #endif
 

@@ -24,8 +24,7 @@
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    extern GPUDevice GPU;
 
@@ -66,7 +65,7 @@ namespace ext
       return *this;
    }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

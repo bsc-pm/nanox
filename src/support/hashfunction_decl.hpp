@@ -53,5 +53,6 @@ unsigned int jen_hash ( uint64_t value )
    return c;
 }
 
-}
+} // namespace nanos
+
 #endif

@@ -25,8 +25,7 @@
 #include "asyncthread_decl.hpp"
 
 
-using namespace nanos;
-
+namespace nanos {
 
 inline void OpenCLEvent::updateState()
 {
@@ -286,5 +285,7 @@ inline void OpenCLEvent::waitForEvent()
 
    _state = RAISED;
 }
+
+} // namespace nanos
 
 #endif //_OpenCL_EVENT

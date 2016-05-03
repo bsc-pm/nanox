@@ -20,9 +20,10 @@
 #ifndef __NANOS_BARRIER_FWD_H
 #define __NANOS_BARRIER_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Barrier;
-}
+
+} // namespace nanos
 
 #endif

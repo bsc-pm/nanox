@@ -160,6 +160,6 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
 };
 #endif
 
-}
+} // namespace nanos
 
 #endif /* _NANOS_MEMORYMAP_DECL_H */

@@ -36,8 +36,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
     class GPUProcessorTransfers
     {
@@ -215,7 +214,7 @@ namespace ext
 
    };
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

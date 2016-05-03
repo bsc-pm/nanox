@@ -24,10 +24,9 @@
 #include "workdescriptor_decl.hpp"
 #include "packer_decl.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
+
 /* \brief Device specialization for cluster architecture
  * provides functions to allocate and copy data in the device
  */
@@ -63,6 +62,7 @@ namespace nanos
    };
 
    extern ClusterDevice Cluster;
-}
-}
+} // namespace ext
+} // namespace nanos
+
 #endif /* _CLUSTERDEVICE_DECL */

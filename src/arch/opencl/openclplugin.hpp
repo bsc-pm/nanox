@@ -94,6 +94,6 @@ public:
 
 }; // class OpenCLPlugin
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 

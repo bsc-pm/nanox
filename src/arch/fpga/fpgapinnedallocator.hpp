@@ -44,6 +44,6 @@ namespace nanos {
          xdma_buf_handle getBufferHandle( void *address );
          void delBufferHandle( void *address );
    };
-}
+} // namespace nanos
 
 #endif //_NANOS_PINNED_ALLOCATOR

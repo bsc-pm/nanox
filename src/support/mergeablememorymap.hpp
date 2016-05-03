@@ -667,6 +667,6 @@ void MergeableMemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
    }
 }
 
-}
+} // namespace nanos
 
 #endif /* _NANOS_MERGEABLE_MEMORYMAP_H */

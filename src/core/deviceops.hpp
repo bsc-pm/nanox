@@ -29,7 +29,7 @@
 
 #define VERBOSE_CACHE_OPS 0
 
-using namespace nanos;
+namespace nanos {
 
 inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) /* debug: */ , _owner( -1 ), _wd( NULL ), _loc( 0 ) {
 }
@@ -80,9 +80,11 @@ inline void DeviceOps::completeCacheOp( /* debug: */ WorkDescriptor const *wd ) 
    _pendingCacheOp.release();
 }
 
-inline std::ostream & nanos::operator<< (std::ostream &o, DeviceOps const &ops) {
+inline std::ostream & operator<< ( std::ostream &o, nanos::DeviceOps const &ops ) {
    o << "{_pDeviceOps: " << ops._pendingDeviceOps.value() << " _pCacheOp: " << ops._pendingCacheOp.getState() << " _owner " << ops._owner <<"}";
    return o;
 }
+
+} // namespace nanos
 
 #endif /* DEVICEOPS_HPP */

@@ -23,6 +23,7 @@
 #include "memorymap_decl.hpp"
 
 namespace nanos {
+
    template <typename _Type>
       class MergeableMemoryMap : public MemoryMap< _Type > { 
          public:
@@ -36,6 +37,7 @@ namespace nanos {
             void merge( const MemoryMap< _Type > &mm );
             void merge2( const MemoryMap< _Type > &mm );
       };
-};
+
+} // namespace nanos
 
 #endif /* _NANOS_MERGEABLE_MEMORYMAP_DECL_H */

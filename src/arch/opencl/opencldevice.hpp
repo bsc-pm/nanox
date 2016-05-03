@@ -24,8 +24,8 @@
 #include "openclprocessor.hpp" 
 #include "deviceops.hpp"
 
-using namespace nanos;
-using namespace nanos::ext;
+namespace nanos {
+namespace ext {
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
@@ -125,5 +125,8 @@ void OpenCLDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::
 bool OpenCLDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
 }
+
+} // namespace ext
+} // namespace nanos
 
 #endif // _OpenCL_DEVICE

@@ -77,7 +77,8 @@ class ClusterPlugin : public ArchPlugin
       virtual unsigned int getMaxWorkers() const;
 };
 
-}
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* CLUSTERPLUGIN_DECL_H */

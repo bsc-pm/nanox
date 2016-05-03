@@ -23,6 +23,8 @@
 #include "instrumentationcontext_decl.hpp"
 #include "ompt.h"
 
+using namespace nanos;
+
 extern "C" {
 
    namespace nanos {

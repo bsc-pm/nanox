@@ -34,7 +34,7 @@
 #include "functors.hpp"
 #include "basethread.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread )
 {
@@ -169,6 +169,8 @@ inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *prede
 {
    _obj.successorFound( predecessor, successor );
 }
+
+} // namespace nanos
 
 #endif
 

@@ -43,6 +43,6 @@ class Router {
             std::set<memory_space_id_t> const &locs );
 };
 
-}
+} // namespace nanos
 
 #endif /* NANOS_ROUTER_DECL_HPP */

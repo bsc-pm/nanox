@@ -21,9 +21,10 @@
 #define _GPU_EVENT_FWD
 
 
-namespace nanos
-{
+namespace nanos {
+
    class GPUEvent;
-}
+
+} // namespace nanos
 
 #endif //_GPU_EVENT_FWD

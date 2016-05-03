@@ -33,7 +33,7 @@ namespace ext
    class GPUMemoryTransferOutSyncList;
    class GPUMemoryTransferOutAsyncList;
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

@@ -126,7 +126,7 @@ typedef enum {
    NANOS_OPENCL_PROFILE_DB_ACCESS                        /* 16 */
 } in_opencl_runtime_event_value;
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_OpenCL_CFG

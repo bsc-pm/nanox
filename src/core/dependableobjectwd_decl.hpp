@@ -24,8 +24,7 @@
 #include "dependableobject_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    /*! \class DOSubmit
     *  \brief DependableObject representing a WorkDescriptor as Dependable entity
@@ -154,7 +153,8 @@ namespace nanos
           */
          virtual void instrument ( DependableObject& successor );
    };
-};
+
+} // namespace nanos
 
 #endif
 

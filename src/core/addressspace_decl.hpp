@@ -172,6 +172,6 @@ class MemSpace : public T {
 typedef MemSpace<SeparateAddressSpace> SeparateMemoryAddressSpace;
 typedef MemSpace<HostAddressSpace> HostMemoryAddressSpace;
 
-}
+} // namespace nanos
 
 #endif /* ADDRESSSPACE_DECL */
