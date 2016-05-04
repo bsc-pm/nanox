@@ -42,6 +42,9 @@
 #define min(x,y) ((x<y)?x:y)
 #endif
 
+using namespace nanos;
+using namespace nanos::ext;
+
 void print_mask( const char *pre, cpu_set_t *mask );
 
 void print_mask( const char *pre, cpu_set_t *mask )
