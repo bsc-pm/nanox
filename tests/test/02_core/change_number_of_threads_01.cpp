@@ -33,6 +33,8 @@
 #define NTHREADS_PHASE_1 1
 #define NTHREADS_PHASE_2 2
 
+using namespace nanos;
+
 int main ( int argc, char *argv[])
 {
    int error = 0;
