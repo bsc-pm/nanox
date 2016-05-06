@@ -138,7 +138,7 @@ System::System () :
       , _router()
       , _hwloc()
       , _immediateSuccessorDisabled( false )
-      , _predecessorCopyInfoDisabled( false )
+      , _predecessorCopyInfoDisabled( true )
       , _invalControl( false )
       , _cgAlloc( true )
       , _inIdle( false )

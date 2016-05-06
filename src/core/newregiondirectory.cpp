@@ -882,10 +882,6 @@ void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
          printBt( *(myThread->_file) );
          fatal("can not continue");
       } else {
-         GlobalRegionDictionary *dict = o->getGlobalRegionDictionary();
-         CopyData *rcd = o->getRegisteredObject();
-         delete dict;
-         delete rcd;
          delete o;
          hb._bobjects->eraseByAddress( (uint64_t) baseAddr );
          _keys.eraseByAddress( (uint64_t) baseAddr );
