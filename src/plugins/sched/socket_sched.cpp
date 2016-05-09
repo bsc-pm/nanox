@@ -36,6 +36,7 @@
 #include "gpudd.hpp"
 #endif
 #include "location.hpp"
+#include "memcachecopy.hpp"
 
 namespace nanos {
    namespace ext {
