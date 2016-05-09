@@ -341,6 +341,14 @@ AS_IF([test "$new_gcc_builtins" = yes],[
   gcc_builtins_used="legacy gcc __sync builtins"
 ])
 
+AC_DEFUN([ax_check_enabled],[
+  AS_IF([test -n "$1"],[
+    echo -n "enabled"
+  ],[
+    echo -n "disabled"
+  ])  
+])
+
 AS_ECHO(["
 Configuration summary of Nanos++
 ================================
@@ -351,9 +359,9 @@ Configured architectures: $ARCHITECTURES
 Configured versions:      $VERSIONS
 Extra options:            $OPTIONS
 GCC atomics:              $gcc_builtins_used
-Memory tracker:           $enable_memtracker
-Memory allocator:         $enable_allocator
-Task resiliency:          $resiliency"])
+Memory tracker:           $(ax_check_enabled $enable_memtracker)
+Memory allocator:         $(ax_check_enabled $enable_allocator)
+Task resiliency:          $(ax_check_enabled $resiliency)"])
 
 AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\
