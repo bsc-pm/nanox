@@ -220,6 +220,7 @@ namespace nanos {
          void config( Config &cfg );
          ThreadManager* create();
          bool canUntieMaster() const;
+         void setForceTieMaster ( const bool value ) { _forceTieMaster = value; }
    };
 
 } // namespace nanos
