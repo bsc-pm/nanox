@@ -692,7 +692,7 @@ namespace nanos {
          unsigned int getNewAcceleratorId();
          memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
 
-         const ThreadManagerConf& getThreadManagerConf() const;
+         ThreadManagerConf& getThreadManagerConf();
          ThreadManager* getThreadManager() const;
 
          //! \brief Returns true if the compiler says priorities are required
