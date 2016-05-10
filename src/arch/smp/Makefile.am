@@ -72,6 +72,7 @@ smp_sources = \
 	$(END)
 
 pe_smp_sources = \
+	smpplugin_decl.hpp \
 	smpplugin.cpp \
 	$(END)
 
