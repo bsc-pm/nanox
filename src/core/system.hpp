@@ -608,7 +608,7 @@ inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
 }
 
-inline const ThreadManagerConf& System::getThreadManagerConf() const {
+inline ThreadManagerConf& System::getThreadManagerConf() {
    return _threadManagerConf;
 }
 
