@@ -1008,11 +1008,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
       message0( "Got results.size()="<< results.size() << " for addr " << ((void*) targetHostAddr) << " with allocSize " << allocSize <<" I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ChunkList::iterator it = results.begin(); it != results.end(); it++ )
          *myThread->_file << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
-      if ( &wd != NULL ) {
-         *myThread->_file << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
-      } else {
-         *myThread->_file << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
-      }
+      *myThread->_file << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
       fatal("Can not continue.");
    } else {
       if ( *(results.front().second) == NULL ) {
@@ -1270,11 +1266,7 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
       message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
          *myThread->_file << " addr: " << (void *) it->first.getAddress() << " size " << it->first.getLength() << std::endl; 
-      if ( &wd != NULL ) {
-         *(myThread->_file) << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
-      } else {
-         *(myThread->_file) << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
-      }
+      *(myThread->_file) << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
       fatal("Can not continue.");
    }
    if ( !allocChunkPtr && complain ) {
