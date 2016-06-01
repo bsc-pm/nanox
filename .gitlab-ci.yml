@@ -12,7 +12,7 @@ mirror-master:
     script:
         - git remote add github $UPSTREAM_REPOSITORY || true
         - git fetch github
-        - git push --progress github HEAD:$UPSTREAM_BRANCH
+        - git push --progress --set-upstream github $UPSTREAM_BRANCH
 
 mirror-tags:
     stage: deploy
