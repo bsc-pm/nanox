@@ -750,6 +750,10 @@ typedef std::set<const Device *>  DeviceList;
 
          void setCallback ( void *cb );
          void setArguments ( void *a );
+
+         //! \brief Returns the concurrency level of the WD considering
+         //         the commutative access map that the caller provides.
+         int getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) const;
    };
 
    typedef class WorkDescriptor WD;

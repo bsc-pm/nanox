@@ -160,7 +160,7 @@ inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t num
    }
 }
 
-inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+inline int SchedulePolicy::getNumConcurrentWDs()
 {
    return sys.getReadyNum();
 }

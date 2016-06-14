@@ -166,7 +166,7 @@ namespace nanos {
          /*! \brief Returns the number of ready tasks that could be ran simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         int getPotentiallyParallelWDs( void );
+         int getNumConcurrentWDs();
 
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
@@ -408,7 +408,7 @@ namespace nanos {
          /*! \brief Returns the number of ready tasks that could be ran simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         int getPotentiallyParallelWDs( void );
+         int getNumConcurrentWDs();
    };
 
 

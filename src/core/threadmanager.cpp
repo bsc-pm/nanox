@@ -284,8 +284,8 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 1 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
@@ -461,8 +461,8 @@ void BusyWaitThreadManager::acquireResourcesIfNeeded ()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 0 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
@@ -656,8 +656,8 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 0 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )

@@ -338,7 +338,7 @@ namespace nanos {
          /*! \brief Returns the number of ready tasks that could be run simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         virtual int getPotentiallyParallelWDs( void );
+         virtual int getNumConcurrentWDs();
 
          /*! \brief Returns if the scheduler needs WD run time */
          virtual bool isCheckingWDRunTime()

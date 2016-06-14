@@ -339,32 +339,18 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    _nelems -= decrement;
 }
 
-inline int WDDeque::getPotentiallyParallelWDs( void )
+inline int WDDeque::getNumConcurrentWDs()
 {
+   // Cumulative wd counter
    int num_wds = 0;
-   WDDeque::BaseContainer::iterator it;
+   // Auxiliary map to count successful commutative accesses
+   std::map<WD**, WD*> comm_accesses;
+   // ReadyQueue iterator
+   WDDeque::BaseContainer::const_iterator it;
    LockBlock lock( _lock );
-   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
       WD &wd = *(WD *)*it;
-
-      if ( wd.getSlicer() ) {
-         nanos_loop_info_t *loop_info;
-         loop_info = ( nanos_loop_info_t * ) wd.getData();
-         int _chunk = loop_info->chunk;
-         int _lower = loop_info->lower;
-         int _upper = loop_info->upper;
-         int _step  = loop_info->step;
-         int _niters = (((_upper - _lower) / _step ) + 1 );
-
-         if (_chunk == 0){
-            num_wds ++;
-         }else{
-            num_wds += (_niters + _chunk - 1) / _chunk;
-         }
-      }
-      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
-         num_wds++;
-      }
+      num_wds += wd.getConcurrencyLevel( comm_accesses );
    }
 
    return num_wds;
@@ -622,34 +608,6 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
    // If it was inserted at the start, it has more than the rest
    if ( first == _dq.front() )
       _maxPriority = priority;
-}
-
-template<typename T>
-inline int WDPriorityQueue<T>::getPotentiallyParallelWDs( void )
-{
-   int num_wds = 0;
-   WDPQ::BaseContainer::iterator it;
-   LockBlock lock( _lock );
-   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-      WD &wd = *(WD *)*it;
-
-      if ( wd.getSlicer() ) {
-         nanos_loop_info_t *loop_info;
-         loop_info = ( nanos_loop_info_t * ) wd.getData();
-         int _chunk = loop_info->chunk;
-         int _lower = loop_info->lower;
-         int _upper = loop_info->upper;
-         int _step  = loop_info->step;
-         int _niters = (((_upper - _lower) / _step ) + 1 );
-
-         num_wds += (_niters + _chunk - 1) / _chunk;
-      }
-      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
-         num_wds++;
-      }
-   }
-
-   return num_wds;
 }
 
 template<typename T>
@@ -1016,6 +974,24 @@ inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks, int decrement 
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems -= decrement;
    fatal_cond( _dq.size() != _nelems, "List size does not match queue size (decrease)" );
+}
+
+template<typename T>
+inline int WDPriorityQueue<T>::getNumConcurrentWDs()
+{
+   // Cumulative wd counter
+   int num_wds = 0;
+   // Auxiliary map to count successful commutative accesses
+   std::map<WD**, WD*> comm_accesses;
+   // ReadyQueue iterator
+   WDPQ::BaseContainer::const_iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
+      WD &wd = *(WD *)*it;
+      num_wds += wd.getConcurrencyLevel( comm_accesses );
+   }
+
+   return num_wds;
 }
 
 } // namespace nanos
