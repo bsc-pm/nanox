@@ -44,16 +44,22 @@ void SMPTransfer::execute() {
       //}
       if (sys._watchAddr != NULL ) {
          if ((uint64_t )sys._watchAddr >= (uint64_t)(_dst + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count *_ld + _len)) {
-            *myThread->_file << "WATCH update: old value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            snprintf(buff, 256, "WATCH update: old value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
          }
          if ((uint64_t )sys._watchAddr >= (uint64_t)(_src + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count * _ld + _len)) {
-            *myThread->_file << "WATCH read: value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            snprintf(buff, 256, "WATCH read: value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
          }
       }
       ::memcpy( _dst + count * _ld, _src + count * _ld, _len );
       if (sys._watchAddr != NULL ) {
          if ((uint64_t )sys._watchAddr >= (uint64_t)(_dst + count *_ld ) && (uint64_t )sys._watchAddr < (uint64_t)(_dst + count * _ld + _len)) {
-            *myThread->_file << "WATCH update: new value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            snprintf(buff, 256, "WATCH update: new value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
          }
       }
    }
