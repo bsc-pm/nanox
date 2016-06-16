@@ -224,7 +224,7 @@ void MemController::initialize( ProcessingElement &pe ) {
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
 
       if ( _pe->getMemorySpaceId() == 0 /* HOST_MEMSPACE_ID */) {
-         _inOps = NEW HostAddressSpaceInOps( _pe, false );
+         _inOps = NEW HostAddressSpaceInOps( _pe, true );
       } else {
          _inOps = NEW SeparateAddressSpaceInOps( _pe, true, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
       }

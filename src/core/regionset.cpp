@@ -95,7 +95,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
          wantedDir->second.erase( wantedReg );
       }
       //if ( resultHIT ) {
-      //   std::cerr << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
+      //   o << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
       //}
 
       unsigned int versionSUPER = 0;
@@ -121,18 +121,18 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
                sys.getHostMemory().getVersionInfo( reg, version, locations );
             }
             resultSUBR = true;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
          }
       }
       if ( !resultSUBR && ( resultSUPER || resultHIT ) ) {
          if ( versionHIT >= versionSUPER ) {
             version = versionHIT;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
-            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
             NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << " entry " << firstEntry << std::endl;
             if ( firstEntry != NULL ) {
                locations.push_back( std::make_pair( reg.id, superPart ) );
                NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
