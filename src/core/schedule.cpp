@@ -802,8 +802,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
    // Perform the adjustment of resources: Return claimed cpus, claim cpus and update resources
-   sys.getThreadManager()->returnClaimedCpus();
    if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->returnClaimedCpus();
       sys.getThreadManager()->acquireResourcesIfNeeded();
    }
 
@@ -1015,8 +1015,8 @@ void Scheduler::exit ( void )
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   sys.getThreadManager()->returnClaimedCpus();
    if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->returnClaimedCpus();
       sys.getThreadManager()->acquireResourcesIfNeeded();
    }
 

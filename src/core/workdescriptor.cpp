@@ -533,9 +533,10 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _depsDomain->finalizeAllReductions();
    // Ask for more resources once we have finished creating tasks
-   sys.getThreadManager()->returnClaimedCpus();
-   sys.getThreadManager()->acquireResourcesIfNeeded();
-
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->returnClaimedCpus();
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();

@@ -497,7 +497,6 @@ void BusyWaitThreadManager::returnClaimedCpus()
 {
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
-   if ( !_isMalleable ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
    LockBlock Lock( _lock );

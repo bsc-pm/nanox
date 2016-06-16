@@ -1062,11 +1062,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // In case the master have been busy crating tasks 
    // every 10 tasks created I'll check if I must return claimed cpus
    // or there are available cpus idle
-   if(_atomicWDSeed.value()%10==0){
-      _threadManager->returnClaimedCpus();
-      _threadManager->acquireResourcesIfNeeded();
+   if ( sys.getPMInterface().isMalleable() ) {
+      if(_atomicWDSeed.value()%10==0){
+         _threadManager->returnClaimedCpus();
+         _threadManager->acquireResourcesIfNeeded();
+      }
    }
-
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
    }
@@ -1463,10 +1464,6 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
-   /* For OpenMP applications
-      At the end of the parallel return the claimed cpus
-   */
-   _threadManager->returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
@@ -1477,6 +1474,11 @@ void System::endTeam ( ThreadTeam *team )
    }
    
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
+
+   /* For OpenMP applications
+      At the end of the parallel return the claimed cpus
+   */
+   _threadManager->returnClaimedCpus();
    
    delete team;
 }
