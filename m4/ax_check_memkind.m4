@@ -64,9 +64,13 @@ AS_IF([test "$with_memkind" != no],[
   AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $memkindlib])
   AX_VAR_PUSHVALUE([LIBS],[])
 
-  AC_SEARCH_LIBS([je_malloc], [jemalloc],
-    [jemalloc=yes], 
-    [jemalloc=no])
+  AC_SEARCH_LIBS([je_malloc], [jemalloc], [
+    jemalloc=yes
+  ],[
+    AC_SEARCH_LIBS([jemk_malloc], [jemalloc],
+      [jemalloc=yes],
+      [jemalloc=no])
+  ])
 
   AS_IF([test "$jemalloc" = yes],[
 
