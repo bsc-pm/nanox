@@ -2036,7 +2036,7 @@ void RegionCache::removeFromAllocatedRegionMap( global_reg_t const &reg ) {
    _mapVersion++;
 }
 
-std::map<GlobalRegionDictionary *, std::set<reg_t> > const &RegionCache::getAllocatedRegionMap() {
+std::map<GlobalRegionDictionary *, std::set<nanos::reg_t> > const &RegionCache::getAllocatedRegionMap() {
    if ( _mapVersionRequested != _mapVersion ) {
       this->MAPlock();
       _allocatedRegionMapCopy = _allocatedRegionMap;

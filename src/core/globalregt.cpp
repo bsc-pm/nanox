@@ -151,7 +151,7 @@ uint64_t global_reg_t::getRealBaseAddress() const {
    return key->getRealBaseAddress();
 }
 
-reg_t global_reg_t::getFitRegionId() const {
+nanos::reg_t global_reg_t::getFitRegionId() const {
    RegionNode *n = key->getRegionNode( id );
    bool keep_fitting = true;
    nanos_region_dimension_internal_t fitDimensions[ key->getNumDimensions() ];
@@ -176,7 +176,7 @@ reg_t global_reg_t::getFitRegionId() const {
    return key->obtainRegionId( fitDimensions );
 }
 
-reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
+nanos::reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
    RegionNode *n = key->getRegionNode( id );
    std::vector< std::size_t > const &sizes = key->getDimensionSizes();
    std::size_t acc_size = 1;
