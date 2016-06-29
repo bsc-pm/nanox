@@ -29,6 +29,8 @@
 #include "copydata.hpp"
 #include "memorymap_decl.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
+#include "recursivelock_decl.hpp"
 #include "version_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 

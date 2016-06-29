@@ -200,7 +200,7 @@ void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
     this->_currExecutingDD = currExecutingDD;
 }
 
-void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
+void MPIProcessor::appendToPendingRequests( mpi::request const& req ) {
     _pendingReqs.push_back(req);
 }
 

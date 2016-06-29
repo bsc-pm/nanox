@@ -5,22 +5,21 @@
 using namespace nanos::mpi;
 using namespace nanos::ext;
 
-HostInfo HostInfo::defaultSettings() {
+// Set common default properties for spawn MPI_Info
+void HostInfo::defaultSettings() {
 	int mpi_initialized;
 	MPI_Initialized( &mpi_initialized );
 
-	if( mpi_initialized == 1 ) {
-		HostInfo defaultValue;
-		// Set common default properties for spawn MPI_Info
-		// - In case the MPI implementation supports tpp (threads per process) key...
-		if( MPIProcessor::_workers_per_process > 0 ) {
-			defaultValue.set( "tpp", MPIProcessor::_workers_per_process );
-		}
-		// In case the MPI implementation supports nodetype (cluster/booster) key...
-		defaultValue.set( "nodetype", MPIProcessor::_mpiNodeType );
+        assert(mpi_initialized);
 
-		return defaultValue;
-	} else {
-		return HostInfo(MPI_INFO_NULL);
-	}
+        // - In case the MPI implementation supports tpp (threads per process) key...
+        if( MPIProcessor::_workers_per_process > 0 )
+            set( "tpp", MPIProcessor::_workers_per_process );
+
+        // In case the MPI implementation supports nodetype (cluster/booster) key...
+        set( "nodetype", MPIProcessor::_mpiNodeType );
+
+        // Disable parricide (i.e., to prevent an aborting child to kill its parents)
+        // This key is specific from ParaStation MPI*value,*value,
+        set( "parricide", "disabled" );
 }

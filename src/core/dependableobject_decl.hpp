@@ -24,11 +24,15 @@
 #include <set>
 #include <vector>
 #include <stdint.h>
+
 #include "atomic_decl.hpp"
-#include "dataaccess_decl.hpp"
+#include "lock_decl.hpp"
+
 #include "dependenciesdomain_fwd.hpp"
 #include "basedependency_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
+
+#include "dataaccess_decl.hpp"
 
 namespace nanos
 {

@@ -34,6 +34,10 @@ devinclude_HEADERS = \
 	allocator.hpp\
 	atomic_decl.hpp\
 	atomic.hpp\
+	atomic_flag.hpp\
+	lock_decl.hpp\
+	lock.hpp\
+	recursivelock_decl.hpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\
@@ -96,6 +100,8 @@ devinclude_HEADERS = \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
+	memory/memoryaddress.hpp \
+	concurrent_queue.hpp \
 	$(END) 
 
 support_sources = \
@@ -107,6 +113,11 @@ support_sources = \
 	allocator.cpp\
 	atomic_decl.hpp\
 	atomic.hpp\
+	atomic_flag.hpp\
+	lock_decl.hpp\
+	lock.hpp\
+	recursivelock_decl.hpp\
+	recursivelock.cpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\
@@ -181,6 +192,9 @@ support_sources = \
 	genericevent.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	memory/memoryaddress.hpp \
+	memory/memoryaddress.cpp \
+	concurrent_queue.hpp \
 	$(END) 
 
 debug_sources = \

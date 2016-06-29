@@ -18,15 +18,33 @@
 /*************************************************************************************/
 
 #include "mpiremotenode.hpp"
+#include "mpidevice_decl.hpp"
+
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"
 #include "mpithread.hpp"
+
+#include "cachecommand.hpp"
+#include "cachepayload.hpp"
+#include "commandpayload.hpp"
+
+#include "finish.hpp"
+#include "init.hpp"
+
+#include "mpiworker.hpp"
+
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-#include "mpi.h"
+#include <mpi.h>
+
+#if MPI_VERSION >= 3
+#define NANOS_MPI2_CONST const
+#else
+#define NANOS_MPI2_CONST
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -40,40 +58,23 @@ extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
 
 
 bool MPIRemoteNode::executeTask(int taskId) {
-    bool ret=false;
-    if (taskId==TASK_END_PROCESS){
-       nanosMPIFinalize();
-       nanos::ext::MPIRemoteNode::getTaskLock().release();
-       ret=true;
+    if( taskId == TASK_END_PROCESS ) {
+        delete _commandDispatcher;
+        delete _pendingTasksWithParent;
+        nanosMPIFinalize();
+        return true;
     } else {
-       void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
-       //nanos::MPIDevice::taskPreInit();
-       function_pointer();
-       //nanos::MPIDevice::taskPostFinish();
+        void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId];
+        //nanos::MPIDevice::taskPreInit();
+        function_pointer();
+        //nanos::MPIDevice::taskPostFinish();
+        return false;
     }
-    return ret;
-}
-
-int MPIRemoteNode::nanosMPIWorker(){
-	bool finalize=false;
-	while(!finalize){
-		//Acquire twice and block until cache thread unlocks
-      testTaskQueueSizeAndLock();
-      setCurrentTaskParent(getQueueCurrentTaskParent());
-		finalize=executeTask(getQueueCurrTaskIdentifier());
-      removeTaskFromQueue();
-	}
-   return 0;
 }
 
 void MPIRemoteNode::preInit(){
     nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
     nanos::ext::MPIRemoteNode::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
-}
-
-void MPIRemoteNode::mpiOffloadSlaveMain(){
-    nanos::MPIDevice::remoteNodeCacheWorker();
-    exit(0);
 }
 
 int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){
@@ -142,7 +143,8 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     }
 
 
-    nanos::MPIDevice::initMPICacheStruct();
+    nanos::mpi::command::CachePayload::initDataType();
+    nanos::mpi::command::CommandPayload::initDataType();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
@@ -161,8 +163,9 @@ void MPIRemoteNode::nanosMPIFinalize() {
             delete *datatype_it;
         }
     }
-    MPI_Type_free( &MPIDevice::cacheStruct );
-    MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
+
+    nanos::mpi::command::CachePayload::freeDataType();
+    nanos::mpi::command::CommandPayload::freeDataType();
 
     int mpi_finalized;
     MPI_Finalized(&mpi_finalized);
@@ -185,117 +188,6 @@ void MPIRemoteNode::nanosMPIFinalize() {
 
 //TODO: Finish implementing shared memory
 #define N_FREE_SLOTS 10
-void MPIRemoteNode::unifiedMemoryMallocHost(size_t size, MPI_Comm communicator) {
-//    int comm_size;
-//    MPI_Comm_remote_size(communicator,&comm_size);
-//    void* proposedAddr;
-//    bool sucessMalloc=false;
-//    while (!sucessMalloc) {
-//        proposedAddr=getFreeVirtualAddr(size);
-//        sucessMalloc=mmapOfAddr(proposedAddr);
-//    }
-//    //Fast mode: Try sending one random address and hope its free in every node
-//    cacheOrder newOrder;
-//    newOrder.opId=OPID_UNIFIED_MEM_REQ;
-//    newOrder.size=size;
-//    newOrder.hostAddr=(uint16_t)proposedAddr;
-//    for (int i=0; i<comm_size ; i++) {
-//       nanos::ext::MPIRemoteNode::nanosMPISend(&newOrder, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, communicator);
-//    }
-//    int totalValids;
-//    nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//    if (totalValids!=comm_size) {
-//        //Fast mode failed, enter safe mode
-//        munmapOfAddr(proposedAddr);
-//        uint64_t finalPtr;
-//        uint64_t freeSpaces[N_FREE_SLOTS*2];
-//        getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
-//        MPI_Status status;
-//        ptrArr[i]=freeSpaces;
-//        arrLength[i]=N_FREE_SLOTS;
-//        sizeArr[i]=freeSpaces+arrLength[i];
-//        //Gather from everyone in the communicator
-//        //MPI_Gather could be an option, but this is not a performance critical routine
-//        //and would limit the sizes to a fixed size
-//        for (int i=0; i<comm_size; ++i) {
-//           MPI_Probe(parentRank, TAG_UNIFIED_MEM, parentcomm, &status);
-            //TODO: FREE THIS MALLOCS
-//           localArr= (uint64_t*) malloc(status.count*sizeof(uint64_t));
-//           ptrArr[i]=localArr;
-//           arrLength[i]=status.count/2;
-//           sizeArr[i]=localArr+arrLength[i];
-//           nanos::ext::MPIRemoteNode::nanosMPIRecv(&localArr, status.count, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
-//        }
-//        //Now intersect all the free spaces we got...
-//        std::map<uint64_t,char> blackList;
-//        bool sucess=false;
-//        while (!sucess) {
-//            finalPtr=getFreeChunk(comm_size+1, ptrArr, sizeArr, arrLength, order.size, blackList);
-//            bool sucess=mmapOfAddr(finalPtr);
-//            if (sucess) {
-//                for (int i=0; i<comm_size ; i++) {
-//                   nanos::ext::MPIRemoteNode::nanosMPISend(&finalPtr, 1, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
-//                }
-//                int totalValids;
-//                nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//                if (totalValids!=comm_size) {
-//                    munmapOfAddr(finalPtr);
-//                    sucess=false;
-//                }
-//            }
-//            if (!sucess) blackList.insert(std::make_pair<uint64_t,char>(finalPtr,1));
-//        }
-//    }
-}
-
-void MPIRemoteNode::unifiedMemoryMallocRemote(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
-//    int comm_size;
-//    int localPositives=0;
-//    int totalPositives=0;
-//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
-//    bool hostProposalIsFree=true;
-//    hostProposalIsFree=mmapOfAddr(order.hostAddr);
-//    localPositives+=(int) hostProposalIsFree;
-//    MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-//    if (rank==0) {
-//        nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//    }
-//    if (totalPositives!=localPositives) {
-//        //Some node failed doing malloc, entre safe mode
-//        munmapOfAddr(order.hostAddr);
-//        unifiedMemoryMallocRemoteSafe(order,parentRank,parentcomm);
-//    }
-}
-
-
-void MPIRemoteNode::unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
-//    uint64_t freeSpaces[N_FREE_SLOTS*2];
-//    int comm_size;
-//    int localPositives=0;
-//    int totalPositives=-1;
-//    //Send my array of free memory slots to the master
-//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
-//    uint64_t finalPtr;
-//    getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
-//    nanos::ext::MPIRemoteNode::nanosMPISend(freespaces, sizeof(freeSpaces), MPI_LONG, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//    //Keep receiving addresses from the master until every node could malloc a common address
-//    while (totalPositives!=localPositives) {
-//        totalPositives=0;
-//        localPositives=0;
-//        //Wait for the answer of the proposed/valid pointer
-//        nanos::ext::MPIRemoteNode::nanosMPIRecv(&finalPtr, 1, MPI_LONG, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
-//
-//        bool hostProposalIsFree=true;
-//        hostProposalIsFree=mmapOfAddr(finalPtr);
-//        localPositives+=(int) hostProposalIsFree;
-//        MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-//        if (rank==0) {
-//            nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
-//        }
-//        if (totalPositives!=localPositives) munmapOfAddr(finalPtr);
-//    }
-}
-
 uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
          uint64_t** sizeArr,int** arrLength, size_t chunkSize, std::map<uint64_t,char>& blackList ) {
 //    uint64_t result=0;
@@ -351,11 +243,9 @@ uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
     return 0;
 }
 
-
 void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
-    cacheOrder order;
-    order.opId = OPID_FINISH;
+
     int nThreads=sys.getNumWorkers();
     //Now sleep the threads which represent the remote processes
     int res=MPI_IDENT;
@@ -401,8 +291,9 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                 //Only owner will send kill signal to the worker
                 if ( (*it)->getOwner() )
                 {
-                    nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, *intercomm);
-                    //After sending finalization signals, we are not the owners anymore
+                    mpi::command::Finish::Requestor finishCommand( *(*it) );
+                    finishCommand.dispatch();
+                    //After sending finalization signal, we are not the owners anymore
                     //This way we prevent finalizing them multiple times if more than one thread uses them
                     (*it)->setOwner(false);
                 }
@@ -714,8 +605,7 @@ void MPIRemoteNode::callMPISpawn(
             host=tokensHost.at(hostCounter);
             //If host is a file, give it to Intel, otherwise put the host in the spawn
             std::ifstream hostfile(host.c_str());
-            bool isfile=hostfile;
-            if (isfile){
+            if ( hostfile.is_open() ){
                 std::string line;
                 int number_of_lines_in_file=0;
                 while (std::getline(hostfile, line)) {
@@ -830,10 +720,12 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
             //If user defined multithread cache behaviour, send the creation order
             if (nanos::ext::MPIProcessor::isUseMultiThread()) {
-                cacheOrder order;
-                order.opId = OPID_CREATEAUXTHREAD;
-                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_M2S_ORDER, *intercomm);
-                ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
+                MPIProcessor &destination = static_cast<MPIProcessor &>(*pes[rank]);
+
+                mpi::command::CreateAuxiliaryThread::Requestor createThread( destination );
+                createThread.dispatch();
+
+                destination.setHasWorkerThread(true);
             }
         } else {
             pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, false, shared, comm, core, id);
@@ -882,20 +774,11 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     nanos::ext::MPIDD::setSpawnDone(true);
 }
 
-int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-        MPI_Comm comm) {
-    cacheOrder order;
-    order.opId = OPID_TASK_INIT;
-    int* intbuf=(int*)buf;
-    //Values of intbuf will be positive (using integer for conveniece with Fortran)
-    order.hostAddr = *intbuf;
-    //Send task init order (hostAddr=taskIdentifier)
-    return nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, dest, TAG_M2S_ORDER, comm);
-}
+int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm comm) {
 
-int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
-        MPI_Comm comm, MPI_Status *status) {
-    return nanosMPIRecv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
+    mpi::command::Init::Requestor taskInit( dest, comm, *static_cast<int*>(buf) );
+    taskInit.dispatch();
+    return MPI_SUCCESS; // TODO: add some sort of error report for commands
 }
 
 int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
@@ -955,7 +838,7 @@ void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {
     *newtype=_taskStructsCache[taskId];
 }
 
-int MPIRemoteNode::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPISend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -970,7 +853,7 @@ int MPIRemoteNode::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int
     return err;
 }
 
-int MPIRemoteNode::nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPIIsend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ISEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){

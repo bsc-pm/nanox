@@ -24,6 +24,7 @@
 #include "dependableobject_decl.hpp"
 #include "commutationdepobj_decl.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 
 namespace nanos
 {

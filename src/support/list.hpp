@@ -22,6 +22,7 @@
 
 #include "list_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include <list>
 #include <limits.h>
 #include <iterator>

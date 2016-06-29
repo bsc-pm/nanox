@@ -27,7 +27,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-#include "mpi.h"
+#include <mpi.h>
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -158,30 +158,33 @@ BaseThread &MPIProcessor::createThread(WorkDescriptor &helper, SMPMultiThread *p
      return th;
 }
 
+void MPIProcessor::waitAllRequests() {
+    nanos::mpi::request::wait_all( _pendingReqs.begin(), _pendingReqs.end() );
+}
+
 void MPIProcessor::clearAllRequests() {
-    //Wait and clear for all the requests
-    if (!_pendingReqs.empty()) {
-        std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
-        MPI_Waitall(_pendingReqs.size(),&nodeVector[0],MPI_STATUSES_IGNORE);
-        _pendingReqs.clear();
-    }
+    _pendingReqs.clear();
+}
+
+void MPIProcessor::waitAndClearRequests() {
+    waitAllRequests();
+    clearAllRequests();
 }
 
 bool MPIProcessor::testAllRequests() {
     //Wait and clear for all the requests
-    int ret=0;
+    bool completed = false;
     if (!_pendingReqs.empty()) {
         _peLock.acquire();
         if (!_pendingReqs.empty()) {
-            std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
-            MPI_Testall(_pendingReqs.size(),&nodeVector[0], &ret,MPI_STATUSES_IGNORE);
-            if (ret==1) {
+            completed = mpi::request::test_all( _pendingReqs.begin(), _pendingReqs.end() );
+            if ( completed ) {
                 _pendingReqs.clear();
             }
         }
         _peLock.release();
     }
-    return ret==1;
+    return completed;
 }
 
 BaseThread &MPIProcessor::startMPIThread(WD* wd) {

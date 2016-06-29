@@ -19,6 +19,7 @@
 
 #include "threadteam.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "debug.hpp"
 #include "allocator.hpp"
 #include "memtracker.hpp"

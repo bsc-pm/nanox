@@ -21,6 +21,7 @@
 #define _NANOS_LAZY_INIT_DECL
 
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 
 using namespace nanos;
 

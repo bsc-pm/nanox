@@ -28,6 +28,7 @@
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "atomic.hpp"
 #include "synchronizedcondition.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"

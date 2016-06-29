@@ -20,15 +20,19 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_decl.hpp"
-#include "processingelement_fwd.hpp"
-#include "debug.hpp"
-#include "atomic_decl.hpp"
-#include "schedule_fwd.hpp"
-#include "threadteam_fwd.hpp"
-#include "allocator_decl.hpp"
 #include <set>
 #include <fstream>
+
+#include "processingelement_fwd.hpp"
+#include "schedule_fwd.hpp"
+#include "threadteam_fwd.hpp"
+
+#include "debug.hpp"
+#include "atomic_decl.hpp"
+#include "lock_decl.hpp"
+
+#include "workdescriptor_decl.hpp"
+#include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
 
 namespace nanos

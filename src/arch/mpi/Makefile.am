@@ -34,6 +34,10 @@ devinclude_HEADERS = \
 	mpidevice.hpp \
 	mpidd.hpp \
 	mpithread.hpp \
+	hostinfo.hpp \
+	info.hpp \
+	request.hpp \
+	status.hpp \
 	$(END)
 
 offload_sources= \
@@ -59,6 +63,33 @@ offload_sources= \
  mpiicpc_syms.cpp \
  hostinfo.hpp \
  hostinfo.cpp \
+ info.hpp \
+ request.hpp \
+ status.hpp \
+ pagealignedallocator_decl.hpp \
+ pagealignedallocator.hpp \
+ mpiworker.hpp \
+ rmi/allocate.hpp \
+ rmi/cachecommand.cpp \
+ rmi/cachecommand.hpp \
+ rmi/cachepayload.hpp \
+ rmi/command.cpp \
+ rmi/command.hpp \
+ rmi/commandid.hpp \
+ rmi/commandpayload.hpp \
+ rmi/commanddispatcher_decl.hpp \
+ rmi/commanddispatcher.hpp \
+ rmi/commandchannel.hpp \
+ rmi/commandrequestor.hpp \
+ rmi/commandservant.hpp \
+ rmi/copydevtodev.hpp \
+ rmi/copyin.hpp \
+ rmi/copyout.hpp \
+ rmi/createauxthread.hpp \
+ rmi/finish.hpp \
+ rmi/free.hpp \
+ rmi/init.hpp \
+ rmi/realloc.hpp \
  $(END)
 
 EXTRA_DIST=$(offload_sources)

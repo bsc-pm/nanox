@@ -29,6 +29,8 @@
 #include "instrumentation.hpp"
 #include <os.hpp>
 
+#include "finish.hpp"
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -176,7 +178,7 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     WD* previousWD = getCurrentWD();
     setCurrentWD(*wd);
     //Clear all async requests on this PE (they finished a while ago)
-    finishedPE->clearAllRequests();    
+    finishedPE->waitAndClearRequests();    
     wd->finish();
     //Set the PE as free so we can re-schedule work to it
     finishedPE->setBusy(false);
@@ -194,9 +196,11 @@ void MPIThread::checkCommunicationsCompletion() {
     while( iter!=_ranksWithPendingComms.end() ){
       int rank=*iter;
       if (_runningPEs[rank]->testAllRequests()) { 
-         iter=_ranksWithPendingComms.erase(iter);
+         _ranksWithPendingComms.erase(iter++);
+
          WD* previousWD = getCurrentWD();
          WD* wd=_runningPEs[rank]->getCurrExecutingWd();
+
          setCurrentWD(*wd);
          wd->releaseInputDependencies();
          setCurrentWD(*previousWD);
@@ -281,14 +285,13 @@ void MPIThread::finish() {
           checkTaskEnd();
         }
         if ( _groupTotRunningWds == &_selfTotRunningWds ) {
-            cacheOrder order;
-            order.opId = OPID_FINISH;
             std::vector<MPIProcessor*>& myPEs = getRunningPEs();
             for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
                 //Only release if we are the owner of the process (once released, we are not the owner anymore)
                 if ( (*it)->getOwner() ) 
                 {
-                    nanos::ext::MPIRemoteNode::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, (*it)->getCommunicator());
+                    mpi::command::Finish::Requestor command( *(*it) );
+                    command.dispatch();
                     (*it)->setOwner(false);
                 }
             }

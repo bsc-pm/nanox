@@ -19,6 +19,7 @@
 
 #include "threadmanager_decl.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "system.hpp"
 #include "config.hpp"
 #include "os.hpp"
