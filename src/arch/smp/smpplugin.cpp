@@ -70,6 +70,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
                  , _memkindSupport( false )
                  , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
                  , _asyncSMPTransfers( true )
+                 , _device( "SMP" )
    {}
 
    SMPPlugin::~SMPPlugin() {
@@ -216,7 +217,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
 #ifdef MEMKIND_SUPPORT
       if ( _memkindSupport ) {
-         mem_id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
+         mem_id = sys.addSeparateMemoryAddressSpace( _device, _smpAllocWide, sys.getRegionCacheSlabSize() );
          SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
          void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
          if ( addr == NULL ) {
@@ -252,7 +253,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
@@ -1025,6 +1026,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    bool SMPPlugin::asyncTransfersEnabled() const {
       return _asyncSMPTransfers;
+   }
+
+   SMPDevice *SMPPlugin::getDevice() {
+      return &_device;
    }
 
 }

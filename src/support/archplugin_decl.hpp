@@ -84,6 +84,8 @@ namespace nanos {
          virtual unsigned int getNumWorkers() const;
          virtual unsigned int getMaxWorkers() const;
 
+         virtual Device *getDevice() = 0;
+
          virtual int initNetwork(int *argc, char ***argv) { return 0; }
          virtual BaseThread *getClusterThread() const { return NULL; }
    };

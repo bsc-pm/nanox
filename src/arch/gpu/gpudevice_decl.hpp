@@ -199,6 +199,7 @@ namespace nanos {
                WD const *wd, void *hostObject, reg_t hostRegionId );
 
          void syncTransfer( uint64_t hostAddress, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+         virtual void tryExecuteTransfer() {}
    };
 
 } // namespace nanos

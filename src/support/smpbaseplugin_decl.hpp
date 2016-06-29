@@ -24,6 +24,7 @@
 #include "cpuset.hpp"
 #include "smpprocessor_fwd.hpp"
 #include "smpthread_fwd.hpp"
+#include "smpdevice_decl.hpp"
 #include "threadteam_fwd.hpp"
 #include "archplugin_decl.hpp"
 
@@ -64,6 +65,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void createWorker( std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual std::string getBindingMaskString() const = 0;
       virtual bool asyncTransfersEnabled() const = 0;
+      virtual SMPDevice *getDevice() = 0;
 };
 
 } // namespace nanos

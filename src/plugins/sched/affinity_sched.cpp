@@ -1270,7 +1270,7 @@ namespace nanos {
                         //if (sys.getNetwork()->getNodeNum() == 0) { message("init: queue " << (winner) << " for wd " << wd.getId() ); }
 
                         if ( winner == 0 && tdata._numLocalAccelerators > 0 ) {
-                           if ( wd.canRunIn( getSMPDevice() ) ) {
+                           if ( wd.canRunIn( *getSMPDevice() ) ) {
                               //tdata._readyQueues[ winner ].push_back( &wd );
                               PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                               //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Multiple nodes, node 0 won / multiple acc, SMP winner is " << winner << std::endl;
@@ -1310,7 +1310,7 @@ namespace nanos {
                               }
                            }
                            if ( !acc_avail ) {
-                              if ( wd.canRunIn( getSMPDevice() ) ) {
+                              if ( wd.canRunIn( *getSMPDevice() ) ) {
                                  (*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, SMP winner global queue" << std::endl;
                                  tdata._globalReadyQueue.push_back( &wd );
                               } else {
@@ -2147,7 +2147,7 @@ namespace nanos {
                         int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
                         scores[ numNodes + accelerator_id ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                      }
-                     if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
+                     if ( score_idx == 0 && !wd.canRunIn( *getSMPDevice() ) ) {
                         scores[ 0 ] = 0;
                      }
 
@@ -2171,7 +2171,7 @@ namespace nanos {
                               && wd.canRunIn( sys.getSeparateMemory( loc ).getDevice() ) ) {
                            int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
                            scores[ numNodes + accelerator_id ] += region_shape.getDataSize();
-                           if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
+                           if ( score_idx == 0 && !wd.canRunIn( *getSMPDevice() ) ) {
                               scores[ 0 ] = 0;
                            }
                         }

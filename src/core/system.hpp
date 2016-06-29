@@ -689,8 +689,8 @@ inline bool System::useFineAllocLock() const {
    return !_cgAlloc;
 }
 
-inline SMPDevice &System::_getSMPDevice() {
-   return _SMP;
+inline SMPDevice *System::_getSMPDevice() {
+   return _smpPlugin->getDevice();
 }
 
 } // namespace nanos

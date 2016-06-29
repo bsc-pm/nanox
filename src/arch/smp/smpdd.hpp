@@ -29,7 +29,7 @@ namespace nanos {
 namespace ext {
 
    //extern SMPDevice SMP;
-   SMPDevice &getSMPDevice();
+   SMPDevice *getSMPDevice();
 
    //! \brief Device Data for SMP
    class SMPDD : public DD
@@ -43,9 +43,9 @@ namespace ext {
          SMPDD( Device *dd ) : DD( dd, NULL ), _stack( 0 ),_state( 0 ) {}
       public:
          //! \brief Constructor using work function
-         SMPDD( work_fct w ) : DD( &getSMPDevice(), w ), _stack( 0 ),_state( 0 ) {}
+         SMPDD( work_fct w ) : DD( getSMPDevice(), w ), _stack( 0 ),_state( 0 ) {}
          //! \brief Default constructor 
-         SMPDD() : DD( &getSMPDevice(), NULL ), _stack( 0 ),_state( 0 ) {}
+         SMPDD() : DD( getSMPDevice(), NULL ), _stack( 0 ),_state( 0 ) {}
          //! \brief Copy constructor
          SMPDD( const SMPDD &dd ) : DD( dd ), _stack( 0 ), _state( 0 ) {}
          //! \brief Assignment operator

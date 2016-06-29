@@ -71,7 +71,8 @@ namespace nanos {
 
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list );
 
-         void tryExecuteTransfer();
+         virtual void tryExecuteTransfer();
+
 
    };
 } // namespace nanos

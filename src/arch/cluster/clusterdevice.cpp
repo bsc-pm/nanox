@@ -30,9 +30,6 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-ClusterDevice nanos::ext::Cluster( "Cluster" );
-
-
 ClusterDevice::ClusterDevice ( const char *n ) : Device ( n ) {
 }
 

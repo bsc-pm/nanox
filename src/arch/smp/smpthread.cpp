@@ -53,7 +53,7 @@ void SMPThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( *getSMPDevice() );
 
    dd.execute( work );
 }
@@ -81,7 +81,7 @@ void SMPThread::idle( bool debug )
       }
       }
    }
-   getSMPDevice().tryExecuteTransfer();
+   getSMPDevice()->tryExecuteTransfer();
 }
 
 void SMPThread::wait()

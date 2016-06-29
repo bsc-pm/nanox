@@ -88,7 +88,7 @@ void SerializedWDFields::setup( WD const &wd ) {
       _totalDimensions += wd.getCopies()[i].getNumDimensions();
    }
 
-   if ( wd.canRunIn( getSMPDevice() ) ) {
+   if ( wd.canRunIn( *getSMPDevice() ) ) {
       _archId = 0;
    }
 #ifdef GPU_DEV
