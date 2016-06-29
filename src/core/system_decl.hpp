@@ -254,6 +254,7 @@ namespace nanos {
          bool _preSchedule;
          std::map<int, std::set<WD *> > _slots;
          void *_watchAddr;
+         bool _newAlloc;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );

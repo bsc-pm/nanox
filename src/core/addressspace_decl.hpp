@@ -139,13 +139,15 @@ class SeparateAddressSpace {
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList &list, WD const *wd );
 
-   void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    //void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
+#if 1 /* OLD ALLOC */
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+#endif
    void setRegionVersion( global_reg_t const &reg, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx );
-   unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+   //unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;
    unsigned int getAcceleratorNumber() const;
@@ -164,7 +166,7 @@ class SeparateAddressSpace {
 
    unsigned int getSoftInvalidationCount() const;
    unsigned int getHardInvalidationCount() const;
-   bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
+   //bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
    void registerOwnedMemory(global_reg_t reg);
    Device const &getDevice() const;
    AllocatedChunk *getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx );

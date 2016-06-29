@@ -138,7 +138,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
       cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
 
-#ifdef MEMKIND_SUPPORT
+//#ifdef MEMKIND_SUPPORT
       cfg.registerConfigOption( "smp-memkind", NEW Config::FlagOption( _memkindSupport, true ),
             "SMP memkind support." );
       cfg.registerArgOption( "smp-memkind", "smp-memkind" );
@@ -148,7 +148,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "Set the size of SMP memkind memory area." );
       cfg.registerArgOption( "smp-memkind-memory-size", "smp-memkind-memory-size" );
       cfg.registerEnvOption( "smp-memkind-memory-size", "NX_SMP_MEMKIND_MEMORY_SIZE" );
-#endif
+//#endif
       cfg.registerConfigOption( "smp-sync-transfers", NEW Config::FlagOption( _asyncSMPTransfers, false ),
             "SMP sync transfers." );
       cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
@@ -215,24 +215,27 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       loadNUMAInfo();
 
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
-#ifdef MEMKIND_SUPPORT
+//#ifdef MEMKIND_SUPPORT
       if ( _memkindSupport ) {
          mem_id = sys.addSeparateMemoryAddressSpace( _device, _smpAllocWide, sys.getRegionCacheSlabSize(), true );
-         SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
-         void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
-         if ( addr == NULL ) {
-            OSAllocator a;
-            warning0("Could not allocate memory with memkind_malloc(), requested " << _memkindMemorySize << " bytes. Continuing with a regular allocator.");
-            addr = a.allocate(_memkindMemorySize);
-            if ( addr == NULL ) {
-               fatal0("Could not allocate memory with a regullar allocator.");
-            }
-         }
-         message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
-         memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
-         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
+// on-demand alloc         SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
+// on-demand alloc         void *addr = NULL;
+// on-demand alloc#ifdef MEMKIND_SUPPORT
+// on-demand alloc         addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
+// on-demand alloc#endif
+// on-demand alloc         if ( addr == NULL ) {
+// on-demand alloc            OSAllocator a;
+// on-demand alloc            warning0("Could not allocate memory with memkind_malloc(), requested " << _memkindMemorySize << " bytes. Continuing with a regular allocator.");
+// on-demand alloc            addr = a.allocate(_memkindMemorySize);
+// on-demand alloc            if ( addr == NULL ) {
+// on-demand alloc               fatal0("Could not allocate memory with a regullar allocator.");
+// on-demand alloc            }
+// on-demand alloc         }
+// on-demand alloc         message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
+// on-demand alloc         memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
+// on-demand alloc         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
       }
-#endif
+//#endif
 
       //! \note Create the SMPProcessors in _cpus array
       int count = 0;

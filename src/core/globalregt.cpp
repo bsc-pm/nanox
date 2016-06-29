@@ -240,7 +240,7 @@ DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) 
    if ( home == 0 ) {
       ops = NewNewRegionDirectory::getOps( key, id );
    } else {
-      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, wd, copyIdx );
+      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk_ForTransferRDLock( *this, wd, copyIdx ); //not really for transfer, but rd lock
       ops = chunk->getDeviceOps( *this, &wd, copyIdx );
       chunk->unlock();
    }

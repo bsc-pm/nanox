@@ -27,8 +27,28 @@
 
 namespace nanos {
 
+inline bool AllocatedChunk::allocated() const {
+   return (_address != (uint64_t)0) && !_invalidating;
+}
+
+inline bool AllocatedChunk::isInvalidating() const {
+   return _invalidating;
+}
+
+inline void AllocatedChunk::setInvalidating() {
+   _invalidating = true;
+}
+
+inline void AllocatedChunk::clearInvalidating() {
+   _invalidating = false;
+}
+
 inline uint64_t AllocatedChunk::getAddress() const {
    return _address;
+}
+
+inline void AllocatedChunk::setAddress( uint64_t addr ) {
+   _address = addr;
 }
 
 inline uint64_t AllocatedChunk::getHostAddress() const {
@@ -43,31 +63,34 @@ inline std::size_t AllocatedChunk::getSize() const {
    return _size;
 }
 
-inline void AllocatedChunk::addReference( WD const &wd, unsigned int loc ) {
-   _refs++;
-   _refWdId[&wd]++;
-   _refLoc[wd.getId()].insert(loc);
+inline int AllocatedChunk::addReference( WD const &wd, unsigned int loc ) {
+   int result = _refs++;
+//   _refWdId[&wd]++;
+//   _refLoc[wd.getId()].insert(loc);
    //std::cerr << "add ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
+   return result;
 }
 
-inline void AllocatedChunk::removeReference( WD const &wd ) {
+inline int AllocatedChunk::removeReference( WD const &wd ) {
    //ensure(_refs > 0, "invalid removeReference, chunk has 0 references!");
    if ( _refs == 0 ) {
       *myThread->_file << " removeReference ON A CHUNK WITH 0 REFS!!!" << std::endl;
    }
-   _refs--;
-   _refWdId[&wd]--;
-   if ( _refWdId[&wd] == 0 ) {
-      _refLoc[wd.getId()].clear();
-   }
-   
+   int result = _refs--;
+//   _refWdId[&wd]--;
+//   if ( _refWdId[&wd] == 0 ) {
+//      _refLoc[wd.getId()].clear();
+//      _refLoc.erase( wd.getId() );
+//      _refWdId.erase( &wd );
+//   }
+
    //std::cerr << "del ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
    //if ( _refs == (unsigned int) -1 ) {
    //   std::cerr << "overflow at references chunk "<< (void*)this << std::endl; sys.printBt();
    //} else if ( _refs == 0 ) {
    //   std::cerr << "zeroed at references chunk "<< (void*)this << std::endl;
    //}
-   
+   return result;
 }
 
 inline unsigned int AllocatedChunk::getReferenceCount() const { return _refs.value(); }
@@ -84,7 +107,7 @@ inline void AllocatedChunk::increaseLruStamp() {
    _lruStamp += 1;
 }
 
-inline global_reg_t AllocatedChunk::getAllocatedRegion() const {
+inline global_reg_t const &AllocatedChunk::getAllocatedRegion() const {
    return _allocatedRegion;
 }
 

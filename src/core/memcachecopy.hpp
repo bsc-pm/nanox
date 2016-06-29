@@ -21,6 +21,7 @@ inline MemCacheCopy::MemCacheCopy() :
    , _invalControl()
    , _allocFrom( -1 )
    , _regionsToCommit()
+   , _useHost(false)
 {
 }
 
@@ -33,7 +34,8 @@ inline MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemContro
    , _policy( sys.getRegionCachePolicy() )
    , _invalControl()
    , _allocFrom( -1 )
-   , _regionsToCommit() {
+   , _regionsToCommit()
+   , _useHost(false) {
    sys.getHostMemory().getRegionId( wd.getCopies()[ index ], _reg, wd, index );
 }
 

@@ -211,10 +211,6 @@ void BaseAddressSpaceInOps::issue( WD const *wd ) {
    }
 }
 
-unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-   return reg.getHostVersion(false);
-}
-
 void BaseOps::releaseLockedSourceChunks( WD const &wd ) {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
       (*it)->removeReference( wd ); // releaseLockedSourceChunks
@@ -241,7 +237,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
                *myThread->_file << "region_shape : " << region_shape.id << ", data_source " << data_source.id << " entry: " << *entry << " I want version " << memCopy.getVersion()<< std::endl;
             }
             ensure( location > 0, "Wrong location.");
-            AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk( data_source, wd, copyIdx );
+            AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk_ForTransferRDLock( data_source, wd, copyIdx );
             uint64_t orig_dev_addr = source_chunk->getAddress() + ( region_shape.getRealFirstAddress() - source_chunk->getHostAddress() );
             source_chunk->unlock();
             insertOwnOp( rs_ops, region_shape, memCopy.getVersion(), 0 ); //i've got the responsability of copying this region
@@ -259,7 +255,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
                *myThread->_file << "region_shape : " << region_shape.id << " { " << *rs_entry << "}, data_source " << data_source.id << " { " << *ds_entry << " }, I want version " << memCopy.getVersion() << std::endl;
             }
             ensure( location > 0, "Wrong location.");
-            AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk( data_source, wd, copyIdx );
+            AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk_ForTransferRDLock( data_source, wd, copyIdx );
             uint64_t orig_dev_addr = source_chunk->getAddress() + ( region_shape.getRealFirstAddress() - source_chunk->getHostAddress() );
             source_chunk->unlock();
             insertOwnOp( rs_ops, region_shape, memCopy.getVersion(), 0 ); //i've got the responsability of copying this region
@@ -294,10 +290,6 @@ void SeparateAddressSpaceInOps::issue( WD const *wd ) {
    _destination.copyFromHost( _hostTransfers, wd );
 }
 
-unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-   return _destination.getCurrentVersion( reg, wd, copyIdx );
-}
-
 SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( ProcessingElement *pe, bool delayedCommit, bool isInval ) : BaseOps( pe, delayedCommit )
    , _invalidation( isInval )
    , _transfers()
@@ -322,10 +314,15 @@ void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id
 
    TransferList &list = _transfers[ std::make_pair(to, from) ];
    SeparateAddressSpace &sas = sys.getSeparateMemory( from );
-   sas.getCache().lock();
-   sas.getCache()._prepareRegionToBeCopied( reg, version, _lockedChunks, wd, copyIdx );
-   sas.getCache().unlock();
-   AllocatedChunk *chunk = sas.getCache()._getAllocatedChunk( reg, false, false, wd, copyIdx );
+   //sas.getCache().lock();
+   //sas.getCache()._prepareRegionToBeCopied( reg, version, _lockedChunks, wd, copyIdx );
+   //sas.getCache().unlock();
+   AllocatedChunk *chunk = sas.getCache().getAllocatedChunk_ForTransferRDLock( reg, wd, copyIdx );
+   if ( _lockedChunks.count( chunk ) == 0 ) {
+      chunk->addReference( wd, 1 ); //addOutOp, old _prepareRegionToBeCopied
+      _lockedChunks.insert( chunk );
+      chunk->unlock();
+   }
    list.push_back( TransferListEntry( reg, version, ops, /* destination */ (AllocatedChunk *) NULL, chunk, /* FIXME: srcAddr */ 0, copyIdx ) );
 }
 

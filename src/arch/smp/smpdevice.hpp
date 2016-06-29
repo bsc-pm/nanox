@@ -29,11 +29,15 @@
 #include "system_decl.hpp"
 #include "smptransferqueue.hpp"
 #include "globalregt.hpp"
+#ifdef HAVE_MEMKIND_H
+#include <memkind.h>
+#endif
+
 
 namespace nanos {
 
-SMPDevice::SMPDevice ( const char *n ) : Device ( n ), _transferQueue() {}
-SMPDevice::SMPDevice ( const SMPDevice &arch ) : Device ( arch ), _transferQueue() {}
+SMPDevice::SMPDevice ( const char *n ) : Device ( n ), _transferQueue(), _allocatedBytes(0) {}
+SMPDevice::SMPDevice ( const SMPDevice &arch ) : Device ( arch ), _transferQueue(), _allocatedBytes(0) {}
 
 /*! \brief SMPDevice destructor
  */
@@ -41,22 +45,35 @@ SMPDevice::~SMPDevice() {};
 
 void *SMPDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WD const *wd, unsigned int copyIdx ) {
    void *retAddr = NULL;
-
-   SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
-   sallocator->lock();
-   retAddr = sallocator->allocate( size );
-   if ( retAddr != NULL ) {
-      bzero( retAddr, size );
+   if ( _allocatedBytes.value() < (1024 * 1024 * 512) ) {
+#ifdef MEMKIND_SUPPORT
+   retAddr = memkind_malloc(MEMKIND_HBW, size);
+#else
+   retAddr = malloc(size);
+//
+//   SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+//   sallocator->lock();
+//   retAddr = sallocator->allocate( size );
+//   if ( retAddr != NULL ) {
+//      bzero( retAddr, size );
+//   }
+//   sallocator->unlock();
+#endif
    }
-   sallocator->unlock();
+   if ( retAddr != NULL ) _allocatedBytes += size;
    return retAddr;
 }
 
 void SMPDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
-   SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
-   sallocator->lock();
-   sallocator->free( (void *) addr );
-   sallocator->unlock();
+#ifdef MEMKIND_SUPPORT
+   memkind_free( MEMKIND_HBW, (void *) addr );
+#else
+   free( (void *)addr );
+//   SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+//   sallocator->lock();
+//   sallocator->free( (void *) addr );
+//   sallocator->unlock();
+#endif
 }
 
 void SMPDevice::_canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) {

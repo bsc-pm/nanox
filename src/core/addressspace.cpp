@@ -110,21 +110,19 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
+#if 1 /* OLD ALLOC */
 bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    return _cache.prepareRegions( memCopies, numCopies, wd );
 }
+#endif
 
 //void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
 //   _cache.prepareRegion( reg, wd );
 //}
 
-unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-   return _cache.getVersion( reg, wd, copyIdx );
-}
-
-void SeparateAddressSpace::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
-   _cache.releaseRegions( memCopies, numCopies, wd );
-}
+//unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+//   return _cache.getVersion( reg, wd, copyIdx );
+//}
 
 //void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
 //   _cache.releaseRegion( reg, wd, copyIdx, policy );
@@ -195,9 +193,15 @@ unsigned int SeparateAddressSpace::getHardInvalidationCount() const {
    return _cache.getHardInvalidationCount();
 }
 
-bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd ) {
-   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations, wd );
+//bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd ) {
+//   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations, wd );
+//}
+
+#if 1 /* OLD ALLOC */
+void SeparateAddressSpace::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   _cache.releaseRegions( memCopies, numCopies, wd );
 }
+#endif
 
 void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
    _cache.invalidateObject( reg );

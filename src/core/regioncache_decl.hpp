@@ -61,11 +61,12 @@ namespace nanos {
          bool                              _dirty;
          bool                              _rooted;
          unsigned int                      _lruStamp;
-         Atomic<unsigned int>              _refs;
+         Atomic<int>                       _refs;
          std::map<WD const *, unsigned int>      _refWdId;
          std::map<int, std::set<int> >     _refLoc;
          global_reg_t                      _allocatedRegion;
          bool                              _flushable;
+         bool                              _invalidating;
          
          CacheRegionDictionary *_newRegions;
 
@@ -82,11 +83,13 @@ namespace nanos {
          unsigned int getLruStamp() const;
          void increaseLruStamp();
          void setHostAddress( uint64_t addr );
+         void setAddress( uint64_t addr );
+         bool allocated() const;
 
          void clearRegions();
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
          CacheRegionDictionary *getNewRegions();
-         bool invalidate( RegionCache *targetCache, LockedObjects &srcRegions, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
+         bool invalidate( RegionCache *targetCache, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
 
          bool trylock();
          void lock( bool setVerbose=false );
@@ -95,14 +98,14 @@ namespace nanos {
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version, WD const *wd, unsigned int copyIdx );
          void setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
-         void addReference(WD const &wd, unsigned int loc);
-         void removeReference(WD const &wd);
+         int addReference(WD const &wd, unsigned int loc);
+         int removeReference(WD const &wd);
          unsigned int getReferenceCount() const;
          unsigned int getVersion( global_reg_t const &reg );
 
          DeviceOps *getDeviceOps( global_reg_t const &reg, WD const *wd, unsigned int idx);
          void prepareRegion( reg_t reg, unsigned int version );
-         global_reg_t getAllocatedRegion() const;
+         global_reg_t const &getAllocatedRegion() const;
          bool isRooted() const;
 
 
@@ -111,6 +114,11 @@ namespace nanos {
          void printReferencingWDs() const;
          void makeFlushable();
          bool isFlushable() const;
+         void deallocate( WD const &wd );
+         void getAllocatedSpaceFrom( AllocatedChunk &chunk );
+         void setInvalidating();
+         void clearInvalidating();
+         bool isInvalidating() const;
    };
 
    class RegionCache {
@@ -123,7 +131,8 @@ namespace nanos {
          };
       private:
          MemoryMap<AllocatedChunk>  _chunks;
-         RecursiveLock              _lock;
+         RecursiveLock              _OLDlock;
+         pthread_rwlock_t              _rwlock;
          RecursiveLock              _MAPlock;
          Device                    &_device;
          //ProcessingElement         &_pe;
@@ -147,14 +156,14 @@ namespace nanos {
          typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
 
          class Op {
-               RegionCache &_parent;
-               std::string _name;
+            RegionCache &_parent;
+            std::string _name;
             public:
-               Op( RegionCache &parent, std::string name ) : _parent ( parent ), _name ( name ) { }
-               RegionCache &getParent() const { return _parent; }
-               std::string const &getStr() { return _name; }
-               virtual void doNoStrided( global_reg_t const &reg, int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const *wd, bool fake ) = 0;
-               virtual void doStrided( global_reg_t const &reg, int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const *wd, bool fake ) = 0;
+            Op( RegionCache &parent, std::string name ) : _parent ( parent ), _name ( name ) { }
+            RegionCache &getParent() const { return _parent; }
+            std::string const &getStr() { return _name; }
+            virtual void doNoStrided( global_reg_t const &reg, int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const *wd, bool fake ) = 0;
+            virtual void doStrided( global_reg_t const &reg, int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const *wd, bool fake ) = 0;
          };
 
          class CopyIn : public Op {
@@ -177,7 +186,8 @@ namespace nanos {
          RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags, std::size_t slabSize );
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getOrCreateChunk( LockedObjects &srcRegions, global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
-         AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;
+         AllocatedChunk *getAllocatedChunk_NOLOCK( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;
+         AllocatedChunk *getAllocatedChunk_ForTransferRDLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain, bool lock, WD const &wd, unsigned int copyIdx ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( std::size_t allocSize );
@@ -202,9 +212,14 @@ namespace nanos {
          void NEWcopyIn( unsigned int location, global_reg_t const &hostMem, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk ); 
          void NEWcopyOut( global_reg_t const &hostMem, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, bool inval, AllocatedChunk *origChunk ); 
          uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
-         void lock();
-         void unlock();
-         bool tryLock();
+         // void lock();
+         // void unlock();
+         // bool tryLock();
+
+         //void RWLOCK_READ_lock();
+         void RWLOCK_WRITE_lock();
+         void RWLOCK_unlock();
+
          void MAPlock();
          void MAPunlock();
          bool canCopyFrom( RegionCache const &from ) const;
@@ -213,26 +228,30 @@ namespace nanos {
          unsigned int getLruTime() const;
          void increaseLruTime();
 
-         unsigned int getVersion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
+         //unsigned int getVersion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
          //void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
 
-         void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+#if 1 /* OLD ALLOC */
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+         void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+#endif
          void setRegionVersion( global_reg_t const &hostMem, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          unsigned int getSoftInvalidationCount() const;
          void increaseSoftInvalidationCount(unsigned int v);
          unsigned int getHardInvalidationCount() const;
          void increaseHardInvalidationCount(unsigned int v);
+#if 0 /* OLD ALLOC */
          bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
          bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
+#endif
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;
          void getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const;
-         void prepareRegionsToBeCopied( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
-         void _prepareRegionToBeCopied( global_reg_t const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
+         //void prepareRegionsToBeCopied( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
+         //void _prepareRegionToBeCopied( global_reg_t const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
          void registerOwnedMemory(void *addr, std::size_t len);
 
-         void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         //void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
          void printReferencedChunksAndWDs() const;
 
          void increaseTransferredInData(size_t bytes);
@@ -241,14 +260,18 @@ namespace nanos {
          size_t getTransferredInData() const;
          size_t getTransferredOutData() const;
          size_t getTransferredReplacedOutData() const;
-         bool shouldWriteThrough() const;
-         void freeChunk( AllocatedChunk *chunk, WD const &wd );
+         //bool shouldWriteThrough() const;
+         void freeChunk( AllocatedChunk *chunk, bool deleteChunk, WD const &wd, unsigned int copyIdx );
          void removeFromAllocatedRegionMap( global_reg_t const& reg );
          void addToAllocatedRegionMap( global_reg_t const& reg );
          unsigned int getCurrentAllocations() const;
          std::map<GlobalRegionDictionary *, std::set<reg_t> > const &getAllocatedRegionMap();
          bool hasFreeMem() const;
          std::size_t getUnallocatedBytes() const;
+         AllocatedChunk *getChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+         bool allocateChunk( AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         AllocatedChunk *__selectChunkToInvalidate( std::size_t allocSize, WD const &wd );
+         bool invalidate( AllocatedChunk &target_chunk, std::size_t size, WD const &wd );
    };
 
 

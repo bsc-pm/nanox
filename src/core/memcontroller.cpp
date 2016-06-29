@@ -76,15 +76,19 @@ void MemController::preInit( ) {
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd->getId() << " " << (_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a")  << " NUM COPIES " << _wd->getNumCopies() << std::endl;
    }
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   if ( myThread != NULL ) {
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 131 );)
+   }
    // std::set<reg_key_t> dicts;
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( *_wd, index );
    //    dicts.insert( _memCacheCopies[ index ]._reg.key );
    }
+   if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 132 );)
+   }
              for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
                 _memCacheCopies[ index ]._reg.id = _memCacheCopies[ index ]._reg.key->obtainRegionId( _wd->getCopies()[index], *_wd, index );
                 NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( _memCacheCopies[ index ]._reg.id );
@@ -93,8 +97,10 @@ void MemController::preInit( ) {
                    _memCacheCopies[ index ]._reg.key->setRegionData( _memCacheCopies[ index ]._reg.id, entry ); //preInit memCacheCopy._reg
                 }
              }
+   if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 133 );)
+   }
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
       uint64_t host_copy_addr = 0;
       if ( _wd->getParent() != NULL /* && !_wd->getParent()->_mcontrol._mainWd */ ) {
@@ -106,9 +112,11 @@ void MemController::preInit( ) {
          }
       }
    }
+   if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 134 );)
+   }
    //std::ostream &o = (*myThread->_file);
    //o << "### preInit wd " << _wd->getId() << std::endl;
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
@@ -155,7 +163,9 @@ void MemController::preInit( ) {
          }
       }
    }
+   if ( myThread != NULL ) {
             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+   }
 
 
 
@@ -167,7 +177,9 @@ void MemController::preInit( ) {
    //        o << std::endl; 
    //     }
    //  }
+   if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 135 );)
+   }
 
       for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
          std::list< std::pair< reg_t, reg_t > > &missingParts = _memCacheCopies[index]._locations;
@@ -203,7 +215,9 @@ void MemController::preInit( ) {
             }
          }
       }
+   if ( myThread != NULL ) {
             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+   }
 
 
    memory_space_id_t rooted_loc = 0;
@@ -219,6 +233,7 @@ void MemController::preInit( ) {
 
 void MemController::initialize( ProcessingElement &pe ) {
    ensure( _preinitialized == true, "MemController not preinitialized!");
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( !_initialized ) {
       _pe = &pe;
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
@@ -227,6 +242,24 @@ void MemController::initialize( ProcessingElement &pe ) {
          _inOps = NEW HostAddressSpaceInOps( _pe, true );
       } else {
          _inOps = NEW SeparateAddressSpaceInOps( _pe, true, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
+
+         if ( sys._newAlloc ) {
+         //Pre allocation stuff
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 557 );)
+         sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_WRITE_lock();
+         for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+            MemCacheCopy &mcopy = _memCacheCopies[ idx ];
+            AllocatedChunk *chunk = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().getChunk( mcopy._reg, *_wd, idx );
+            if ( chunk == NULL ) {
+               fatal("Unable to get an allocatedChunk.");
+            }
+   chunk->addReference( *_wd, 222 ); //allocate (new)
+            mcopy._chunk = chunk;
+         }
+         sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_unlock();
+         // TODO: check for capacity.
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+         }
       }
       _initialized = true;
    } else {
@@ -234,11 +267,70 @@ void MemController::initialize( ProcessingElement &pe ) {
    }
 }
 
+bool MemController::allocateTaskMemory2() {
+   bool result = true;
+   ensure( _preinitialized == true, "MemController not preinitialized!");
+   ensure( _initialized == true, "MemController not initialized!");
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
+   if ( _pe->getMemorySpaceId() != 0 ) {
+      for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+         bool this_result = _memCacheCopies[idx].allocate( _pe->getMemorySpaceId(), *_wd, idx );
+         if ( !this_result ) {
+         //   *myThread->_file << "Could not allocate, I should invalidate." << std::endl;
+         //   *myThread->_file << "Pre invalidate." << std::endl;
+            std::size_t unallocated_bytes = _memCacheCopies[idx]._chunk->getAllocatedRegion().getDataSize();
+_memCacheCopies[idx]._chunk->lock();
+if ( !_memCacheCopies[idx]._chunk->allocated() ) {
+         this_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().invalidate(  *_memCacheCopies[idx]._chunk, unallocated_bytes, *_wd );
+}
+_memCacheCopies[idx]._chunk->unlock();
+         //   *myThread->_file << "Post invalidate." << std::endl;
+
+            // TEST if ( sys.getSeparateMemory( _pe->getMemorySpaceId() ).isSharedWithHost() ) {
+            // TEST    *myThread->_file << "Can use host, using it." << std::endl;
+            // TEST    _memCacheCopies[idx]._useHost = true;
+            // TEST    this_result = true;
+            // TEST }
+         }
+         result = result && this_result;
+      }
+
+      if ( !result ) {
+         *myThread->_file << "release chunks" << std::endl;
+         for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+            _memCacheCopies[idx]._chunk->removeReference( *_wd );
+         }
+      }
+
+   } else {
+
+      _memoryAllocated = true;
+
+      // *(myThread->_file) << "++++ Succeeded allocation for wd " << _wd->getId();
+      for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+         // *myThread->_file << " [c: " << (void *) _memCacheCopies[idx]._chunk << " w/hAddr " << (void *) _memCacheCopies[idx]._chunk->getHostAddress() << " - " << (void*)(_memCacheCopies[idx]._chunk->getHostAddress() + _memCacheCopies[idx]._chunk->getSize()) << "]";
+         if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
+            //std::cerr << "WD " << _wd->getId() << " rooting to memory space " << _pe->getMemorySpaceId() << std::endl;
+            _memCacheCopies[idx]._reg.setOwnedMemory( _pe->getMemorySpaceId() );
+         }
+      }
+      //*(myThread->_file)  << std::endl;
+   }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+   return result;
+}
+
 bool MemController::allocateTaskMemory() {
    bool result = true;
    ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
+   if (sys._newAlloc ) {
+      return allocateTaskMemory2();
+   }
    //std::ostream &o = (*myThread->_file);
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 555 );)
    if ( _pe->getMemorySpaceId() != 0 ) {
       bool pending_invalidation = false;
       bool initially_allocated = _memoryAllocated;
@@ -331,6 +423,7 @@ bool MemController::allocateTaskMemory() {
       }
       //*(myThread->_file)  << std::endl;
    }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    return result;
 }
 
@@ -355,12 +448,16 @@ void MemController::copyDataIn() {
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 333 );)
-      sys.allocLock();
+// FIXME: I believe this is needed, but crushes performance
+// FIXME             sys.allocLock();
+// FIXME             
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd->getId() << std::endl;
    for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd->getCopies()[index].isInput(), _wd->getCopies()[index].isOutput(), *_wd, index );
    }
-      sys.allocUnlock();
+// FIXME             
+// FIXME      sys.allocUnlock();
+// FIXME
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)
@@ -432,7 +529,7 @@ uint64_t MemController::getAddress( unsigned int index ) const {
    ensure( _initialized == true, "MemController not initialized!");
    uint64_t addr = 0;
    //std::cerr << " _getAddress, reg: " << index << " key: " << (void *)_memCacheCopies[ index ]._reg.key << " id: " << _memCacheCopies[ index ]._reg.id << std::endl;
-   if ( _pe->getMemorySpaceId() == 0 ) {
+   if ( _pe->getMemorySpaceId() == 0 || _memCacheCopies[index]._useHost ) {
       addr = ((uint64_t) _wd->getCopies()[ index ].getBaseAddress());
    } else {
       addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd->getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
@@ -496,10 +593,14 @@ bool MemController::isOutputDataReady( WD const &wd ) {
          if ( _outputDataReady ) {
             if ( _VERBOSE_CACHE ) { *(myThread->_file) << "Output data is ready for wd " << _wd->getId() << " obj " << (void *)_outOps << std::endl; }
 
-            sys.getSeparateMemory( _pe->getMemorySpaceId() ).releaseRegions( _memCacheCopies, _wd->getNumCopies(), *_wd ) ;
-            //for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
-            //   sys.getSeparateMemory( _pe->getMemorySpaceId() ).releaseRegions( _memCacheCopies, _wd->getNumCopies(), *_wd ) ;
-            //}
+            if ( sys._newAlloc ) {
+               for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
+                  _memCacheCopies[index].release( _pe->getMemorySpaceId(), *_wd, index );
+               }
+            } else {
+               sys.getSeparateMemory( _pe->getMemorySpaceId() ).releaseRegions( _memCacheCopies, _wd->getNumCopies(), *_wd ) ;
+            }
+
          }
       }
       return _outputDataReady;
@@ -507,13 +608,13 @@ bool MemController::isOutputDataReady( WD const &wd ) {
    return false;
 }
 
-bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {
-   if ( memId > 0 ) {
-      return sys.getSeparateMemory( memId ).canAllocateMemory( _memCacheCopies, _wd->getNumCopies(), considerInvalidations, *_wd );
-   } else {
-      return true;
-   }
-}
+//bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {
+//   if ( memId > 0 ) {
+//      return sys.getSeparateMemory( memId ).canAllocateMemory( _memCacheCopies, _wd->getNumCopies(), considerInvalidations, *_wd );
+//   } else {
+//      return true;
+//   }
+//}
 
 
 void MemController::setAffinityScore( std::size_t score ) {

@@ -146,6 +146,7 @@ System::System () :
 	   , _preSchedule (false)
       , _slots()
 	   , _watchAddr (NULL)
+	   , _newAlloc (true)
 {
    verbose0 ( "NANOS++ initializing... start" );
 

@@ -36,6 +36,7 @@ namespace nanos {
    class SMPDevice : public Device
    {
       SMPTransferQueue _transferQueue;
+      Atomic<unsigned long> _allocatedBytes;
       public:
          /*! \brief SMPDevice constructor
           */

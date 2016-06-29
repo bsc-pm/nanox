@@ -29,6 +29,7 @@ namespace nanos {
          unsigned int         _childrenProducedVersion;
       public:
          global_reg_t         _reg;
+         global_reg_t         _allocReg;
          NewLocationInfoList  _locations;
          bool                 _locationDataReady;
          AllocatedChunk      *_chunk;
@@ -36,6 +37,7 @@ namespace nanos {
          InvalidationController _invalControl;
          int                    _allocFrom;
          std::set<reg_t>        _regionsToCommit;
+         bool _useHost;
          MemCacheCopy();
          MemCacheCopy( WD const &wd, unsigned int index );
 
@@ -49,6 +51,8 @@ namespace nanos {
          void printLocations( std::ostream &o) const;
          unsigned int getChildrenProducedVersion() const;
          void setChildrenProducedVersion( unsigned int version );
+         void release( memory_space_id_t loc, WD const &wd, unsigned int copyIdx );
+         bool allocate( memory_space_id_t loc, WD const &wd, unsigned int copyIdx );
    };
 } // namespace nanos
 #endif /* MEMCACHECOPY_DECL */

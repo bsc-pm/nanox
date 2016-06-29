@@ -62,3 +62,37 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
    //NANOS_INSTRUMENT( inst4.close(); );
    _reg.key->unlockObject();
 }
+
+void MemCacheCopy::release( memory_space_id_t loc, WD const &wd, unsigned int copyIdx ) {
+   int refs = _chunk->removeReference( wd ); //MemCacheCopy::release (new)
+   if ( refs == 1 && ( _policy == RegionCache::NO_CACHE || _policy == RegionCache::FPGA ) ) {
+
+      //deallocate
+      sys.getSeparateMemory( loc ).getCache().freeChunk( _chunk, false, wd, copyIdx );
+      //deallocate end
+      NewNewRegionDirectory::delAccess( _reg.key, _reg.id, loc );
+   }
+}
+
+bool MemCacheCopy::allocate( memory_space_id_t loc, WD const &wd, unsigned int copyIdx ) {
+   bool result;
+   //addReference here? A: NO!! it should be added when we ask for the chunk (getChunk)
+   // update, is better to addReference here, if we fail to allocate it may be worth to release the chunks, otherwise we may deadlock
+   //update2, we can not addReference here. This function may be called multiple times for the same chunk, which will add many references.
+   _chunk->lock();
+   if ( !_chunk->allocated() ) {
+      if ( _chunk->isInvalidating() ) {
+         result = false;
+         *myThread->_file << "wait, invalidating" << std::endl;
+      } else {
+      NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+         NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 777 );)
+         result = sys.getSeparateMemory( loc ).getCache().allocateChunk( _chunk, wd, copyIdx );
+      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+      }
+   } else {
+      result = true;
+   }
+   _chunk->unlock();
+   return result;
+}
