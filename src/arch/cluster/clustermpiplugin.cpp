@@ -132,7 +132,7 @@ int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
       unsigned int node_index = 0;
       for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
          if ( nodeC != _gasnetApi->getNodeNum() ) {
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, !( getAllocFit() ), 0 );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, !( getAllocFit() ), 0, false );
             SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
             nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
             nodeMemory.setNodeNumber( nodeC );

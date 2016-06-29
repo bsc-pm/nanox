@@ -29,7 +29,7 @@ MemSpace< HostAddressSpace >::MemSpace( Device &d ) : HostAddressSpace( d ) {
 }
 
 template <>
-MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize ) {
+MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize, bool sharedWithHost ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize, sharedWithHost ) {
 }
 
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
@@ -80,7 +80,13 @@ NewNewRegionDirectory const &HostAddressSpace::getDirectory() const {
    return _directory;
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost ) : 
+   _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ),
+   _nodeNumber( 0 ),
+   _acceleratorNumber( 0 ),
+   _isAccelerator( false ),
+   _sdata( NULL ),
+   _sharedWithHost( sharedWithHost ) {
 }
 
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const *wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk ) {
@@ -203,6 +209,10 @@ void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, AllocatedC
 
 Device const &SeparateAddressSpace::getDevice() const {
    return _cache.getDevice();
+}
+
+bool SeparateAddressSpace::isSharedWithHost() const {
+   return _sharedWithHost;
 }
 
 //AllocatedChunk *SeparateAddressSpace::getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx ) {

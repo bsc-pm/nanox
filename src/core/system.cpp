@@ -1739,9 +1739,9 @@ void System::setCreateLocalTasks( bool value ) {
    _createLocalTasks = value;
 }
 
-memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize ) {
+memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost ) {
    memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide, slabSize );
+   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide, slabSize, sharedWithHost );
    _separateAddressSpaces[ id ] = mem;
    return id;
 }

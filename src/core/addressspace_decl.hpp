@@ -127,9 +127,10 @@ class SeparateAddressSpace {
    unsigned int _acceleratorNumber;
    bool         _isAccelerator;
    void        *_sdata;
+   bool         _sharedWithHost;
    
    public:
-   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
+   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost );
 
    void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const *wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
@@ -167,13 +168,14 @@ class SeparateAddressSpace {
    void registerOwnedMemory(global_reg_t reg);
    Device const &getDevice() const;
    AllocatedChunk *getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx );
+   bool isSharedWithHost() const;
 };
 
 template <class T>
 class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
-   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize );
+   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize, bool sharedWithHost );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const *wd, bool inval = false );
 };
 

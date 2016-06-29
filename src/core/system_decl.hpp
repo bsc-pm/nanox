@@ -659,7 +659,7 @@ namespace nanos {
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
-         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize );
+         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost );
          void setSMPPlugin(SMPBasePlugin *p);
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
