@@ -36,13 +36,13 @@ class ConcurrentQueueNode {
 		{
 		}
 
-		ConcurrentQueueNode( const_reference_type value ) :
-			_value( value ), _next( NULL )
+		ConcurrentQueueNode( const_reference_type element_value ) :
+			_value( element_value ), _next( NULL )
 		{
 		}
 
-		ConcurrentQueueNode( const_reference_type value, ConcurrentQueueNode const* next ) :
-			_value( value ), _next( next )
+		ConcurrentQueueNode( const_reference_type element_value, ConcurrentQueueNode const* next ) :
+			_value( element_value ), _next( next )
 		{
 		}
 

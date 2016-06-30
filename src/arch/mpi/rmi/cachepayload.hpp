@@ -37,23 +37,23 @@ class CachePayload {
 		{
 		}
 
-		CachePayload( int id, size_t size ) :
+		CachePayload( int id, size_t buffer_size ) :
 			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
 			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
-			_size( size )
+			_size( buffer_size )
 		{
 		}
 
-		CachePayload( int id, utils::Address hostAddr, utils::Address deviceAddr, size_t size ) :
+		CachePayload( int id, utils::Address hostAddr, utils::Address deviceAddr, size_t buffer_size ) :
 			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
 			_hostAddress( hostAddr ), _deviceAddress( deviceAddr ),
-			_size( size )
+			_size( buffer_size )
 		{
 		}
 
-		CachePayload( int id, int source, int destination, utils::Address hostAddress, utils::Address deviceAddress, size_t size ) :
+		CachePayload( int id, int source, int destination, utils::Address hostAddress, utils::Address deviceAddress, size_t buffer_size ) :
 			_id( id ), _source( source ), _destination( destination ),
-			_hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( size )
+			_hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( buffer_size )
 		{
 		}
 
@@ -106,9 +106,9 @@ class CachePayload {
 			return _size;
 		}
 
-		void setSize( size_t size )
+		void setSize( size_t buffer_size )
 		{
-			_size = size;
+			_size = buffer_size;
 		}
 
 		int getId() const

@@ -129,8 +129,10 @@ endif
 
 test_cxxflags = $(common_includes) $(bin_cxxflags)
 
-nanox_compiler:
-	echo $(CXX) > $@
+.PHONY: test_flags debug_flags instrumentation_flags instrumentation_debug_flags performance_flags nanos-config.h
+
+clean-local:
+	rm -f test_flags debug_flags instrumentation_flags instrumentation_debug_flags performance_flags nanos-config.h
 
 test_flags:
 	echo -n "$(test_cxxflags) -I$(devincludedir)" | sed "s@$(top_srcdir)@$(abs_top_srcdir)@g" > $@

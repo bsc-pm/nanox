@@ -35,8 +35,8 @@ class iterator_range {
 		{
 		}
 
-		iterator_range( Iterator const& first, size_t distance ) :
-			_iterators( first, first+distance )
+		iterator_range( Iterator const& first, size_t num_elements ) :
+			_iterators( first, first+num_elements )
 		{
 		}
 
