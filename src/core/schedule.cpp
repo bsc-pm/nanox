@@ -753,7 +753,7 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    updateExitStats (*wd);
 
    //! \note getting more work to do (only if not going to sleep)
-   if ( !getMyThreadSafe()->isSleeping() ) {
+   if ( !getMyThreadSafe()->isSleeping() && schedule ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {

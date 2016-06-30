@@ -466,7 +466,9 @@ void AsyncThread::postRunWD ( WD * wd )
    std::cout << s.str();
 #endif
 
-   Scheduler::finishWork( wd, canGetWork() );
+   // This can freeze as we can come from an invalidation, and then issue an allocation
+   //Scheduler::finishWork( wd, canGetWork() );
+   Scheduler::finishWork( wd, false );
 
    ASYNC_THREAD_CLOSE_EVENT;
 }
