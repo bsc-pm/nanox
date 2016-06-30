@@ -44,9 +44,9 @@ LINKER_SECTION(nanos_post_init, nanos_init_desc_t , INIT_NULL)
 long OS::_argc = 0; 
 char ** OS::_argv = 0;
 
-nanos::unique_pointer<OS::ModuleList> OS::_moduleList = 0;
-nanos::unique_pointer<OS::InitList>   OS::_initList = 0;
-nanos::unique_pointer<OS::InitList>   OS::_postInitList = 0;
+nanos::unique_pointer<OS::ModuleList> OS::_moduleList;
+nanos::unique_pointer<OS::InitList>   OS::_initList;
+nanos::unique_pointer<OS::InitList>   OS::_postInitList;
 CpuSet OS::_systemMask;
 CpuSet OS::_processMask;
 

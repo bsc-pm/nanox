@@ -100,6 +100,7 @@ devinclude_HEADERS = \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
+	smartpointer.hpp \
 	$(END) 
 
 support_sources = \

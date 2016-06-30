@@ -164,7 +164,7 @@ class unique_pointer {
 
       operator bool() const { return pointer != NULL; };
 
-      const T* get() const { return ptr; }
+      const T* get() const { return pointer; }
 
       T* get() { return pointer; }
 
