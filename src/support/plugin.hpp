@@ -20,10 +20,11 @@
 #ifndef _NANOS_PLUGIN
 #define _NANOS_PLUGIN
 
-#include <string>
-#include <vector>
 #include "config.hpp"
 #include "plugin_decl.hpp"
+#include "smartpointer.hpp"
+
+#include <string>
 
 namespace nanos {
 
@@ -60,13 +61,23 @@ inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name,
       nanos::Plugin * NanosXPluginFactory(); \
    }                                  \
    nanos::Plugin * NanosXPluginFactory() {   \
-      return new type();              \
+      static nanos::unique_pointer<type> plugin; \
+      if( !plugin ) {                 \
+         plugin.reset(new type());    \
+      }                               \
+      return plugin.get();            \
    }
 #else
 #define INITX {_registerPlugin, NULL} 
 #define DECLARE_PLUGIN(name,type) \
        static void _registerPlugin (void *arg); \
-       static void _registerPlugin (void *arg) { nanos::sys.registerPlugin(name, *NEW type()); } \
+       static void _registerPlugin (void *arg) { \
+          static nanos::unique_pointer<type> plugin; \
+          if( !plugin ) {                 \
+             plugin.reset(new type());    \
+          }                               \
+          nanos::sys.registerPlugin(name, *plugin ); \
+       }                                  \
        LINKER_SECTION(nanos_init, nanos_init_desc_t, INITX);
 #endif
 
