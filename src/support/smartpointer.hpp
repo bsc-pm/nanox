@@ -20,9 +20,7 @@
 #ifndef SMARTPOINTER
 #define SMARTPOINTER
 
-#ifdef _NANOS_INTERNAL
 #include "debug.hpp"
-#endif
 
 namespace nanos {
 
