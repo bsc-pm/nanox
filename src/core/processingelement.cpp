@@ -97,6 +97,7 @@ bool ProcessingElement::testInputs( WorkDescriptor &work ) {
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
 {
    WD & worker = getWorkerWD();
+   worker._mcontrol.preInit();
 
    if ( parent == NULL ) {
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )

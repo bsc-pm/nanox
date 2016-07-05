@@ -56,7 +56,6 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
    dd_ptr[0] = (DeviceData*)dd;
 
    WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Worker" );
-   wd->_mcontrol.preInit();
 
    return *wd;
 }
@@ -117,6 +116,7 @@ SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
    thread.initMain();
    thread.setMainThread();
    thread.associate( &master );
+   worker._mcontrol.preInit();
 
    getThreads().push_back( &thread );
 
