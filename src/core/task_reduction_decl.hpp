@@ -109,13 +109,11 @@ class TaskReduction {
             threads, unsigned depth, bool lazy )
                : _original(orig), _dependence(dep), _depth(depth),
                  _initializer(f_init), _reducer(f_red), _reducer_orig_var(f_red_orig_var), _storage(threads),
-                 _size(array_descriptor_size),
-				 _size_element(0),_num_elements(0),
+                 _size(array_descriptor_size), _size_element(0),_num_elements(0),
                  _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranReduction(true)
       {
 
-    	  if(_isLazyPriv)
-    	  {
+    	  if(_isLazyPriv) {
     		  //Renaming tracking for nested reductions not supported for lazy privatization
     		  _min = (void*) 0;
     		  _max = (void*) 0;
@@ -124,8 +122,7 @@ class TaskReduction {
     			  _storage[i].data = NULL;
     			  _storage[i].isInitialized = false;
     		  }
-    	  }else
-    	  {
+    	  } else {
 			  char * storage = (char*) malloc (_size * threads);
 			  _min = & storage[0];
 			  _max = & storage[_size * threads];
@@ -148,7 +145,7 @@ class TaskReduction {
       void * get ( size_t id );
 
       //! \brief Finalizes reduction
-      void * finalize ( void );
+      void * finalize ( bool deallocate );
 
       //! \brief Allocated and initialized thread private memory
       void * initialize ( size_t id );

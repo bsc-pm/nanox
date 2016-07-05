@@ -542,7 +542,10 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
       _mcontrol.synchronize();
    }
 
+   removeAllTaskReductions();
+
    _depsDomain->clearDependenciesDomain();
+
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
@@ -669,6 +672,16 @@ bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
       return true;
    }
    return false;
+}
+
+void WorkDescriptor::removeAllTaskReductions( void )
+{
+   // Check if we have registered a reduction with this address
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
+      delete (*it);
+      _taskReductions.erase( --(it.base()) );
+   }
 }
 
 TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
