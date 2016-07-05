@@ -701,6 +701,7 @@ void System::start ()
 System::~System ()
 {
    if ( !_delayedStart ) finish();
+   if( _instrumentation ) { delete _instrumentation; }
 }
 
 void System::finish ()

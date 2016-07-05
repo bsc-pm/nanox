@@ -54,9 +54,10 @@ namespace ext {
    void OpenCLPlugin::init()
    {
       OpenCLConfig::apply( _devTy, &_devices );
-      _opencls = NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL); 
-      _openclThreads = NEW std::vector<nanos::ext::OpenCLThread *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLThread *) NULL); 
-      for ( unsigned int openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
+      const size_t numDevices = nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
+      _opencls.reserve( numDevices );
+      _openclThreads.reserve( numDevices );
+      for ( unsigned int openclC = 0; openclC < numDevices; ++openclC ) {
          memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide(), 0 );
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
          oclmemory.setAcceleratorNumber( sys.getNewAcceleratorId() );
@@ -67,8 +68,7 @@ namespace ext {
          }
          core->setNumFutureThreads( 1 );
 
-         OpenCLProcessor *ocl = NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory );
-         (*_opencls)[openclC] = ocl;
+         _opencls.push_back( NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory ) );
       }
    }
    
@@ -129,15 +129,15 @@ namespace ext {
    }
 
    void OpenCLPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
-      for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls->begin(); it != _opencls->end(); it++ ) {
+      for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls.begin(); it != _opencls.end(); it++ ) {
          pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }
    }
    
    void OpenCLPlugin::addDevices( DeviceList &devices ) const
    {
-      if ( !_opencls->empty() ) {
-         std::vector<const Device *> const &pe_archs = ( *_opencls->begin() )->getDeviceTypes();
+      if ( !_opencls.empty() ) {
+         std::vector<const Device *> const &pe_archs = ( *_opencls.begin() )->getDeviceTypes();
          for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
                it != pe_archs.end(); it++ ) {
             devices.insert( *it );
@@ -145,16 +145,16 @@ namespace ext {
       }
    }
    
-   
    void OpenCLPlugin::startSupportThreads() {
-      for ( unsigned int openclC = 0; openclC < _opencls->size(); openclC += 1 ) {
-         OpenCLProcessor *ocl = (*_opencls)[openclC];
-         (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
+      std::vector<OpenCLProcessor*>::iterator it;
+      for ( it = _opencls.begin(); it != _opencls.end(); ++it ) {
+         _openclThreads.push_back( &static_cast<OpenCLThread&>( (*it)->startOpenCLThread() ) );
       }
    }
    
    void OpenCLPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
-      for ( std::vector<OpenCLThread *>::iterator it = _openclThreads->begin(); it != _openclThreads->end(); it++ ) {
+      std::vector<OpenCLThread *>::iterator it;
+      for ( it = _openclThreads.begin(); it != _openclThreads.end(); ++it ) {
          workers.insert( std::make_pair( (*it)->getId(), *it ) );
       }
    }

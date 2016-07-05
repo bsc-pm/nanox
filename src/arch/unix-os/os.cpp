@@ -44,9 +44,9 @@ LINKER_SECTION(nanos_post_init, nanos_init_desc_t , INIT_NULL)
 long OS::_argc = 0; 
 char ** OS::_argv = 0;
 
-OS::ModuleList * OS::_moduleList = 0;
-OS::InitList * OS::_initList = 0;
-OS::InitList * OS::_postInitList = 0;
+nanos::unique_pointer<OS::ModuleList> OS::_moduleList;
+nanos::unique_pointer<OS::InitList>   OS::_initList;
+nanos::unique_pointer<OS::InitList>   OS::_postInitList;
 CpuSet OS::_systemMask;
 CpuSet OS::_processMask;
 
@@ -70,9 +70,9 @@ static void findArgs (long *argc, char ***argv)
 void OS::init ()
 {
    findArgs(&_argc,&_argv);
-   _moduleList = NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
-   _initList = NEW InitList(&__start_nanos_init, &__stop_nanos_init);
-   _postInitList = NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
+   _moduleList.reset( NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules) );
+   _initList.reset( NEW InitList(&__start_nanos_init, &__stop_nanos_init) );
+   _postInitList.reset( NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init) );
 
    for (int i=0; i<OS::getMaxProcessors(); i++) {
       // FIXME: we are assuming a range of [0,N-1]. Use hwloc if present
