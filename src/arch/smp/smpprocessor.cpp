@@ -81,7 +81,6 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
    dd_ptr[0] = (DeviceData*)dd;
 
    WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Main" );
-   wd->_mcontrol.preInit();
 
    return *wd;
 }
