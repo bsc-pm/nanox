@@ -182,7 +182,10 @@ void ProcessingElement::wakeUpThreads()
 
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
-      (*it)->tryWakeUp( team );
+      BaseThread *thread = *it;
+      thread->lock();
+      thread->tryWakeUp( team );
+      thread->unlock();
    }
 }
 
@@ -190,7 +193,10 @@ void ProcessingElement::sleepThreads()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
-      (*it)->sleep();
+      BaseThread *thread = *it;
+      thread->lock();
+      thread->sleep();
+      thread->unlock();
    }
 }
 

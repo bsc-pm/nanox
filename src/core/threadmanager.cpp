@@ -345,7 +345,9 @@ void BlockingThreadManager::blockThread( BaseThread *thread )
       return;
 
    // Clear CPU from active mask when all threads of a process are blocked
+   thread->lock();
    thread->sleep();
+   thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( my_cpu );
 }
 
@@ -353,10 +355,10 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
 
-   /* This method should only be called after a simple block call.
-    * Also, the thread should be in a team */
+   thread->lock();
    ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
    thread->wakeup();
+   thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
@@ -366,10 +368,7 @@ void BlockingThreadManager::unblockThreads( std::vector<BaseThread*> threads )
 
    std::vector<BaseThread*>::iterator it;
    for (it=threads.begin(); it!=threads.end(); ++it) {
-      BaseThread *thread = *it;
-      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
-      thread->wakeup();
-      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+      unblockThread( *it );
    }
 }
 
@@ -412,15 +411,6 @@ void BusyWaitThreadManager::idle( int& yields
    if ( !_initialized ) return;
 
    BaseThread *thread = getMyThreadSafe();
-   thread->lock();
-   if ( !thread->hasTeam() && !thread->runningOn()->isActive() ) {
-      // Sleep teamless threads only if the PE has been deactivated
-      thread->setNextTeam(NULL);
-      blockThread(thread);
-      thread->unlock();
-      return;
-   }
-   thread->unlock();
 
    if ( _useDLB && _isMalleable ) acquireResourcesIfNeeded();
 
@@ -441,6 +431,8 @@ void BusyWaitThreadManager::idle( int& yields
          if ( _numYields != 0 ) yields = _numYields;
       }
    }
+
+   blockThread(thread);
 }
 
 void BusyWaitThreadManager::acquireResourcesIfNeeded ()
@@ -548,19 +540,27 @@ void BusyWaitThreadManager::blockThread(BaseThread *thread)
    if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
       return;
 
+   thread->lock();
+   if ( !thread->hasTeam() && !thread->runningOn()->isActive() ) {
+      // Sleep teamless threads only if the PE has been deactivated
+      thread->setNextTeam(NULL);
+      thread->sleep();
+   }
+   thread->unlock();
+
+   // FIXME: this call causes a bug when in OpenMP
    // Clear CPU from active mask when all threads of a process are blocked
-   thread->sleep();
-   sys.getSMPPlugin()->updateCpuStatus( my_cpu );
+   // sys.getSMPPlugin()->updateCpuStatus( my_cpu );
 }
 
 void BusyWaitThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
 
-   /* This method should only be called after a simple block call.
-    * Also, the thread should be in a team */
+   thread->lock();
    ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
    thread->wakeup();
+   thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
@@ -570,10 +570,7 @@ void BusyWaitThreadManager::unblockThreads( std::vector<BaseThread*> threads )
 
    std::vector<BaseThread*>::iterator it;
    for (it=threads.begin(); it!=threads.end(); ++it) {
-      BaseThread *thread = *it;
-      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
-      thread->wakeup();
-      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+      unblockThread( *it );
    }
 }
 
@@ -745,26 +742,26 @@ void DlbThreadManager::blockThread( BaseThread *thread )
    DLB_ReleaseCpu( my_cpu );
 }
 
-void DlbThreadManager::unblockThread(BaseThread* thread) {
+void DlbThreadManager::unblockThread( BaseThread* thread )
+{
    if ( !_initialized ) return;
 
    int cpu = thread->getCpuId();
    if ( !_cpuActiveMask->isSet(cpu) ) {
-      //If the cpu is not active claim it and wake up thread
       DLB_AcquireCpu( cpu );
    }
 }
 
-void DlbThreadManager::unblockThreads(std::vector<BaseThread*> threads) {
+void DlbThreadManager::unblockThreads( std::vector<BaseThread*> threads )
+{
    if ( !_initialized ) return;
 
    CpuSet cpus;
    std::vector<BaseThread*>::iterator it;
-   for (it=threads.begin(); it!=threads.end(); ++it) {
+   for ( it=threads.begin(); it!=threads.end(); ++it ) {
       BaseThread *thread = *it;
       int cpu = thread->getCpuId();
       if ( !_cpuActiveMask->isSet(cpu) ) {
-         //If the cpu is not active claim it and wake up thread
          cpus.set(cpu);
       }
    }

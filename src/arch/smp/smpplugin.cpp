@@ -748,12 +748,13 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       for ( w_it = _workers.begin(); w_it != _workers.end(); ++w_it ) {
          BaseThread *thread = *w_it;
          if ( active_threads_checked < nthreads ) {
+            thread->lock();
             thread->tryWakeUp( team );
+            thread->unlock();
             active_threads_checked++;
          } else {
-            // \note Leave team inconditionally
             thread->lock();
-            thread->setLeaveTeam(true);
+            thread->setLeaveTeam( true );
             thread->sleep();
             thread->unlock();
          }

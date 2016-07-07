@@ -43,10 +43,12 @@ void BaseThread::run ()
 
 void BaseThread::finish ()
 {
+   lock();
    if ( _status.has_team ) {
       setLeaveTeam(true);
       leaveTeam();
    }
+   unlock();
 }
 
 void BaseThread::addNextWD ( WD *next )
@@ -175,7 +177,6 @@ void BaseThread::sleep()
 
 void BaseThread::tryWakeUp( ThreadTeam *team )
 {
-   lock();
    if ( isSleeping() ) {
       // Thread is tagged to sleep. It may be already waiting or just tagged
       reserve();
@@ -190,7 +191,6 @@ void BaseThread::tryWakeUp( ThreadTeam *team )
    }
    // either way, this thread must be in the expected set
    team->addExpectedThread(this);
-   unlock();
 }
 
 unsigned int BaseThread::getOsId() const {

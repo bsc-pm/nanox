@@ -90,8 +90,9 @@ namespace ext {
          /*!
           * \brief Set the flag
           */
-         virtual void sleep();
          // PThread functions
+         virtual void lock() { _pthread.mutexLock(); }
+         virtual void unlock() { _pthread.mutexUnlock(); }
          virtual void initMain() { _pthread.initMain(); };
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
