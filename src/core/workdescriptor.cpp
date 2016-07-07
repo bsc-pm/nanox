@@ -665,10 +665,12 @@ bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
    }
 
    if ( it != _taskReductions.rend() ) {
-      if ( del ) delete (*it);
-      // Reverse iterators cannot be erased directly, we need to transform them
-      // to common iterators
-      _taskReductions.erase( --(it.base()) );
+      if ( del ) {
+         delete (*it);
+         // Reverse iterators cannot be erased directly, we need to transform them
+         // to common iterators
+         _taskReductions.erase( --(it.base()) );
+      }
       return true;
    }
    return false;
@@ -676,11 +678,16 @@ bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
 
 void WorkDescriptor::removeAllTaskReductions( void )
 {
+   bool b;
    // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      delete (*it);
-      _taskReductions.erase( --(it.base()) );
+      if ( _parent )  b = _parent->removeTaskReduction( (*it)->get(0), false ) ; 
+      else b = false;
+      if ( !b) {
+         delete (*it);
+         _taskReductions.erase( --(it.base()) );
+      }
    }
 }
 
