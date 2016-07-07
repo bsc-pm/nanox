@@ -46,33 +46,32 @@ rpm:
 	@echo "Generating RPM structure"
 	mkdir -p SOURCES BUILD RPMS SPECS SRPMS
 	cp $(top_build_prefix)*.tar.gz SOURCES
-        
-	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1}; rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define 'release $(shell date +%Y%m%d)' --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' --define "threads $${THREADS}"
+	RELEASE=$${RELEASE:-$(shell date +%Y%m%d)}; \
+	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1}; \
+	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define '_version $(VERSION)' --define "_release $${RELEASE}" --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' --define "threads $${THREADS}"
 
 clean-rpm:
 	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS
 
 
 deb:
-	cp $(top_build_prefix)*.tar.gz nanox_$(VERSION).orig.tar.gz
-	tar -xf nanox_$(VERSION).orig.tar.gz
-	-rm -rf upstream_dir
-	mv nanox-$(VERSION) upstream_dir
+	cp $(top_builddir)/$(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)_$(VERSION).orig.tar.gz
+	tar -xf $(PACKAGE)_$(VERSION).orig.tar.gz
+	rm -rf upstream_dir
+	mv $(PACKAGE)-$(VERSION) upstream_dir/
 	cp -rf $(srcdir)/debian upstream_dir/
 	cp -rf upstream_dir/COPYING upstream_dir/debian/copyright
-	-rm -f upstream_dir/debian/changelog
-
-# Generate an empty changelog if git is not present
+	rm -f upstream_dir/debian/changelog
+	RELEASE=$${RELEASE:-$(shell date +%Y%m%d)}$(DEB_RELEASE); \
 	if test ! -d $(top_srcdir)/.git; \
-	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v "$(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)"; \
-	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
+	then dch --create -c upstream_dir/debian/changelog --empty --package $(PACKAGE) -v "$(VERSION)-$${RELEASE}"; \
+	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"$(PACKAGE) ($(VERSION)-$${RELEASE}) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD%n" > upstream_dir/debian/changelog; \
 	fi
-
-	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1};  cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=$${THREADS}" debuild -us -uc
-	-rm -rf upstream_dir
+	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1}; cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=$${THREADS}" debuild -us -uc
+	rm -rf upstream_dir
 
 clean-deb:
-	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(VERSION)*.debian.tar.gz nanox_$(VERSION)*.dsc nanox_$(DEB_RELEASE)*.build nanox_$(DEB_RELEASE)*.changes *.deb
-	-rm -rf upstream_dir
+	rm -f $(PACKAGE)$(VERSION).orig.tar.gz $(PACKAGE)$(VERSION)*.debian.tar.gz $(PACKAGE)$(VERSION)*.dsc $(PACKAGE)$(DEB_RELEASE)*.build $(PACKAGE)$(DEB_RELEASE)*.changes *.deb; \
+	rm -rf upstream_dir
 
 clean-local: clean-rpm clean-deb
