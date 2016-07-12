@@ -138,7 +138,10 @@ int BaseThread::getCpuId() const {
 
 void BaseThread::leaveTeam()
 {
-   ensure( this == myThread, "thread is not leaving team by itself" );
+   // It's allowed to make another thread leave the team as long as the target thread is blocked
+   ensure( this == myThread || _status.is_waiting,
+         "thread is not leaving team by itself" );
+
    if ( _teamData )
    {
       TeamData *td = _teamData;
@@ -160,6 +163,9 @@ void BaseThread::setLeaveTeam( bool leave )
       // either from my current team or from my next one
       ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
       if ( team ) team->removeExpectedThread( this );
+
+      // Only if this thread is already waiting to avoid waking it up only for that
+      if ( team && _status.is_waiting ) leaveTeam();
    }
 }
 
@@ -177,19 +183,27 @@ void BaseThread::sleep()
 
 void BaseThread::tryWakeUp( ThreadTeam *team )
 {
-   if ( isSleeping() ) {
-      // Thread is tagged to sleep. It may be already waiting or just tagged
-      reserve();
-      setNextTeam( team );
+   if ( _status.is_waiting ) {
+      // Thread is blocked. Set up team and wakeup
+      if ( getTeam() == NULL ) {
+         reserve();
+         setNextTeam( team );
+      }
       wakeup();
+   } else {
+      // Thread is running
+      if ( _status.must_sleep ) {
+         // Thread is only tagged. Fix flag.
+         _status.must_sleep = false;
+      }
+      if ( getTeam() == NULL ) {
+         // Thread is running but orphan
+         reserve();
+         setNextTeam( NULL );
+         sys.acquireWorker( team, this, true, false, false );
+      }
    }
-   if ( !isWaiting() && !getTeam() ) {
-      // Thread is already running but without team
-      reserve();
-      setNextTeam( NULL );
-      sys.acquireWorker( team, this, true, false, false );
-   }
-   // either way, this thread must be in the expected set
+   _status.must_leave_team = false;
    team->addExpectedThread(this);
 }
 
