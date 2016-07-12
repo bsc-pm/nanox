@@ -321,9 +321,25 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
    }
 }
 
-void BlockingThreadManager::returnClaimedCpus() {}
+void BlockingThreadManager::returnClaimedCpus()
+{
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
+   if ( !getMyThreadSafe()->isMainThread() ) return;
 
-void BlockingThreadManager::returnMyCpuIfClaimed() {}
+   LockBlock Lock( _lock );
+
+   CpuSet mine_or_active = *_cpuProcessMask | *_cpuActiveMask;
+   if ( mine_or_active.size() > _cpuProcessMask->size() ) {
+      // Only return if I am using external CPUs
+      DLB_ReturnClaimedCpus();
+   }
+}
+
+void BlockingThreadManager::returnMyCpuIfClaimed()
+{
+   returnClaimedCpus();
+}
 
 void BlockingThreadManager::waitForCpuAvailability() {}
 
@@ -490,7 +506,10 @@ void BusyWaitThreadManager::returnClaimedCpus()
    }
 }
 
-void BusyWaitThreadManager::returnMyCpuIfClaimed() {}
+void BusyWaitThreadManager::returnMyCpuIfClaimed()
+{
+   returnClaimedCpus();
+}
 
 void BusyWaitThreadManager::waitForCpuAvailability()
 {
