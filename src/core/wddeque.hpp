@@ -91,6 +91,7 @@ inline Lock& WDDeque::getLock()
 
 inline void WDDeque::push_front( WD** wds, size_t numElems )
 {
+   LockBlock lock( _lock );
    for( size_t i = 0; i < numElems; ++i )
    {
       WD* wd = wds[i];
@@ -702,6 +703,7 @@ inline Lock& WDPriorityQueue<T>::getLock()
 template<typename T>
 inline void WDPriorityQueue<T>::push_front( WD** wds, size_t numElems )
 {
+   LockBlock lock( _lock );
    for( size_t i = 0; i < numElems; ++i )
    {
       WD* wd = wds[i];

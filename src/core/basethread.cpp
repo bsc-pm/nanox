@@ -57,6 +57,8 @@ void BaseThread::addNextWD ( WD *next )
       debug("Add next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
       _nextWDs.push_back( next );
    }
+
+   sys.getThreadManager()->unblockThread(this);
 }
 
 WD * BaseThread::getNextWD ()

@@ -128,10 +128,6 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
      else thread_map[i] = -1;
    }
 
-   // It's safer to unblock threads once the team is unlocked
-   std::vector<BaseThread*> threads_to_unblock;
-   threads_to_unblock.reserve(num_threads);
-
    // copying rest of slicer data values and computing sign value
    // getting user defined chunk, lower, upper and step
    loop_info = ( nanos_loop_info_t * ) work.getData();
@@ -180,7 +176,6 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          BaseThread &target_thread = (*team)[j];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
-         threads_to_unblock.push_back( &target_thread );
       }
    } else {
       // Computing offset between threads
@@ -219,7 +214,6 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          BaseThread &target_thread = (*team)[j];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
-         threads_to_unblock.push_back( &target_thread );
       }
    }
 
@@ -240,10 +234,6 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    {
       first_thread.addNextWD( (WorkDescriptor *) &work);
    }
-
-   // Finally unblock all threads involved in the slicer
-   threads_to_unblock.push_back( &first_thread );
-   sys.getThreadManager()->unblockThreads( threads_to_unblock );
 }
 
 class SlicerStaticForPlugin : public Plugin {

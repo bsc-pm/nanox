@@ -362,16 +362,6 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
-void BlockingThreadManager::unblockThreads( std::vector<BaseThread*> threads )
-{
-   if ( !_initialized ) return;
-
-   std::vector<BaseThread*>::iterator it;
-   for (it=threads.begin(); it!=threads.end(); ++it) {
-      unblockThread( *it );
-   }
-}
-
 void BlockingThreadManager::processMaskChanged()
 {
    if ( _useDLB )
@@ -564,16 +554,6 @@ void BusyWaitThreadManager::unblockThread( BaseThread* thread )
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
-void BusyWaitThreadManager::unblockThreads( std::vector<BaseThread*> threads )
-{
-   if ( !_initialized ) return;
-
-   std::vector<BaseThread*>::iterator it;
-   for (it=threads.begin(); it!=threads.end(); ++it) {
-      unblockThread( *it );
-   }
-}
-
 void BusyWaitThreadManager::processMaskChanged()
 {
    if ( _useDLB )
@@ -750,22 +730,6 @@ void DlbThreadManager::unblockThread( BaseThread* thread )
    if ( !_cpuActiveMask->isSet(cpu) ) {
       DLB_AcquireCpu( cpu );
    }
-}
-
-void DlbThreadManager::unblockThreads( std::vector<BaseThread*> threads )
-{
-   if ( !_initialized ) return;
-
-   CpuSet cpus;
-   std::vector<BaseThread*>::iterator it;
-   for ( it=threads.begin(); it!=threads.end(); ++it ) {
-      BaseThread *thread = *it;
-      int cpu = thread->getCpuId();
-      if ( !_cpuActiveMask->isSet(cpu) ) {
-         cpus.set(cpu);
-      }
-   }
-   DLB_AcquireCpus( &cpus.get_cpu_set() );
 }
 
 void DlbThreadManager::processMaskChanged()

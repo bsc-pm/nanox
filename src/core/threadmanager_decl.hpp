@@ -66,7 +66,6 @@ namespace nanos {
          virtual void waitForCpuAvailability() {}
          virtual void blockThread(BaseThread*) {}
          virtual void unblockThread(BaseThread*) {}
-         virtual void unblockThreads(std::vector<BaseThread*>) {}
          virtual void processMaskChanged() {}
    };
 
@@ -104,7 +103,6 @@ namespace nanos {
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 
@@ -143,7 +141,6 @@ namespace nanos {
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 
@@ -177,7 +174,6 @@ namespace nanos {
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 
