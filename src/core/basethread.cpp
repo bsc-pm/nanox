@@ -141,7 +141,7 @@ int BaseThread::getCpuId() const {
 void BaseThread::leaveTeam()
 {
    // It's allowed to make another thread leave the team as long as the target thread is blocked
-   ensure( this == myThread || _status.is_waiting,
+   ensure( this == myThread || _status.is_waiting || _status.has_joined,
          "thread is not leaving team by itself" );
 
    if ( _teamData )
@@ -151,10 +151,10 @@ void BaseThread::leaveTeam()
 
       td->getTeam()->removeThread( getTeamId() );
       _teamData = _teamData->getParentTeamData();
-      _status.has_team = _teamData != NULL;
-      _status.must_leave_team = false;
       delete td;
    }
+   _status.must_leave_team = false;
+   _status.has_team = _teamData != NULL;
 }
 
 void BaseThread::setLeaveTeam( bool leave )
@@ -189,7 +189,7 @@ void BaseThread::tryWakeUp( ThreadTeam *team )
       // Thread is blocked. Set up team and wakeup
       if ( getTeam() == NULL ) {
          reserve();
-         setNextTeam( team );
+         if ( team ) setNextTeam( team );
       }
       wakeup();
    } else {
@@ -202,11 +202,11 @@ void BaseThread::tryWakeUp( ThreadTeam *team )
          // Thread is running but orphan
          reserve();
          setNextTeam( NULL );
-         sys.acquireWorker( team, this, true, false, false );
+         if ( team ) sys.acquireWorker( team, this, true, false, false );
       }
    }
    _status.must_leave_team = false;
-   team->addExpectedThread(this);
+   if ( team ) team->addExpectedThread(this);
 }
 
 unsigned int BaseThread::getOsId() const {

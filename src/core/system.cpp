@@ -1476,12 +1476,21 @@ void System::endTeam ( ThreadTeam *team )
 
 void System::waitUntilThreadsPaused ()
 {
+   // Wake up all workers to avoid deadlock
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      it->second->tryWakeUp(NULL);
+   }
+
    // Wait until all threads are paused
    _pausedThreadsCond.wait();
 }
 
 void System::waitUntilThreadsUnpaused ()
 {
+   // Wake up all workers to avoid deadlock
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      it->second->tryWakeUp(NULL);
+   }
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
 }
