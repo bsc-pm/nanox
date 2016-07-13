@@ -342,6 +342,9 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
 
 inline int WDDeque::getNumConcurrentWDs()
 {
+   if ( _dq.empty() )
+      return 0;
+
    // Cumulative wd counter
    int num_wds = 0;
    // Auxiliary map to count successful commutative accesses
@@ -350,11 +353,30 @@ inline int WDDeque::getNumConcurrentWDs()
    WDDeque::BaseContainer::const_iterator it;
    LockBlock lock( _lock );
    for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      WD &wd = *(WD *)*it;
+      const WD &wd = *(WD *)*it;
       num_wds += wd.getConcurrencyLevel( comm_accesses );
    }
 
    return num_wds;
+}
+
+inline bool WDDeque::tryDequeue()
+{
+   if ( _dq.empty() )
+      return false;
+
+   // Auxiliary map to count successful commutative accesses
+   std::map<WD**, WD*> comm_accesses;
+   // ReadyQueue iterator
+   WDDeque::BaseContainer::const_iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
+      const WD &wd = *(WD *)*it;
+      if ( wd.getConcurrencyLevel( comm_accesses ) > 1 )
+         return true;
+   }
+
+   return false;
 }
 
 inline void WDDeque::transferElemsFrom( WDDeque &dq )
@@ -981,6 +1003,9 @@ inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks, int decrement 
 template<typename T>
 inline int WDPriorityQueue<T>::getNumConcurrentWDs()
 {
+   if ( _dq.empty() )
+      return 0;
+
    // Cumulative wd counter
    int num_wds = 0;
    // Auxiliary map to count successful commutative accesses
@@ -989,11 +1014,31 @@ inline int WDPriorityQueue<T>::getNumConcurrentWDs()
    WDPQ::BaseContainer::const_iterator it;
    LockBlock lock( _lock );
    for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      WD &wd = *(WD *)*it;
+      const WD &wd = *(WD *)*it;
       num_wds += wd.getConcurrencyLevel( comm_accesses );
    }
 
    return num_wds;
+}
+
+template<typename T>
+inline bool WDPriorityQueue<T>::tryDequeue()
+{
+   if ( _dq.empty() )
+      return false;
+
+   // Auxiliary map to count successful commutative accesses
+   std::map<WD**, WD*> comm_accesses;
+   // ReadyQueue iterator
+   WDDeque::BaseContainer::const_iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
+      const WD &wd = *(WD *)*it;
+      if ( wd.getConcurrencyLevel( comm_accesses ) > 1 )
+         return true;
+   }
+
+   return false;
 }
 
 } // namespace nanos

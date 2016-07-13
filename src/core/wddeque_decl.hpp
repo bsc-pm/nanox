@@ -103,6 +103,15 @@ namespace nanos {
          static void increaseTasksInQueues( int tasks, int increment = 1 );
          static void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getNumConcurrentWDs() { return size(); }
+
+         /*! \brief Returns true if an element can be dequeued
+          */
+         bool tryDequeue() { return !empty(); }
+
    };
 
    class WDDeque : public WDPool
@@ -163,10 +172,8 @@ namespace nanos {
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
-         /*! \brief Returns the number of ready tasks that could be ran simultaneously
-          * Tied and commutative WDs in the queue could decrease this number.
-          */
          int getNumConcurrentWDs();
+         bool tryDequeue();
 
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
@@ -405,10 +412,8 @@ namespace nanos {
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
-         /*! \brief Returns the number of ready tasks that could be ran simultaneously
-          * Tied and commutative WDs in the queue could decrease this number.
-          */
          int getNumConcurrentWDs();
+         bool tryDequeue();
    };
 
 

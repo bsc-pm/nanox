@@ -171,7 +171,6 @@ namespace nanos {
            WD * atIdle ( BaseThread *thread, int numSteal )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              
               return tdata._readyQueue->pop_front( thread );
            }
 
@@ -215,15 +214,15 @@ namespace nanos {
             int getNumConcurrentWDs()
             {
                TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
-               if ( _usePriority || _useSmartPriority ) {
-                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
-                  return q.getNumConcurrentWDs();
-               } else {
-                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
-                  return q.getNumConcurrentWDs();
-               }
+               return tdata._readyQueue->getNumConcurrentWDs();
             }
-            
+
+            bool tryDequeue()
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               return tdata._readyQueue->tryDequeue();
+            }
+
             bool usingPriorities() const
             {
                return _usePriority || _useSmartPriority;
