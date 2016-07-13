@@ -219,8 +219,8 @@ bool ThreadManager::lastActiveThread()
 /**********************************/
 
 BlockingThreadManager::BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup )
-   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
-   _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
+   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _maxWorkers(0),
+   _isMalleable(false), _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
 {}
 
 BlockingThreadManager::~BlockingThreadManager()
@@ -231,8 +231,17 @@ BlockingThreadManager::~BlockingThreadManager()
 void BlockingThreadManager::init()
 {
    ThreadManager::init();
+   _maxWorkers = sys.getSMPPlugin()->getRequestedWorkers();
    _isMalleable = sys.getPMInterface().isMalleable();
    if ( _useDLB ) DLB_Init();
+}
+
+bool BlockingThreadManager::isGreedy()
+{
+   if ( !_initialized ) return false;
+
+   size_t max_threads = _useDLB ? _maxCPUs : _maxWorkers;
+   return _cpuActiveMask->size() < max_threads;
 }
 
 void BlockingThreadManager::idle( int& yields
@@ -244,9 +253,7 @@ void BlockingThreadManager::idle( int& yields
 {
    if ( !_initialized ) return;
 
-   if ( _isMalleable ) {
-      acquireResourcesIfNeeded();
-   }
+   if ( _useDLB ) DLB_Update();
 
    BaseThread *thread = getMyThreadSafe();
 
@@ -265,6 +272,35 @@ void BlockingThreadManager::idle( int& yields
          NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
          NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
+      }
+   }
+}
+
+void BlockingThreadManager::acquireOne()
+{
+   if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
+
+   ThreadTeam *team = getMyThreadSafe()->getTeam();
+   if ( !team ) return;
+
+   if ( _cpuActiveMask->size() == _maxWorkers ) return;
+
+   LockBlock Lock( _lock );
+
+   CpuSet new_active_cpus = *_cpuActiveMask;
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+
+   // Check first that we have some owned CPU not active and that we don't have reach
+   // the maximum number of threads allowed by --smp-workers
+   if ( mine_and_active != *_cpuProcessMask && _cpuActiveMask->size() < _maxWorkers ) {
+      // Iterate over default cpus not running and wake them up if needed
+      for ( unsigned int i=0; i<_maxCPUs; ++i ) {
+         if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
+            new_active_cpus.set(i);
+            sys.setCpuActiveMask( new_active_cpus );
+            break;
+         }
       }
    }
 }
@@ -299,7 +335,7 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
          if ( mine_and_active != *_cpuProcessMask ) {
             bool dirty = false;
             // Iterate over default cpus not running and wake them up if needed
-            for (int i=0; i<_maxCPUs; i++) {
+            for ( unsigned int i=0; i<_maxCPUs; ++i ) {
                if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
                   new_active_cpus.set(i);
                   dirty = true;
@@ -407,6 +443,14 @@ void BusyWaitThreadManager::init()
    if ( _useDLB ) DLB_Init();
 }
 
+bool BusyWaitThreadManager::isGreedy()
+{
+   if ( !_initialized ) return false;
+   if ( !_useDLB ) return false;
+
+   return _cpuActiveMask->size() < _maxCPUs;
+}
+
 void BusyWaitThreadManager::idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -418,7 +462,7 @@ void BusyWaitThreadManager::idle( int& yields
 
    BaseThread *thread = getMyThreadSafe();
 
-   if ( _useDLB && _isMalleable ) acquireResourcesIfNeeded();
+   if ( _useDLB ) DLB_Update();
 
    if ( yields > 0 ) {
       NANOS_INSTRUMENT ( total_yields++; )
@@ -439,6 +483,34 @@ void BusyWaitThreadManager::idle( int& yields
    }
 
    blockThread(thread);
+}
+
+void BusyWaitThreadManager::acquireOne()
+{
+   if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
+   if ( !_useDLB ) return;
+
+   BaseThread *thread = getMyThreadSafe();
+   ThreadTeam *team = thread->getTeam();
+
+   if ( !thread->isMainThread() ) return;
+   if ( !team ) return;
+
+   LockBlock Lock( _lock );
+
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   size_t previous_mine_and_active = mine_and_active.size();
+   if ( mine_and_active != *_cpuProcessMask ) {
+      // Only claim if some of my CPUs are not active
+      DLB_ClaimCpus( 1 );
+   }
+
+   mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   if ( previous_mine_and_active == mine_and_active.size() ) {
+      // Only ask if DLB_ClaimCpus didn't give us anything
+      DLB_UpdateResources_max( 1 );
+   }
 }
 
 void BusyWaitThreadManager::acquireResourcesIfNeeded ()
@@ -601,6 +673,13 @@ void DlbThreadManager::init()
    DLB_Init();
 }
 
+bool DlbThreadManager::isGreedy()
+{
+   if ( !_initialized ) return false;
+
+   return _cpuActiveMask->size() < _maxCPUs;
+}
+
 void DlbThreadManager::idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -610,9 +689,7 @@ void DlbThreadManager::idle( int& yields
 {
    if ( !_initialized ) return;
 
-   if ( _isMalleable ) {
-      acquireResourcesIfNeeded();
-   }
+   DLB_Update();
 
    BaseThread *thread = getMyThreadSafe();
 
@@ -633,6 +710,28 @@ void DlbThreadManager::idle( int& yields
          //NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
       }
+   }
+}
+
+void DlbThreadManager::acquireOne()
+{
+   if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
+
+   ThreadTeam *team = getMyThreadSafe()->getTeam();
+   if ( !team ) return;
+
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   size_t previous_mine_and_active = mine_and_active.size();
+   if ( mine_and_active != *_cpuProcessMask ) {
+      // Only claim if some of my CPUs are not active
+      DLB_ClaimCpus( 1 );
+   }
+
+   mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   if ( previous_mine_and_active == mine_and_active.size() ) {
+      // Only ask if DLB_ClaimCpus didn't give us anything
+      DLB_UpdateResources_max( 1 );
    }
 }
 

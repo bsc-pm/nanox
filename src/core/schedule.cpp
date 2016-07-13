@@ -70,6 +70,15 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       return;
    }
 
+   /* By checking if there's available WDs in the queue before queuing the current one,
+    * we ensure that we only trigger a wakeup if at least the current thread will not remain
+    * idle after the WD submission. */
+   ThreadManager *const thread_manager = sys.getThreadManager();
+   if ( thread_manager->isGreedy()
+         && mythread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+      thread_manager->acquireOne();
+   }
+
    /* handle tasks which cannot run in current thread */
    if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
      /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
@@ -240,9 +249,6 @@ inline void Scheduler::idleLoop ()
 
       thread_manager->returnMyCpuIfClaimed();
 
-      //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
-      // descriptor in its stack frame
-      //if ( thread->isSleeping() && !behaviour::exiting() && !thread_manager->lastActiveThread() ) {
       if ( thread->isSleeping() && !thread_manager->lastActiveThread() && !thread->hasNextWD() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
@@ -310,6 +316,12 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT (time_scheds += ( end_sched - begin_sched ); )
          }
       } 
+
+      // Trigger a wakeup if there's more WDs in the queue
+      if ( next && thread->getTeam() != NULL && thread_manager->isGreedy()
+            && thread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+         thread_manager->acquireOne();
+      }
 
       if ( next ) {
 
@@ -405,6 +417,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    
    bool supportULT = thread->runningOn()->supportsUserLevelThreads();
 
+   ThreadManager *const thread_manager = sys.getThreadManager();
+
    verbose("Wait on condition");
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
       if ( checks == 0 ) {
@@ -426,6 +440,12 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                         next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
                   }
                }
+            }
+
+            // Trigger a wakeup if there's more WDs in the queue
+            if ( next && thread->getTeam() != NULL && thread_manager->isGreedy()
+                  && thread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+               thread_manager->acquireOne();
             }
 
             //! Finally coming back to our Thread's WD (idle task)
@@ -801,12 +821,6 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
-   // Perform the adjustment of resources: Return claimed cpus, claim cpus and update resources
-   if ( sys.getPMInterface().isMalleable() ) {
-      sys.getThreadManager()->returnClaimedCpus();
-      sys.getThreadManager()->acquireResourcesIfNeeded();
-   }
-
   return done;
 }
 
@@ -1010,15 +1024,6 @@ void Scheduler::exit ( void )
    WD *oldwd = thread->getCurrentWD();
 
    oldwd->finish();
-
-   /* If DLB, perform the adjustment of resources 
-         If master: Return claimed cpus
-         claim cpus and update_resources 
-   */
-   if ( sys.getPMInterface().isMalleable() ) {
-      sys.getThreadManager()->returnClaimedCpus();
-      sys.getThreadManager()->acquireResourcesIfNeeded();
-   }
 
    finishWork( oldwd, true );
 

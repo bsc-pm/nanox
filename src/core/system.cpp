@@ -1058,17 +1058,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
-   
-   /* DLB */
-   // In case the master have been busy crating tasks 
-   // every 10 tasks created I'll check if I must return claimed cpus
-   // or there are available cpus idle
-   if ( sys.getPMInterface().isMalleable() ) {
-      if(_atomicWDSeed.value()%10==0){
-         _threadManager->returnClaimedCpus();
-         _threadManager->acquireResourcesIfNeeded();
-      }
-   }
+
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
    }

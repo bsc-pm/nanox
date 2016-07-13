@@ -532,11 +532,6 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _depsDomain->finalizeAllReductions();
-   // Ask for more resources once we have finished creating tasks
-   if ( sys.getPMInterface().isMalleable() ) {
-      sys.getThreadManager()->returnClaimedCpus();
-      sys.getThreadManager()->acquireResourcesIfNeeded();
-   }
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
@@ -545,7 +540,6 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
    removeAllTaskReductions();
 
    _depsDomain->clearDependenciesDomain();
-
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
