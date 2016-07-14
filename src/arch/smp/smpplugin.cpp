@@ -164,7 +164,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       _cpuSystemMask = OS::getSystemAffinity();
       _cpuProcessMask = OS::getProcessAffinity();
       _availableCPUs = OS::getMaxProcessors();
-      int available_cpus_by_mask = _cpuSystemMask.size();
+      int available_cpus_by_mask = _cpuProcessMask.size();
 
       if ( _availableCPUs == 0 ) {
          if ( available_cpus_by_mask > 0 ) {
@@ -194,17 +194,55 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          fatal0("Invalid number of requested cpus (--smp-cpus)");
       }
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
+      //message0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs << " mask cpus " << available_cpus_by_mask);
 
-      //! \note Fill _bindings vector with the active CPUs first, then the not active
       _bindings.reserve( _availableCPUs );
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( _cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
+      if ( sys._hwloc.isHwlocAvailable() ) {
+         if ( available_cpus_by_mask == _availableCPUs ) {
+            //fill from 0 to _availableCPUs - 1, these are the logical indexes of Hwloc
+            int relative_cpuidx = 0; //we will add _bindingStart when adding the value to the array
+            int count = 0;
+            while ( count < _availableCPUs ) {
+               _bindings.push_back( ( relative_cpuidx + _bindingStart ) % _availableCPUs );
+               //std::cerr << "this relative_cpuidx is " << relative_cpuidx << " next val will be " << ( ((relative_cpuidx + _bindingStride) >= _availableCPUs) ? (( relative_cpuidx + 1 ) % _availableCPUs % _bindingStride) : ( relative_cpuidx + _bindingStride ) ) << std::endl;
+               relative_cpuidx += _bindingStride;
+               if ( relative_cpuidx >= _availableCPUs ) {
+                  relative_cpuidx = ( ( relative_cpuidx + 1 ) % _availableCPUs % _bindingStride );
+               }
+               count += 1;
+            }
+            //for ( int i = 0; i < _availableCPUs; i++ ) {
+            //   _bindings.push_back( i );
+            //}
+
+         } else {
+            // WE GOT A SPECIFIC MASK, set first the CPUs specified by it, but using the logical index of Hwloc
+            warning0("Using the bindings specified by the process mask.");
+            for ( int i = 0; i < _availableCPUs; i++ ) {
+               if ( _cpuProcessMask.isSet(i) ) {
+                  _bindings.push_back( sys._hwloc.getBindingIdByOsId( i ) );
+               }
+            }
+            for ( int i = 0; i < _availableCPUs; i++ ) {
+               if ( !_cpuProcessMask.isSet(i) ) {
+                  _bindings.push_back( sys._hwloc.getBindingIdByOsId( i ) );
+               }
+            }
          }
-      }
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( !_cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
+
+      } else {
+
+         //FIXME: use _bindings as they are set by the OS (not a good idea)
+         //! \note Fill _bindings vector with the active CPUs first, then the not active
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( _cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+            }
+         }
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( !_cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+            }
          }
       }
 
@@ -237,11 +275,19 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
 //#endif
 
+//      std::cerr << "SMPPlugin: using bindings (" << _bindings.size() << ") [ ";
+//      for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
+//         std::cerr << *it << " ";
+//      }
+//      std::cerr << " ]" << std::endl;
+
+
       //! \note Create the SMPProcessors in _cpus array
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
-         bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
+         //bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
+         bool active = ( (count < _currentCPUs) ); //we are now using hwloc ids
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
@@ -426,9 +472,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       for (unsigned int i = 0; i < _cpus->size(); ++i)
           workers_per_cpu[i] = 0;
 
-      int bindingStart = _bindingStart % _cpus->size();
+      //int bindingStart = _bindingStart % _cpus->size();
       //! \bug FIXME: This may be wrong in some cases...
-      workers_per_cpu[bindingStart] = 1;
+      //workers_per_cpu[bindingStart] = 1;
+      workers_per_cpu[0] = 1;
       num_cpus_with_current_limit++;
 
       if (active_cpus == 1) {
@@ -440,7 +487,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
 
       int current_workers = 1;
-      int idx = bindingStart + _bindingStride;
+      int idx = 1;//bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
 
          idx = (idx % _cpus->size());
@@ -458,7 +505,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             num_cpus_with_current_limit++;
 
             current_workers++;
-            idx += _bindingStride;
+            idx += 1;//_bindingStride;
 
             if (num_cpus_with_current_limit == active_cpus) {
                //! All the enabled cpus have the same number of workers. So, if
@@ -506,14 +553,14 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
    {
       //ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
-      int bindingStart=_bindingStart%_cpus->size();
+      //int bindingStart=_bindingStart%_cpus->size();
       //Get the first (aka bindingStart) active processor
       for ( std::vector<ext::SMPProcessor *>::const_iterator it = _cpus->begin();
-            it != _cpus->end() && bindingStart>=0 ;
+            it != _cpus->end() && target == NULL /*&& bindingStart>=0 */;
             it++ ) {
          if ( (*it)->isActive() ) {
             target = *it;
-            --bindingStart;
+            // --bindingStart;
          }
       }
       return target;

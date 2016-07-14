@@ -63,6 +63,10 @@ class Hwloc {
        */
       bool isCpuAvailable( unsigned int cpu ) const;
 
+      void bind( unsigned int id );
+      unsigned int getBindingIdByOsId( unsigned int id );
+      void printBindings( std::vector<int> &bindings );
+
 };
 
 } // namespace nanos
