@@ -229,6 +229,11 @@ void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id
    NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
 }
 
+bool global_reg_t::accessedBy( ProcessingElement *pe ) const {
+   return NewNewRegionDirectory::accessedBy( key, id, pe );
+}
+
+
 DeviceOps *global_reg_t::getDeviceOps() const {
    return NewNewRegionDirectory::getOps( key, id );
 }
