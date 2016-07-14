@@ -143,10 +143,11 @@ ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(64, T())
    if ( getpagesize() % sizeof(T) != 0 ) {
       fatal("Pagesize is not multiple of Elem size.");
    }
-   _mmapContainerCapacityInBytes = _mmapContainerElemsPerPage * sizeof(T) * 1024 * 128; //128k pages max
+   int num_pages = 1024; //FIXME un-hardcode value
+   _mmapContainerCapacityInBytes = _mmapContainerElemsPerPage * sizeof(T) * num_pages;
    void *result = mmap( (void *) NULL, _mmapContainerCapacityInBytes, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
    _mmapContainer = (T*)result;
-   _mmapContainerCurrentElems = _mmapContainerElemsPerPage * 1024 * 128;
+   _mmapContainerCurrentElems = _mmapContainerElemsPerPage * num_pages;
 //   std::cerr << "Allocated new _mmapContainer in " << _mmapContainer << " space for " << _mmapContainerCurrentElems << " elems "<< std::endl;
 
 //    if ( mprotect( &_mmapContainer[_mmapContainerCurrentElems], getpagesize(), PROT_READ|PROT_WRITE ) != 0 ) {
@@ -158,6 +159,9 @@ ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(64, T())
 
 template <class T>
 ContainerDense< T >::~ContainerDense() {
+   if ( munmap(_mmapContainer, _mmapContainerCapacityInBytes) != 0 ) {
+      fatal("Error in munmap");
+   }
 }
 
 template <class T>
