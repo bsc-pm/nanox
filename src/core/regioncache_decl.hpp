@@ -57,7 +57,7 @@ namespace nanos {
          RecursiveLock                     _lock;
          uint64_t                          _address;
          uint64_t                          _hostAddress;
-         std::size_t                       _size;
+         std::size_t                       _deviceAllocatedSize;
          bool                              _dirty;
          bool                              _rooted;
          unsigned int                      _lruStamp;
@@ -78,7 +78,7 @@ namespace nanos {
 
          uint64_t getAddress() const;
          uint64_t getHostAddress() const;
-         std::size_t getSize() const;
+         std::size_t getDeviceAllocatedSize() const;
          bool isDirty() const;
          unsigned int getLruStamp() const;
          void increaseLruStamp();
@@ -91,9 +91,9 @@ namespace nanos {
          CacheRegionDictionary *getNewRegions();
          bool invalidate( RegionCache *targetCache, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
 
-         bool trylock();
-         void lock( bool setVerbose=false );
-         void unlock( bool unsetVerbose=false );
+         bool trylock_AllocatedChunk();
+         void lock_AllocatedChunk( bool setVerbose=false );
+         void unlock_AllocatedChunk( bool unsetVerbose=false );
          bool locked() const;
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version, WD const *wd, unsigned int copyIdx );

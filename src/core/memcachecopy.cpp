@@ -79,20 +79,23 @@ bool MemCacheCopy::allocate( memory_space_id_t loc, WD const &wd, unsigned int c
    //addReference here? A: NO!! it should be added when we ask for the chunk (getChunk)
    // update, is better to addReference here, if we fail to allocate it may be worth to release the chunks, otherwise we may deadlock
    //update2, we can not addReference here. This function may be called multiple times for the same chunk, which will add many references.
-   _chunk->lock();
+   _chunk->lock_AllocatedChunk();
    if ( !_chunk->allocated() ) {
       if ( _chunk->isInvalidating() ) {
          result = false;
          *myThread->_file << "wait, invalidating" << std::endl;
       } else {
-      NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+         NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
          NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 777 );)
          result = sys.getSeparateMemory( loc ).getCache().allocateChunk( _chunk, wd, copyIdx );
-      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+         NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+         if ( result == false ) {
+            result = sys.getSeparateMemory( loc ).getCache().invalidate( *_chunk, _chunk->getAllocatedRegion().getDataSize(), wd );
+         }
       }
    } else {
       result = true;
    }
-   _chunk->unlock();
+   _chunk->unlock_AllocatedChunk();
    return result;
 }

@@ -253,7 +253,6 @@ void MemController::initialize( ProcessingElement &pe ) {
             if ( chunk == NULL ) {
                fatal("Unable to get an allocatedChunk.");
             }
-   chunk->addReference( *_wd, 222 ); //allocate (new)
             mcopy._chunk = chunk;
          }
          sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_unlock();
@@ -274,30 +273,22 @@ bool MemController::allocateTaskMemory2() {
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
    if ( _pe->getMemorySpaceId() != 0 ) {
+      //reserve the chunks
+      for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+         _memCacheCopies[idx]._chunk->addReference( *_wd, 22 ); //new allocateTaskMemory2
+      }
       for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
          bool this_result = _memCacheCopies[idx].allocate( _pe->getMemorySpaceId(), *_wd, idx );
-         if ( !this_result ) {
-         //   *myThread->_file << "Could not allocate, I should invalidate." << std::endl;
-         //   *myThread->_file << "Pre invalidate." << std::endl;
-            std::size_t unallocated_bytes = _memCacheCopies[idx]._chunk->getAllocatedRegion().getDataSize();
-_memCacheCopies[idx]._chunk->lock();
-if ( !_memCacheCopies[idx]._chunk->allocated() ) {
-         this_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().invalidate(  *_memCacheCopies[idx]._chunk, unallocated_bytes, *_wd );
-}
-_memCacheCopies[idx]._chunk->unlock();
-         //   *myThread->_file << "Post invalidate." << std::endl;
-
-            // TEST if ( sys.getSeparateMemory( _pe->getMemorySpaceId() ).isSharedWithHost() ) {
-            // TEST    *myThread->_file << "Can use host, using it." << std::endl;
-            // TEST    _memCacheCopies[idx]._useHost = true;
-            // TEST    this_result = true;
-            // TEST }
-         }
+         // TEST if ( sys.getSeparateMemory( _pe->getMemorySpaceId() ).isSharedWithHost() ) {
+         // TEST    *myThread->_file << "Can use host, using it." << std::endl;
+         // TEST    _memCacheCopies[idx]._useHost = true;
+         // TEST    this_result = true;
+         // TEST }
          result = result && this_result;
       }
 
       if ( !result ) {
-         *myThread->_file << "release chunks" << std::endl;
+         //if allocation fails, release the chunks so they can be invalidated
          for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
             _memCacheCopies[idx]._chunk->removeReference( *_wd );
          }

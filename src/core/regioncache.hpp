@@ -59,8 +59,8 @@ inline void AllocatedChunk::setHostAddress( uint64_t addr ) {
    _hostAddress = addr;
 }
 
-inline std::size_t AllocatedChunk::getSize() const {
-   return _size;
+inline std::size_t AllocatedChunk::getDeviceAllocatedSize() const {
+   return _deviceAllocatedSize;
 }
 
 inline int AllocatedChunk::addReference( WD const &wd, unsigned int loc ) {

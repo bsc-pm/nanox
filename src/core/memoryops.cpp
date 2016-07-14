@@ -192,10 +192,10 @@ void BaseAddressSpaceInOps::addOp( SeparateMemoryAddressSpace *from, global_reg_
       printBt( *myThread->_file );
    }
    if ( _lockedChunks.count( sourceChunk ) == 0 ) {
-      sourceChunk->lock();
+      sourceChunk->lock_AllocatedChunk();
       sourceChunk->addReference( wd, 133 ); //Out addOp( with chunk )
       _lockedChunks.insert( sourceChunk );
-      sourceChunk->unlock();
+      sourceChunk->unlock_AllocatedChunk();
    }
    list.push_back( TransferListEntry( reg, version, NULL, destinationChunk, sourceChunk, srcDevAddr, copyIdx ) );
 }
@@ -239,7 +239,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
             ensure( location > 0, "Wrong location.");
             AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk_ForTransferRDLock( data_source, wd, copyIdx );
             uint64_t orig_dev_addr = source_chunk->getAddress() + ( region_shape.getRealFirstAddress() - source_chunk->getHostAddress() );
-            source_chunk->unlock();
+            source_chunk->unlock_AllocatedChunk();
             insertOwnOp( rs_ops, region_shape, memCopy.getVersion(), 0 ); //i've got the responsability of copying this region
 //(*myThreadfile) << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " adding op (copy to host from " << location << " using chunk " << source_chunk << " w/addr " << source_chunk->getHostAddress() << std::endl;
             this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, source_chunk, orig_dev_addr, wd, copyIdx ); // inOp
@@ -257,7 +257,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
             ensure( location > 0, "Wrong location.");
             AllocatedChunk *source_chunk = sys.getSeparateMemory( location ).getCache().getAllocatedChunk_ForTransferRDLock( data_source, wd, copyIdx );
             uint64_t orig_dev_addr = source_chunk->getAddress() + ( region_shape.getRealFirstAddress() - source_chunk->getHostAddress() );
-            source_chunk->unlock();
+            source_chunk->unlock_AllocatedChunk();
             insertOwnOp( rs_ops, region_shape, memCopy.getVersion(), 0 ); //i've got the responsability of copying this region
 //(*myThreadfile) << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " adding op (copy to host from " << location << " using chunk " << source_chunk << " w/addr " << source_chunk->getHostAddress() << std::endl;
             this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, source_chunk, orig_dev_addr, wd, copyIdx ); // inOp
@@ -302,10 +302,10 @@ SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {
 void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
    TransferList &list = _transfers[ std::make_pair(to, from) ];
    if ( _lockedChunks.count( chunk ) == 0 ) {
-      chunk->lock();
+      chunk->lock_AllocatedChunk();
       chunk->addReference( wd, 2 ); //Out addOp( with chunk )
       _lockedChunks.insert( chunk );
-      chunk->unlock();
+      chunk->unlock_AllocatedChunk();
    }
    list.push_back( TransferListEntry( reg, version, ops, /* destination */ (AllocatedChunk *) NULL, chunk, /* FIXME: srcAddr */ 0, copyIdx ) );
 }
@@ -321,7 +321,7 @@ void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id
    if ( _lockedChunks.count( chunk ) == 0 ) {
       chunk->addReference( wd, 1 ); //addOutOp, old _prepareRegionToBeCopied
       _lockedChunks.insert( chunk );
-      chunk->unlock();
+      chunk->unlock_AllocatedChunk();
    }
    list.push_back( TransferListEntry( reg, version, ops, /* destination */ (AllocatedChunk *) NULL, chunk, /* FIXME: srcAddr */ 0, copyIdx ) );
 }

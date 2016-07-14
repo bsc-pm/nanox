@@ -247,7 +247,7 @@ DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) 
    } else {
       AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk_ForTransferRDLock( *this, wd, copyIdx ); //not really for transfer, but rd lock
       ops = chunk->getDeviceOps( *this, &wd, copyIdx );
-      chunk->unlock();
+      chunk->unlock_AllocatedChunk();
    }
    return ops;
 }
