@@ -106,7 +106,7 @@ int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
       segmentAddr[ 0 ] = NULL;
 
       ClusterNode::ClusterSupportedArchMap supported_archs;
-      supported_archs[0] = &getSMPDevice();
+      supported_archs[0] = getSMPDevice();
 
 #ifdef GPU_DEV
       supported_archs[1] = &GPU;
