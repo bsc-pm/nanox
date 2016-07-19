@@ -105,28 +105,26 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    /* Determine which is the number of threads are compatible with the work descriptor:
     *   - number of valid threads
     *   - first valid thread (i.e. master thread)
-    *   - a map of compatible threads with a normalized id (or '-1' if not compatible):
+    *   - a list of compatible threads
     *     e.g. 6 threads in total with just 4 valid threads (1,2,4 & 5) and 2 non-valid
     *     threads (0 & 3)
     *
     *     - valid_threads = 4
     *     - first_valid_thread = 1
-    *
-    *                       0    1    2    3    4    5
-    *                    +----+----+----+----+----+----+
-    *     - thread_map = | -1 |  0 |  1 | -1 |  2 |  3 |
-    *                    +----+----+----+----+----+----+
+    *     - target_threads = { thr_1, thr_2, thr_4, thr_5 }
     */
    int num_threads = team->getFinalSize();
    int valid_threads = 0, first_valid_thread = 0;
-   int *thread_map = (int *) alloca ( sizeof(int) * num_threads );
+   std::vector<BaseThread*> target_threads;
    for ( i = 0; i < num_threads; i++) {
-     if (  work.canRunIn( *((*team)[i].runningOn()) ) ) {
-       if ( valid_threads == 0 ) first_valid_thread = i;
-       thread_map[i] = valid_threads++;
-     }
-     else thread_map[i] = -1;
+      BaseThread &thread = team->getThread(i);
+      if ( work.canRunIn( *thread.runningOn() ) ) {
+         target_threads.push_back( &thread );
+         ++valid_threads;
+      }
    }
+
+   team->unlock();
 
    // copying rest of slicer data values and computing sign value
    // getting user defined chunk, lower, upper and step
@@ -151,14 +149,10 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
       loop_info->chunk = _chunk + (( _adjust > 0 ) ? _step : 0);
       loop_info->stride = _niters * _step; 
       // Creating additional WorkDescriptors: 1..N
-      int j = 0; /* initializing thread id */
       for ( i = 1; i < valid_threads; i++ ) {
 
-         // Finding 'j', as the next valid thread 
-         while ( (j < num_threads) && (thread_map[j] != i) ) j++;
-
          // Computing lower and upper bound
-         _lower += _chunk + (( _adjust > (j-1) ) ? _step : 0);
+         _lower += _chunk + (( _adjust > (i-1) ) ? _step : 0);
          // Duplicating slice
          slice = NULL;
          sys.duplicateWD( &slice, &work );
@@ -168,12 +162,12 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          // Computing specific loop boundaries for current slice
          loop_info = ( nanos_loop_info_t * ) slice->getData();
          loop_info->lower = _lower;
-         loop_info->chunk = _chunk + (( _adjust > j ) ? _step : 0);
+         loop_info->chunk = _chunk + (( _adjust > i ) ? _step : 0);
          loop_info->stride = _niters * _step; 
 
-         // Submit: slice (WorkDescriptor i, running on Thread j)
+         // Submit: slice (WorkDescriptor i, running on Thread i)
          sys.setupWD ( *slice, work.getParent() );
-         BaseThread &target_thread = (*team)[j];
+         BaseThread &target_thread = *target_threads[i];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
       }
@@ -189,12 +183,9 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
       loop_info->chunk = _offset; 
       loop_info->stride = _offset * valid_threads; 
       // Init and Submit WorkDescriptors: 1..N
-      int j = 0; /* initializing thread id */
       for ( i = 1; i < valid_threads; i++ ) {
-         // Finding 'j', as the next valid thread 
-         while ( (j < num_threads) && (thread_map[j] != i) ) j++;
          // Avoiding to create 'empty' WorkDescriptors
-         if ( ((_lower + (j * _offset)) * _sign) > ( _upper * _sign ) ) break;
+         if ( ((_lower + (i * _offset)) * _sign) > ( _upper * _sign ) ) break;
          // Duplicating slice into wd
          slice = NULL;
          sys.duplicateWD( &slice, &work );
@@ -203,25 +194,22 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
 
          // Computing specific loop boundaries for current slice
          loop_info = ( nanos_loop_info_t * ) slice->getData();
-         loop_info->lower = _lower + ( j * _offset);
+         loop_info->lower = _lower + ( i * _offset);
          loop_info->upper = _upper;
          loop_info->step = _step;
          loop_info->chunk = _offset;
          loop_info->stride = _offset * valid_threads; 
 
-         // Submit: slice (WorkDescriptor i, running on Thread j)
+         // Submit: slice (WorkDescriptor i, running on Thread i)
          sys.setupWD ( *slice, work.getParent() );
-         BaseThread &target_thread = (*team)[j];
+         BaseThread &target_thread = *target_threads[i];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
       }
    }
 
-   // Only 1 WD left, we can unlock after obtaining the last target
-   BaseThread &first_thread = (*team)[first_valid_thread];
-   team->unlock();
-
    // Submit: work (WorkDescriptor 0, running on thread 'first')
+   BaseThread &first_thread = *target_threads[first_valid_thread];
    work.convertToRegularWD();
    work.tieTo( first_thread );
    if ( mythread == &first_thread ) {
