@@ -31,9 +31,9 @@ class CommandServant<
 
 	public:
 		CommandServant( const main_channel_type& channel ) :
-			_data( CreateAuxiliaryThread::id ),
-			_channel( channel )
+			_data(), _channel( channel )
 		{
+			_data.initialize( CreateAuxiliaryThread::id );
 		}
 
 		CommandServant( const main_channel_type& channel, const payload_type& data ) :

@@ -29,9 +29,10 @@ class CommandServant<
 
 	public:
 		CommandServant( const main_channel_type& channel ) :
-			_data( Finish::id ),
+			_data(),
 			_channel( channel )
 		{
+			_data.initialize( Finish::id );
 		}
 
 		CommandServant( const main_channel_type& channel, const payload_type& data ) :

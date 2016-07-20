@@ -5,6 +5,7 @@
 #include "memoryaddress.hpp"
 #include "commandid.hpp"
 
+#include <cstddef>
 #include <mpi.h>
 
 namespace nanos {
@@ -13,52 +14,59 @@ namespace command {
 
 class CachePayload {
 	private:
-		int             _id;
-		int             _source;
-      int             _destination;
-		utils::Address  _hostAddress;
-		utils::Address  _deviceAddress;
-		size_t          _size;
+		int       _id;
+		int       _source;
+		int       _destination;
+		uintptr_t _hostAddress;
+		uintptr_t _deviceAddress;
+		size_t    _size;
 
 		static MPI_Datatype _type;
 
 	public:
-		CachePayload() :
-			_id( OPID_INVALID ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
-			_size( 0 )
+		/**
+		 * \brief default initializes the instance
+		 *
+		 * This function acts as a constructor.
+		 * Since CachePayload has to fulfill
+		 * POD (plain old data) restrictions, it
+		 * can not contain user defined constructors
+		 * or destructors
+		 */
+		void initialize()
 		{
+			_id = OPID_INVALID;
+			_source = MPI_ANY_SOURCE;
+			_destination = MPI_PROC_NULL;
+			_hostAddress = 0;
+			_deviceAddress = 0;
+			_size = 0;
 		}
 
-		CachePayload( int id ) :
-			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
-			_size( 0 )
+		void initialize( int id )
 		{
+			initialize();
+			_id = id;
 		}
 
-		CachePayload( int id, size_t buffer_size ) :
-			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
-			_size( buffer_size )
+		void initialize( int id, size_t buffer_size )
 		{
+			initialize(id);
+			_size = buffer_size;
 		}
 
-		CachePayload( int id, utils::Address hostAddr, utils::Address deviceAddr, size_t buffer_size ) :
-			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( hostAddr ), _deviceAddress( deviceAddr ),
-			_size( buffer_size )
+		void initialize( int id, utils::Address hostAddr, utils::Address deviceAddr, size_t buffer_size )
 		{
+			initialize(id,buffer_size);
+			_hostAddress = hostAddr;
+			_deviceAddress = deviceAddr;
 		}
 
-		CachePayload( int id, int source, int destination, utils::Address hostAddress, utils::Address deviceAddress, size_t buffer_size ) :
-			_id( id ), _source( source ), _destination( destination ),
-			_hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( buffer_size )
+		void initialize( int id, int source, int destination, utils::Address hostAddress, utils::Address deviceAddress, size_t buffer_size )
 		{
-		}
-
-		~CachePayload()
-		{
+			initialize(id, hostAddress, deviceAddress, buffer_size );
+			_source = source;
+			_destination = destination;
 		}
 
 		int getSource() const

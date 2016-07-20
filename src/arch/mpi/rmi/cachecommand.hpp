@@ -31,31 +31,30 @@ class CommandRequestor< id, CachePayload, Channel > {
 
 	public:
 		CommandRequestor( MPIProcessor const& destination ) :
-			_data( id ),
-			_channel( destination )
+			_data(), _channel( destination )
 		{
+			_data.initialize( id );
 			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, size_t size ) :
-			_data( id, size ),
-			_channel( destination )
+			_data(), _channel( destination )
 		{
+			_data.initialize( id, size );
 			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination,
 		                  utils::Address hostAddr, utils::Address deviceAddr,
 		                  size_t size ) :
-			_data( id, hostAddr, deviceAddr, size ),
-			_channel( destination )
+			_data(), _channel( destination )
 		{
+			_data.initialize( id, hostAddr, deviceAddr, size );
 			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, CachePayload const& data ) :
-			_data( data ),
-			_channel( destination )
+			_data(data), _channel( destination )
 		{
 			_channel.send( _data );
 		}

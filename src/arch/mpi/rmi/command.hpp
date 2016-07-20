@@ -23,20 +23,23 @@ class CommandRequestor< id, CommandPayload, Channel > {
 
 	public:
 		CommandRequestor( MPIProcessor const& destination ) :
-			_data(id), _channel( destination )
+			_data(), _channel( destination )
 		{
+			_data.initialize(id);
 			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, int code ) :
-			_data(id, code), _channel( destination )
+			_data(), _channel( destination )
 		{
+			_data.initialize(id, code);
 			_channel.send( _data );
 		}
 
 		CommandRequestor( int destination, MPI_Comm communicator, int code ) :
-			_data(id, code), _channel( destination, communicator )
+			_data(), _channel( destination, communicator )
 		{
+			_data.initialize(id, code);
 			_channel.send( _data );
 		}
 

@@ -32,11 +32,13 @@ class CommandRequestor<CopyDeviceToDevice::id,CopyDeviceToDevice::payload_type,C
 		CommandRequestor( MPIProcessor &source, MPIProcessor &destination,
 		                  utils::Address sourceAddr, utils::Address destinationAddr,
 		                  size_t size ) :
-			_data( CopyDeviceToDevice::id, source.getRank(), destination.getRank(),
-			       sourceAddr, destinationAddr, size ),
+			_data(),
 			_channelSource( source ),
 			_channelDestination( destination )
 		{
+			_data.initialize( CopyDeviceToDevice::id, source.getRank(), destination.getRank(),
+			       sourceAddr, destinationAddr, size );
+
 			MPI_Request reqs[2];
 			reqs[0] = _channelSource.isend( _data );
 			reqs[1] = _channelDestination.isend( _data );

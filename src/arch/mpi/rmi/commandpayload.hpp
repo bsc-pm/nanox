@@ -4,6 +4,7 @@
 
 #include "commandid.hpp"
 
+#include <cstddef>
 #include <mpi.h>
 
 namespace nanos {
@@ -34,28 +35,22 @@ class CommandPayload {
 		 */
 		static MPI_Datatype _type;
 	public:
-		CommandPayload() :
-			_id(OPID_INVALID), _code()
+		void initialize()
 		{
+			_id = OPID_INVALID;
+			_code = 0;
 		}
 
-		CommandPayload( int id ) :
-			_id(id), _code()
+		void initialize( int id )
 		{
+			initialize();
+			_id = id;
 		}
 
-		CommandPayload( int id, int code ) :
-			_id(id), _code(code)
+		void initialize( int id, int code )
 		{
-		}
-
-		CommandPayload( CommandPayload const& other ) :
-			_id( other._id ), _code( other._code )
-		{
-		}
-
-		~CommandPayload()
-		{
+			initialize(id);
+			_code = code;
 		}
 
 		int getId() const
@@ -70,7 +65,7 @@ class CommandPayload {
 
 		static void initDataType()
 		{
-			int blocklen  = 1;
+			int blocklen  = 2;
 			MPI_Aint disp = offsetof(CommandPayload,_id);
 
 			MPI_Type_create_hindexed(1, &blocklen, &disp, MPI_INT, &_type );

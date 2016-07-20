@@ -30,10 +30,11 @@ class CommandRequestor<CopyIn::id,CopyIn::payload_type,CopyIn::main_channel_type
 
 	public:
 		CommandRequestor( MPIProcessor &destination, utils::Address hostAddress, utils::Address deviceAddress, size_t size ) :
-			_data( CopyIn::id, MPI_ANY_SOURCE, destination.getRank(), hostAddress, deviceAddress, size ),
+			_data(),
 			_channel( destination ),
 			_remoteProcess( destination )
 		{
+			_data.initialize( CopyIn::id, MPI_ANY_SOURCE, destination.getRank(), hostAddress, deviceAddress, size );
 			_channel.send( _data );
 		}
 
