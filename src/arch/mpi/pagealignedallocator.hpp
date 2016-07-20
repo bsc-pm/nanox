@@ -32,7 +32,7 @@ struct PageAlignedAllocator {
 	
 	T* allocate (std::size_t n)
 	{
-		T* result;
+		T* result = NULL;
 		size_t bytes = n*sizeof(T);
 		if( bytes > threshold ) {
 			posix_memalign( reinterpret_cast<void**>(&result), _NANOS_PAGESIZE, bytes );

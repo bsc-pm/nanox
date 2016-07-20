@@ -37,13 +37,15 @@ class Mutex {
 
 		void lock()
 		{
-			int error = pthread_mutex_lock(&_handle);
+			int error __attribute__((unused));
+			error = pthread_mutex_lock(&_handle);
 			ensure0( error == 0, "Failed to unlock mutex" );
 		}
 
 		void unlock()
 		{
-			int error = pthread_mutex_unlock(&_handle);
+			int error __attribute__((unused));
+			error = pthread_mutex_unlock(&_handle);
 			ensure0( error == 0, "Failed to unlock mutex" );
 		}
 
