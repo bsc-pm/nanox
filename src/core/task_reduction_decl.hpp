@@ -83,9 +83,8 @@ class TaskReduction {
 					 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv (lazy), _isFortranArrayReduction(false)
    {
       if(_isLazyPriv) {
-         //Renaming tracking for nested reductions not supported for lazy privatization
-         _min = (void*) 0;
-         _max = (void*) 0;
+         //Note that renaming tracking for nested reductions is not supported
+         //for lazy privatization (_min = _max = NULL)
 
          for ( size_t i=0; i<_num_threads; i++) {
             _storage[i].data = NULL;
@@ -117,9 +116,8 @@ class TaskReduction {
    {
 
       if(_isLazyPriv) {
-         //Renaming tracking for nested reductions not supported for lazy privatization
-         _min = (void*) 0;
-         _max = (void*) 0;
+         //Note that renaming tracking for nested reductions is not supported
+         //for lazy privatization (_min = _max = NULL)
 
          for ( size_t i=0; i<_num_threads; i++) {
             _storage[i].data = NULL;
