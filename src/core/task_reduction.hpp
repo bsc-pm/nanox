@@ -34,9 +34,10 @@ inline void * TaskReduction::get( size_t id )
    return _storage[id].data;
 }
 
-inline void TaskReduction::allocate( size_t id )
+inline void * TaskReduction::allocate( size_t id )
 {
-	_storage[id].data = (void *) malloc (_size);
+   _storage[id].data = (void *) malloc (_size);
+   return _storage[id].data;
 }
 
 inline bool TaskReduction::isInitialized( size_t id )
@@ -73,7 +74,7 @@ inline void TaskReduction::reduce()
                _reducer( &((char*)_storage[masterId].data)[j*_size_element] ,& ((char*)(_storage[i].data))[j*_size_element]);
             }
          }
-         initialize(i);
+         _storage[i].isInitialized = false;
       }
    }
 
@@ -86,13 +87,13 @@ inline void TaskReduction::reduce()
             _reducer_orig_var( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[masterId].data))[j*_size_element]);
          }
       }
-      initialize(masterId);
+      _storage[masterId].isInitialized = false;
    }
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ) );
 }
 
-inline  void * TaskReduction::initialize( size_t id )
+inline void TaskReduction::initialize( size_t id )
 {
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 1 ) );
 	if( _isFortranArrayReduction ) {
@@ -106,7 +107,6 @@ inline  void * TaskReduction::initialize( size_t id )
 	_storage[id].isInitialized = true;
 
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
-	return _storage[id].data;
 }
 
 } // namespace nanos

@@ -163,13 +163,14 @@ class TaskReduction {
       //been finalized
       void reduce();
 
-      //! \brief Allocated and initialized thread private memory
-      void * initialize ( size_t id );
+      //! \brief It allocates the private copy associated with the 'id' thread
+      void * allocate( size_t id );
+
+      //! \brief It initializes the private copy associated with the 'id' thread
+      void initialize( size_t id );
 
       //! \brief Get depth where task reduction were registered
       unsigned getDepth( void ) const;
-
-      void allocate( size_t id );
 
       bool isInitialized( size_t id );
 };

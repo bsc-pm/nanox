@@ -621,31 +621,19 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
       if((*it)->has( p_addr )) break;
    }
 
+   // If 'p_addr' is not registered as a reduction we should return NULL
+   void *storage = NULL;
+
    if ( it != _taskReductions.rend() ) {
-	  void * ptr = (*it)->get(id);
+      storage = (*it)->get(id);
 
-      if ( ptr != NULL ) {
-    	  if((*it)->isInitialized(id))
-    	  {
-    		  //std::cout << "1:" << ptr << ",WD:"<<this <<", "<< _taskReductions[0]->_original<< "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-			  return ptr;
-      	  }
-      	  else
-      	  {
-      		//std::cout << "2:" << ptr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-      		return (*it)->initialize(id);
-      	  }
-      }else
-      {
-    	  //allocate memory
-    	  //std::cout << "3:" << ptr << ",WD:"<<this<<", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-		  (*it)->allocate(id);
-		  return (*it)->initialize(id);
-      }
+      if ( storage == NULL )
+         storage = (*it)->allocate(id);
+
+      if ( !(*it)->isInitialized(id) )
+         (*it)->initialize(id);
    }
-  // std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-
-   return NULL;
+   return storage;
 }
 
 void WorkDescriptor::removeAllTaskReductions( void )
