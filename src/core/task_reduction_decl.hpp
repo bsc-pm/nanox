@@ -20,6 +20,7 @@
 #ifndef _NANOS_TASK_REDUCTION_DECL_H
 #define _NANOS_TASK_REDUCTION_DECL_H
 
+#include "nanos-int.h"
 
 //! \brief This class represent a Task Reduction.
 //!
@@ -80,58 +81,63 @@ class TaskReduction {
 					 _reducer(f_red), _reducer_orig_var(f_red), _storage(threads),
 					 _size(size), _size_element(size_elem),_num_elements(size/size_elem),
 					 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv (lazy), _isFortranReduction(false)
-      {
-    	  if(_isLazyPriv)
-    	  {
-    		  //Renaming tracking for nested reductions not supported for lazy privatization
-    		  _min = (void*) 0;
-    		  _max = (void*) 0;
+   {
+      if(_isLazyPriv) {
+         //Renaming tracking for nested reductions not supported for lazy privatization
+         _min = (void*) 0;
+         _max = (void*) 0;
 
-    		  for ( size_t i=0; i<_num_threads; i++) {
-    			  _storage[i].data = NULL;
-    			  _storage[i].isInitialized = false;
-    		  }
-    	  }else
-    	  {
-    		  char * storage = (char*) malloc (_size*threads);
-    		  _min = & storage[0];
-    		  _max = & storage[_size * threads];
-    		  for ( size_t i=0; i<_num_threads; i++) {
-    			  _storage[i].data = (void *) &storage[i * _size];
-    			  _storage[i].isInitialized = false;
-			  }
-    	  }
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = NULL;
+            _storage[i].isInitialized = false;
+         }
       }
+      else {
+         NANOS_ARCHITECTURE_PADDING_SIZE(size);
+         NANOS_ARCHITECTURE_PADDING_SIZE(size_elem);
+
+         char * storage = (char*) malloc (_size*threads);
+         _min = & storage[0];
+         _max = & storage[_size * threads];
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = (void *) &storage[i * _size];
+            _storage[i].isInitialized = false;
+         }
+      }
+   }
 
       //!brief TaskReduction constructor only used when we are performing a Fortran Array Reduction
-      TaskReduction( void *orig, void *dep, initializer_t f_init, reducer_t f_red,
+   TaskReduction( void *orig, void *dep, initializer_t f_init, reducer_t f_red,
             reducer_t f_red_orig_var, size_t array_descriptor_size, size_t
             threads, unsigned depth, bool lazy )
-               : _original(orig), _dependence(dep), _depth(depth),
-                 _initializer(f_init), _reducer(f_red), _reducer_orig_var(f_red_orig_var), _storage(threads),
-                 _size(array_descriptor_size), _size_element(0),_num_elements(0),
-                 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranReduction(true)
-      {
+         : _original(orig), _dependence(dep), _depth(depth),
+         _initializer(f_init), _reducer(f_red), _reducer_orig_var(f_red_orig_var), _storage(threads),
+         _size(array_descriptor_size), _size_element(0),_num_elements(0),
+         _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranReduction(true)
+   {
 
-    	  if(_isLazyPriv) {
-    		  //Renaming tracking for nested reductions not supported for lazy privatization
-    		  _min = (void*) 0;
-    		  _max = (void*) 0;
+      if(_isLazyPriv) {
+         //Renaming tracking for nested reductions not supported for lazy privatization
+         _min = (void*) 0;
+         _max = (void*) 0;
 
-    		  for ( size_t i=0; i<_num_threads; i++) {
-    			  _storage[i].data = NULL;
-    			  _storage[i].isInitialized = false;
-    		  }
-    	  } else {
-			  char * storage = (char*) malloc (_size * threads);
-			  _min = & storage[0];
-			  _max = & storage[_size * threads];
-			  for ( size_t i=0; i<_num_threads; i++) {
-				  _storage[i].data = (void *) &storage[i * _size];
-				  initialize(i);
-			  }
-    	  }
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = NULL;
+            _storage[i].isInitialized = false;
+         }
       }
+      else {
+         NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+         char * storage = (char*) malloc (_size * threads);
+
+         _min = & storage[0];
+         _max = & storage[_size * threads];
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = (void *) &storage[i * _size];
+            initialize(i);
+         }
+      }
+   }
 
       //! \brief Taskreduction destructor
       ~TaskReduction() {
