@@ -648,43 +648,17 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
 		  return (*it)->initialize(id);
       }
    }
-
-   if(isFinal()) return NULL;
   // std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
 
-   //this should never be reached
    return NULL;
-}
-
-bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
-{
-   // Check if we have registered a reduction with this address
-   task_reduction_vector_t::reverse_iterator it;
-   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->has( p_dep ) ) break;
-   }
-
-   if ( it != _taskReductions.rend() ) {
-      if ( del ) {
-         delete (*it);
-         // Reverse iterators cannot be erased directly, we need to transform them
-         // to common iterators
-         _taskReductions.erase( --(it.base()) );
-      }
-      return true;
-   }
-   return false;
 }
 
 void WorkDescriptor::removeAllTaskReductions( void )
 {
-   bool b;
-   // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( _parent )  b = _parent->removeTaskReduction( (*it)->get(0), false ) ; 
-      else b = false;
-      if ( !b) {
+      // Am I the owner of this reduction?
+      if (_depth == (*it)->getDepth()) {
          delete (*it);
          _taskReductions.erase( --(it.base()) );
       }

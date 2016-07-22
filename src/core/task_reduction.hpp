@@ -49,10 +49,9 @@ inline unsigned TaskReduction::getDepth( void ) const
    return _depth;
 }
 
-inline void * TaskReduction::finalize( bool deallocate )
+inline void TaskReduction::reduce()
 {
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 2) );
-   void * result = _original;
 
    //find first private copy that was allocated during execution
    size_t masterId = 0;
@@ -74,8 +73,7 @@ inline void * TaskReduction::finalize( bool deallocate )
                _reducer( &((char*)_storage[masterId].data)[j*_size_element] ,& ((char*)(_storage[i].data))[j*_size_element]);
             }
          }
-         if( _isLazyPriv && deallocate ) free(_storage[i].data);
-         else initialize(i);
+         initialize(i);
       }
    }
 
@@ -88,15 +86,10 @@ inline void * TaskReduction::finalize( bool deallocate )
             _reducer_orig_var( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[masterId].data))[j*_size_element]);
          }
       }
-
-      if( _isLazyPriv && deallocate ) free(_storage[masterId].data);
-      else initialize(masterId);
+      initialize(masterId);
    }
 
-   if( !_isLazyPriv && deallocate ) free(_storage[0].data);
-
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ) );
-   return result;
 }
 
 inline  void * TaskReduction::initialize( size_t id )

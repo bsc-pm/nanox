@@ -134,7 +134,16 @@ class TaskReduction {
       }
 
       //! \brief Taskreduction destructor
-     ~TaskReduction() {}
+      ~TaskReduction() {
+         if(_isLazyPriv) {
+            for ( size_t i = 0; i < _num_threads; i++) {
+               free(_storage[i].data);
+            }
+         }
+         else {
+            free(_storage[0].data);
+         }
+      }
 
       //! \brief
       //! \smart text here
@@ -144,8 +153,11 @@ class TaskReduction {
       //! \smart text here
       void * get ( size_t id );
 
-      //! \brief Finalizes reduction
-      void * finalize ( bool deallocate );
+      //! \brief This function reduces the content of the private copies to the
+      //original one. Currently, it also re-initializes to the neutral element
+      //these private copies because we cannot guarantee that the reduction has
+      //been finalized
+      void reduce();
 
       //! \brief Allocated and initialized thread private memory
       void * initialize ( size_t id );

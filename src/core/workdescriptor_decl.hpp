@@ -713,7 +713,6 @@ typedef std::set<const Device *>  DeviceList;
                  size_t array_descriptor_size, void (*p_init)( void *, void * ),
                  void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) );
 
-         bool removeTaskReduction ( void *p_dep, bool del = false );
          void removeAllTaskReductions ( void );
 
          void * getTaskReductionThreadStorage( void *p_addr, size_t id );
@@ -728,7 +727,7 @@ typedef std::set<const Device *>  DeviceList;
 
          void setRemoteAddr( void const *addr );
          void const *getRemoteAddr() const;
-         
+
          /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
              If invalid (flag = true) it propagates upwards to the ancestors until
              no more ancestors exist or a recoverable task is found.
