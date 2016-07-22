@@ -66,7 +66,7 @@ inline void TaskReduction::reduce()
    for ( size_t i = masterId + 1; i<_num_threads; i++) {
       if ( _storage[i].isInitialized ) {
 
-         if( _isFortranReduction ) {
+         if( _isFortranArrayReduction ) {
             _reducer((char*)_storage[masterId].data ,(_storage[i].data));
          } else {
             for( size_t j=0; j<_num_elements; j++ ) {
@@ -79,7 +79,7 @@ inline void TaskReduction::reduce()
 
    //reduce masterId to global
    if( _storage[masterId].isInitialized ) {
-      if( _isFortranReduction ) {
+      if( _isFortranArrayReduction ) {
          _reducer_orig_var(_original ,_storage[masterId].data);
       } else {
          for( size_t j=0; j<_num_elements; j++ ){
@@ -95,7 +95,7 @@ inline void TaskReduction::reduce()
 inline  void * TaskReduction::initialize( size_t id )
 {
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 1 ) );
-	if( _isFortranReduction ) {
+	if( _isFortranArrayReduction ) {
 		_initializer(_storage[id].data, _original );
 	} else {
 		for( size_t j=0; j < _num_elements; j++ ) {

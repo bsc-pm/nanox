@@ -66,7 +66,7 @@ class TaskReduction {
       void           *_min;              //!< Pointer to first private copy
       void           *_max;              //!< Pointer to last private copy
       bool            _isLazyPriv;       //!< Is lazy privatization enabled
-      bool            _isFortranReduction;//!< Is a reduction called from Fortran
+      bool            _isFortranArrayReduction;//!< whether this is a Fortran array reudction
 
       //! \brief TaskReduction copy constructor (disabled)
       TaskReduction( const TaskReduction &tr ) {}
@@ -80,7 +80,7 @@ class TaskReduction {
                	   : _original(orig), _dependence(orig), _depth(depth), _initializer(f_init),
 					 _reducer(f_red), _reducer_orig_var(f_red), _storage(threads),
 					 _size(size), _size_element(size_elem),_num_elements(size/size_elem),
-					 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv (lazy), _isFortranReduction(false)
+					 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv (lazy), _isFortranArrayReduction(false)
    {
       if(_isLazyPriv) {
          //Renaming tracking for nested reductions not supported for lazy privatization
@@ -113,7 +113,7 @@ class TaskReduction {
          : _original(orig), _dependence(dep), _depth(depth),
          _initializer(f_init), _reducer(f_red), _reducer_orig_var(f_red_orig_var), _storage(threads),
          _size(array_descriptor_size), _size_element(0),_num_elements(0),
-         _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranReduction(true)
+         _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranArrayReduction(true)
    {
 
       if(_isLazyPriv) {
