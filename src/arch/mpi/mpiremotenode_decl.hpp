@@ -215,12 +215,12 @@ namespace nanos {
              * @param comm
              * @return 
              */
-            static int nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm comm);
+            static int nanosMPISendTaskInit(void *buf, int count, int dest, MPI_Comm comm);
 
-            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
+            static int nanosMPISendTaskEnd(void *buf, int count, MPI_Datatype datatype, int disconnect,
                     MPI_Comm comm);
 
-            static int nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
+            static int nanosMPIRecvTaskEnd(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status);
 
             static int nanosMPISendDatastruct(void *buf, int count, MPI_Datatype datatype, int dest,

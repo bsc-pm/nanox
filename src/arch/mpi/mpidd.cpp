@@ -58,7 +58,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
     //if has both rank and comm, only execute on his PE    
     bool resul = (((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) 
-            || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
+            || (_assignedRank == UNKNOWN_RANK && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
     
     //If compatible, set the device as busy (if possible) and reserve it for this DD
@@ -67,7 +67,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     //If our current PE is not the right one for the task, check if the right one is free
     if ( !resul && myPE->getRank()!=_assignedRank && ( res == MPI_IDENT || 
             ((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) ){  
-       if (_assignedRank==UNKOWN_RANKSRCDST) {
+       if (_assignedRank==UNKNOWN_RANK) {
          resul=mpiThread->switchToNextFreePE(uid);      
        } else {
          resul=mpiThread->switchToPE(_assignedRank,uid); 

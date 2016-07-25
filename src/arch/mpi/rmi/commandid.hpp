@@ -46,11 +46,12 @@ enum {
 //Assigned rank value for the Daemon Thread, so it doesn't get used by any DD
 #define CACHETHREADRANK -1
 #define TASK_END_PROCESS -1
+
 //When source or destination comes with this value, it means that the user
 //didn't specify any concrete device, runtime launchs in whatever it wants
 //so we have to override it's value with the PE value
 //WARNING: Keep this defines with the same value than the one existing in the compiler (nanox-mpi.hpp)
-#define UNKOWN_RANKSRCDST -95
+#define UNKNOWN_RANK -95
 #define MASK_TASK_NUMBER 989
 
 #endif // COMMAND_ID_HPP

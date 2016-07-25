@@ -276,7 +276,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     if (!threadsToDespawn.empty()) {
         //All threads have the same commOfParents as they were spawned together
         MPI_Comm parentsComm=threadsToDespawn.front()->getRunningPEs().at(0)->getCommOfParents();
-        int currRank=-1;
+        int currRank = MPI_PROC_NULL;
         MPI_Comm_rank(parentsComm,&currRank);
         //Synchronize parents before killing shared resources (as each parent only waits for his task
         //this prevents one parent killing a "son" which is still executing things from other parents)
@@ -696,7 +696,9 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
             numberOfSpawnsThisProcess+=totalNumberOfSpawns%mpiSize;
     }
 
-    PE* pes[totalNumberOfSpawns];
+    std::vector<nanos::ext::MPIProcessor*> pes;
+    pes.reserve(totalNumberOfSpawns);
+
     //int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
@@ -714,13 +716,15 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+numberOfSpawnsThisProcess) {
-            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, true, shared, comm, core, id);
-            ((MPIProcessor*)pes[rank])->setPphList(pphList);
-            nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
+            pes.push_back( NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, true, shared, comm, core, id) );
+            pes.back()->setPphList(pphList);
+
+            nanosMPISend(ompss_mpi_filenames,  arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
+
             //If user defined multithread cache behaviour, send the creation order
             if (nanos::ext::MPIProcessor::isUseMultiThread()) {
-                MPIProcessor &destination = static_cast<MPIProcessor &>(*pes[rank]);
+                MPIProcessor &destination = static_cast<MPIProcessor &>(*pes.back());
 
                 mpi::command::CreateAuxiliaryThread::Requestor createThread( destination );
                 createThread.dispatch();
@@ -728,8 +732,8 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
                 destination.setHasWorkerThread(true);
             }
         } else {
-            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, false, shared, comm, core, id);
-            ((MPIProcessor*)pes[rank])->setPphList(pphList);
+            pes.push_back( NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, false, shared, comm, core, id) );
+            pes.back()->setPphList(pphList);
         }
         rank=(rank+1)%totalNumberOfSpawns;
     }
@@ -744,9 +748,9 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     //start the threads...
     for (int i=0; i < numberOfThreads; ++i) {
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-        threads[i]=&((MPIProcessor*)pes[i])->startMPIThread(NULL);
+        threads[i]=&pes[i]->startMPIThread(NULL);
     }
-    sys.addPEsAndThreadsToTeam(pes, totalNumberOfSpawns, threads, numberOfThreads);
+    sys.addPEsAndThreadsToTeam(static_cast<ProcessingElement*>(pes.data()), totalNumberOfSpawns, threads, numberOfThreads);
     nanos::ext::MPIPlugin::addPECount(totalNumberOfSpawns);
     nanos::ext::MPIPlugin::addWorkerCount(numberOfThreads);
     //Add all the PEs to the thread
@@ -762,7 +766,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
             threadList=mpiThread->getSelfThreadList();
         }
         threadList->push_back(mpiThread);
-        mpiThread->addRunningPEs((MPIProcessor**)pes,totalNumberOfSpawns);
+        mpiThread->addRunningPEs(pes);
         //Set the group lock so they all share the same lock
         mpiThread->setGroupCounter(gCounter);
         mpiThread->setGroupThreadList(threadList);
@@ -774,14 +778,16 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     nanos::ext::MPIDD::setSpawnDone(true);
 }
 
-int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm comm) {
+int MPIRemoteNode::nanosMPISendTaskInit(void *buf, int count, int dest, MPI_Comm comm) {
 
-    mpi::command::Init::Requestor taskInit( dest, comm, *static_cast<int*>(buf) );
+    int taskCode = *static_cast<int*>(buf);
+    mpi::command::Init::Requestor taskInit( dest, comm, taskCode );
     taskInit.dispatch();
+
     return MPI_SUCCESS; // TODO: add some sort of error report for commands
 }
 
-int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
+int MPIRemoteNode::nanosMPISendTaskEnd(void *buf, int count, MPI_Datatype datatype, int disconnect,
         MPI_Comm comm) {
     if (_disconnectedFromParent) return 0;
     //Ignore destination (as is always parent) and get currentParent
@@ -795,7 +801,7 @@ int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype dataty
     return res;
 }
 
-int MPIRemoteNode::nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
+int MPIRemoteNode::nanosMPIRecvTaskEnd(void *buf, int count, MPI_Datatype datatype, int source,
         MPI_Comm comm, MPI_Status *status) {
     return nanosMPIRecv(buf, count, datatype, source, TAG_END_TASK, comm, status);
 }
@@ -841,7 +847,7 @@ void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {
 int MPIRemoteNode::nanosMPISend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
-    if (dest==UNKOWN_RANKSRCDST){
+    if (dest==UNKNOWN_RANK){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->getRank();
         comm=myPE->getCommunicator();
@@ -856,7 +862,7 @@ int MPIRemoteNode::nanosMPISend(NANOS_MPI2_CONST void *buf, int count, MPI_Datat
 int MPIRemoteNode::nanosMPIIsend(NANOS_MPI2_CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ISEND_EVENT);
-    if (dest==UNKOWN_RANKSRCDST){
+    if (dest==UNKNOWN_RANK){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->getRank();
         comm=myPE->getCommunicator();
@@ -871,7 +877,7 @@ int MPIRemoteNode::nanosMPIIsend(NANOS_MPI2_CONST void *buf, int count, MPI_Data
 int MPIRemoteNode::nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SSEND_EVENT);
-    if (dest==UNKOWN_RANKSRCDST){
+    if (dest==UNKNOWN_RANK){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->getRank();
         comm=myPE->getCommunicator();
@@ -886,7 +892,7 @@ int MPIRemoteNode::nanosMPISsend(void *buf, int count, MPI_Datatype datatype, in
 int MPIRemoteNode::nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
         MPI_Comm comm, MPI_Status *status) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RECV_EVENT);
-    if (source==UNKOWN_RANKSRCDST){
+    if (source==UNKNOWN_RANK){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         source=myPE->getRank();
         comm=myPE->getCommunicator();
@@ -901,7 +907,7 @@ int MPIRemoteNode::nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int
 int MPIRemoteNode::nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
         MPI_Comm comm, MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_IRECV_EVENT);
-    if (source==UNKOWN_RANKSRCDST){
+    if (source==UNKNOWN_RANK){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         source=myPE->getRank();
         comm=myPE->getCommunicator();

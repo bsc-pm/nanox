@@ -213,7 +213,7 @@ namespace nanos {
 
             bool supportsUserLevelThreads() const {
                 return false;
-            }       
+            }
         };   
 
         // Macros to instrument the code and make it cleaner
