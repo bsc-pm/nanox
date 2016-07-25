@@ -78,8 +78,12 @@ namespace nanos {
             atomic_flag _busy;
 
             WorkDescriptor* _currExecutingWd;
+            int _currExecutingFunctionId;
             int _currExecutingDD;
+
             std::list<mpi::request> _pendingReqs;
+            mpi::persistent_request _taskEndRequest;
+
             MPI_Comm _commOfParents;
 
             SMPProcessor* _core;
@@ -150,6 +154,7 @@ namespace nanos {
 
             void setCurrExecutingWd(WD* currExecutingWd);
 
+            WD* freeCurrExecutingWd();
 
             bool isBusy();
             
@@ -194,6 +199,8 @@ namespace nanos {
              * Thread-safe function
              */
             bool testAllRequests();
+
+            mpi::persistent_request& getTaskEndRequest();
 
             BaseThread& startMPIThread(WD* work);
             

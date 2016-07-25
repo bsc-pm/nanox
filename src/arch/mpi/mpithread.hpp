@@ -25,6 +25,8 @@
 #include "smpthread.hpp"
 #include "mpiprocessor_fwd.hpp"
 
+#include "request.hpp"
+
 //TODO: Make mpi independent from pthreads? move it to OS?
 
 namespace nanos {
@@ -123,20 +125,22 @@ namespace ext
          /**
           * Checks which tasks have completed "input" communication and early-releases deps
           */
-         void checkCommunicationsCompletion();
-         
+         void checkCommunicationsCompletion( const std::vector<int>& finishedIds );
+
          /**
           * Checks which tasks have finished and frees/release deps them
           */
          void checkTaskEnd();
-         
+
+         std::vector<mpi::request> getPendingTaskEndRequests();
+
          void finish();
          /**
           * Frees current exrcuting WD of given PE
           * @param finishedPE
           */
-         void freeCurrExecutingWD(MPIProcessor* finishedPE);
-         
+         void freeWD( WD* finished );
+
          void setGroupLock(Lock* gLock);
 
          Lock* getSelfLock();
@@ -152,7 +156,8 @@ namespace ext
          std::vector<MPIThread*>* getGroupThreadList();
 
          std::vector<MPIProcessor*>& getRunningPEs();
-         
+
+         std::vector<int> waitFinishedTaskEnd( std::vector<mpi::request>& pendingTaskEnd );
    };
 
 

@@ -46,15 +46,18 @@ MPIProcessor::MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owne
     _currExecutingFunctionId(-1),
     _currExecutingDD(0),
     _pendingReqs(),
+    _taskEndRequest(),
     _commOfParents( communicatorOfParents ),
     _core(core),
     _peLock()
 {
     _busy.clear();
+    MPI_Recv_init( &_currExecutingFunctionId, 1, MPI_INT, _rank, TAG_END_TASK, _communicator, _taskEndRequest );
 }
 
 
 MPIProcessor::~MPIProcessor() {
+    _taskEndRequest.free();
 }
 
 
@@ -200,10 +203,27 @@ bool MPIProcessor::testAllRequests() {
 
 BaseThread &MPIProcessor::startMPIThread(WD* wd) {
    if (wd==NULL) wd=&getWorkerWD();
-    
+
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, 0 ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = wd->getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
    return _core->startThread( *this, *wd, NULL );
 }
+
+WD* MPIProcessor::freeCurrExecutingWd() {
+
+    WD* wd = getCurrExecutingWd();
+    setCurrExecutingWd(NULL);
+
+    //Clear all async requests on this PE (they finished a while ago)
+    waitAndClearRequests();
+
+    wd->finish();
+
+    //Set the PE as free so we can re-schedule work to it
+    release();
+
+    return wd;
+}
+

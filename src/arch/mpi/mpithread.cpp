@@ -54,16 +54,20 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code"));
     NANOS_INSTRUMENT(nanos_event_value_t val = wd.getId());
     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenStateAndBurst(NANOS_RUNNING, key, val));
-    
+
     (*_groupTotRunningWds)++;
-    _runningPEs.at(_currPe)->setCurrExecutingWd(&wd);
-    _ranksWithPendingComms.push_back(_currPe);
-    
-    (dd.getWorkFct())(wd.getData());    
-    
+
+    // Set up MPIProcessor and issue taskEnd message
+    // reception.
+    MPIProcessor& remote = *_runningPEs.at(_currentPE);
+    remote.setCurrExecutingWd(&wd);
+    remote.getTaskEndRequest().start();
+
+    (dd.getWorkFct())(wd.getData());
+
     //Check if any task finished
     checkTaskEnd();
-    
+
     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseStateAndBurst(key, val));
     return false;
 }
@@ -168,110 +172,87 @@ bool MPIThread::deleteWd(WD* wd, bool markToDelete) {
     return removable;
 }
 
-inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){    
-    //Receive the signal (just to remove it from the MPI "queue")
-    int id_func_ompss;
-    nanos::ext::MPIRemoteNode::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
-        finishedPE->getCommunicator(),MPI_STATUS_IGNORE);
-    WD* wd=finishedPE->getCurrExecutingWd();
-    finishedPE->setCurrExecutingWd(NULL);
+inline void MPIThread::freeWD( WD* finished ) {
+
     WD* previousWD = getCurrentWD();
-    setCurrentWD(*wd);
-    //Clear all async requests on this PE (they finished a while ago)
-    finishedPE->waitAndClearRequests();    
-    wd->finish();
-    //Set the PE as free so we can re-schedule work to it
-    finishedPE->setBusy(false);
+    setCurrentWD( *finished );
+
     //Finish the wd, finish work and destroy wd
-    Scheduler::finishWork(wd,true);
+    Scheduler::finishWork( finished, true );
+
     setCurrentWD(*previousWD);
-    deleteWd(wd,true);
+
+    deleteWd( finished, true );
+
     (*_groupTotRunningWds)--;
 }
 
 
-void MPIThread::checkCommunicationsCompletion() {  
+void MPIThread::checkCommunicationsCompletion( const std::vector<int>& finishedIds ) {
     //Check which tasks have already finished the communication and release dependencies
-    std::list<int>::iterator iter=_ranksWithPendingComms.begin();
-    while( iter!=_ranksWithPendingComms.end() ){
-      int rank=*iter;
-      if (_runningPEs[rank]->testAllRequests()) { 
-         _ranksWithPendingComms.erase(iter++);
+    std::vector<int>::const_iterator it;
+    for( it = finishedIds.begin(); it != finishedIds.end(); ++it ) {
+        if (_runningPEs[*it]->testAllRequests() ) {
+           WD* previousWD = getCurrentWD();
+           WD* wd = _runningPEs[*it]->getCurrExecutingWd();
 
-         WD* previousWD = getCurrentWD();
-         WD* wd=_runningPEs[rank]->getCurrExecutingWd();
-
-         setCurrentWD(*wd);
-         wd->releaseInputDependencies();
-         setCurrentWD(*previousWD);
-      } else {
-         ++iter;
-      }
+           setCurrentWD(*wd);
+           wd->releaseInputDependencies();
+           setCurrentWD(*previousWD);
+        }
     }
 }
 
-void MPIThread::checkTaskEnd() {    
-    for (std::list<WD*>::iterator it=_wdMarkedToDelete.begin(), next ; it!=_wdMarkedToDelete.end(); it=next) {    
-        next = it;
-        ++next;
-        if ( deleteWd(*it,/*WD is already in the list */ false) ) {        
-            _wdMarkedToDelete.erase(it);
+void MPIThread::checkTaskEnd() {
+    std::list<WD*>::iterator it;
+    for( it = _wdMarkedToDelete.begin(); it != _wdMarkedToDelete.end(); ++it ) {
+        if ( deleteWd(*it,/*WD is already in the list */ false) ) {
+            it = _wdMarkedToDelete.erase(it);
+        } else {
+            ++it;
         }
-    }    
-    int flag=1;
-    MPI_Status status;
-    unsigned int spinCounter=0;
-    //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
-    if (*_groupTotRunningWds!=0 && (_groupLock==NULL || _groupLock->tryAcquire())){ 
-        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
-        do {
-            MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
-                       &status);
-            if (flag!=0) {
-                MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
-                _currPe=status.MPI_SOURCE;
-                setRunningOn(finishedPE);
-                //If received something and not mine, stop until whoever is the owner gets it
-                freeCurrExecutingWD(finishedPE);
-            }
-            spinCounter++;    
-        } while ( _groupTotRunningWds->value()==getRunningPEs().size() && spinCounter<2000);
-        
-        spinCounter=0;
-        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
-        while ( _groupTotRunningWds->value()==getRunningPEs().size() ) {
-            MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
-                       &status);
-            if (flag!=0) {
-                MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
-                _currPe=status.MPI_SOURCE;
-                setRunningOn(finishedPE);
-                //If received something and not mine, stop until whoever is the owner gets it
-                freeCurrExecutingWD(finishedPE);
-            }
-            spinCounter++;
-            unsigned int usec=100*(spinCounter/50);
-            if (usec>500000) { 
-                checkCommunicationsCompletion();
-                usec=500000;
-            }
-            usleep(usec);       
-        } 
-        if (_groupLock!=NULL) _groupLock->release();
-    } else if (*_groupTotRunningWds!=0) {
-        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
-        //We only sleep here, as (if exists) other thread will be reciving tasks
-        while ( _groupTotRunningWds->value()==getRunningPEs().size() ) {
-            spinCounter++;
-            unsigned int usec=100*(spinCounter/50);
-            if (usec>500000) {
-                checkCommunicationsCompletion();
-                usec=500000;
-            }
-            usleep(usec);       
-        }        
     }
-    checkCommunicationsCompletion();
+
+    // Make a local copy of the task end requests
+    // in contiguous storage (necessary for wait_some)
+    std::vector<mpi::request> pendingTaskEnd;
+    pendingTaskEnd = getPendingTaskEndRequests();
+
+    //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
+    std::vector<int> finishedPEs = waitFinishedTaskEnd( pendingTaskEnd );
+    checkCommunicationsCompletion( finishedPEs );
+}
+
+std::vector<mpi::request> MPIThread::getPendingTaskEndRequests() {
+    std::vector<mpi::request> pendingTaskEnd;
+    pendingTaskEnd.reserve( _runningPEs.size() );
+
+    std::vector<MPIProcessor*>::iterator peIterator;
+    for( peIterator = _runningPEs.begin(); peIterator != _runningPEs.end(); ++peIterator ) {
+        pendingTaskEnd.push_back( (*peIterator)->getTaskEndRequest() );
+    }
+
+    return pendingTaskEnd;
+}
+
+std::vector<int> MPIThread::waitFinishedTaskEnd( std::vector<mpi::request>& pendingTaskEnd ) {
+
+    std::vector<int> finishedTaskEndIds;
+    finishedTaskEndIds = mpi::request::wait_some( pendingTaskEnd );
+
+    std::vector<int>::iterator taskEndIdIter;
+    for( taskEndIdIter = finishedTaskEndIds.begin(); taskEndIdIter != finishedTaskEndIds.end(); ++taskEndIdIter ) {
+        _currentPE = *taskEndIdIter;
+        MPIProcessor* finishedPE = _runningPEs.at( _currentPE );
+
+        setRunningOn(finishedPE);
+        //If received something and not mine, stop until whoever is the owner gets it
+        WD* finishedWD = finishedPE->freeCurrExecutingWd();
+        message0("Received task end message. Finishing workdescriptor " << finishedWD->getId() );
+
+        freeWD( finishedWD );
+    }
+    return finishedTaskEndIds;
 }
 
 void MPIThread::finish() {
