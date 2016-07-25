@@ -91,10 +91,10 @@ bool MPIThread::switchToPE(int rank, int uuid){
                 ", your communicator has " << _runningPEs.size() << " processes, possible ranks are [," << (_runningPEs.size()-1) << "], check your code"
                 " and make sure that your request finished correctly");
     }
-    //In multithread this "test&SetBusy" bust be safe
-    if (_runningPEs.at(rank)->testAndSetBusy(uuid, _groupThreadList->size()>1)) {
-        _currPe=rank;
-        setRunningOn(_runningPEs.at(_currPe));
+    //In multithread this "test&SetBusy" must be safe
+    if (_runningPEs.at(rank)->acquire(uuid) ) {
+        _currentPE = rank;
+        setRunningOn(_runningPEs.at(_currentPE));
         ret=true;
     }
     return ret;
@@ -107,7 +107,7 @@ void MPIThread::addRunningPEs( MPIProcessor** pe, int nPes){
       _runningPEs[pe[i]->getRank()]=pe[i];
     }
     setRunningOn(_runningPEs.at(0));
-    _currPe=0;
+    _currentPE = 0;
 }
 
 void MPIThread::idle( bool debug ) {

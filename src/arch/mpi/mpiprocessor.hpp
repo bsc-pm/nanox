@@ -153,15 +153,10 @@ void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
     this->_currExecutingWd = currExecutingWd;
 }
 
-bool MPIProcessor::isBusy() const {
-    return _busy.value();
+bool MPIProcessor::isBusy() {
+    return _busy.load();
 }
 
-void MPIProcessor::setBusy(bool busy) {
-    _busy = busy;
-}       
-
-            
 void MPIProcessor::setPphList(int* list){
     _pphList=list;
 }
@@ -170,27 +165,23 @@ int* MPIProcessor::getPphList() {
     return _pphList;
 }
 
+mpi::persistent_request& MPIProcessor::getTaskEndRequest() {
+    return _taskEndRequest;
+}
+
 //Try to reserve this PE, if the one who reserves it is the same
 //which already has the PE, return true
-bool MPIProcessor::testAndSetBusy(int dduid, bool multithreadedAccess) {
-    if (dduid==_currExecutingDD) return true;
-    bool ret=false;
-    if (multithreadedAccess) {
-        Atomic<bool> expected = false;
-        Atomic<bool> value = true;
-        ret= _busy.cswap( expected, value );
-        if (ret){                    
-          _currExecutingDD=dduid;
-        }
-    } else {
-        if (!_busy.value()) {
-            _currExecutingDD=dduid;
-            _busy=true;
-            ret=true;
-        }        
-    }
-    return ret;
+bool MPIProcessor::acquire( int dduid ) {
+    if( dduid == _currExecutingDD )
+        return true;
+
+    bool idle = !_busy.test_and_set();
+    return idle;
 }     
+
+void MPIProcessor::release() {
+   _busy.clear();
+}
 
 int MPIProcessor::getCurrExecutingDD() const {
     return _currExecutingDD;

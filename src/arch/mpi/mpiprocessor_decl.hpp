@@ -23,6 +23,7 @@
 #include <mpi.h>
 
 #include "atomic_decl.hpp"
+#include "atomic_flag.hpp"
 #include "config.hpp"
 #include "mpidevice.hpp"
 #include "mpithread.hpp"
@@ -74,7 +75,8 @@ namespace nanos {
             bool _hasWorkerThread;
             int* _pphList; //saves which hosts in list/hostfile were ocuppied by this spawn
 
-            Atomic<bool> _busy;
+            atomic_flag _busy;
+
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
             std::list<mpi::request> _pendingReqs;
@@ -92,10 +94,9 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor( void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
+            MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
 
-            ~MPIProcessor() {                
-            }            
+            virtual ~MPIProcessor();
 
             /* Nanox NX_OFFL  Configuration options*/
             static size_t getCacheDefaultSize();
@@ -149,9 +150,8 @@ namespace nanos {
 
             void setCurrExecutingWd(WD* currExecutingWd);
 
-            bool isBusy() const;
 
-            void setBusy(bool busy);
+            bool isBusy();
             
             void setPphList(int* list);
             
@@ -160,7 +160,9 @@ namespace nanos {
             /**
              * Try to reserve this PE, if the one who reserves it is the same
             */
-            bool testAndSetBusy(int dduid, bool multithreadedAccess);
+            bool acquire(int dduid);
+
+            void release();
             
             int getCurrExecutingDD() const;
 

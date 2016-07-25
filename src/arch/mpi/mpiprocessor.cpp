@@ -32,36 +32,47 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-MPIProcessor::MPIProcessor( void* communicator, int rank, int uid, bool owner, bool shared, 
-        MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) : 
-ProcessingElement( &MPI, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ), _pendingReqs(), _core(core), _peLock() {
-    _communicator = *((MPI_Comm *)communicator);
-    _commOfParents=communicatorOfParents;
-    _rank = rank;
-    _owner=owner;
-    _shared=shared;
-    _currExecutingWd=NULL;
-    _busy=false;
-    _currExecutingDD=0;
-    _hasWorkerThread=false;
-    _pphList=NULL;
+MPIProcessor::MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owner, bool shared,
+        MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) :
+    ProcessingElement( &MPI, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ),
+    _communicator( *communicator ),
+    _rank( rank ),
+    _owner( owner ),
+    _shared( shared ),
+    _hasWorkerThread(false),
+    _pphList(NULL),
+    _busy(),
+    _currExecutingWd(NULL),
+    _currExecutingFunctionId(-1),
+    _currExecutingDD(0),
+    _pendingReqs(),
+    _commOfParents( communicatorOfParents ),
+    _core(core),
+    _peLock()
+{
+    _busy.clear();
 }
+
+
+MPIProcessor::~MPIProcessor() {
+}
+
 
 void MPIProcessor::prepareConfig(Config &config) {
 
     config.registerConfigOption("offl-exec", NEW Config::StringVar(_mpiExecFile), "Defines executable path (in child nodes) used in DEEP_Booster_Alloc");
     config.registerArgOption("offl-exec", "offl-exec");
     config.registerEnvOption("offl-exec", "NX_OFFL_EXEC");
-    
+
     config.registerConfigOption("offl-launcher", NEW Config::StringVar(_mpiLauncherFile), "Defines launcher script path (in child nodes) used in DEEP_Booster_Alloc");
     config.registerArgOption("offl-launcher", "offl-launcher");
     config.registerEnvOption("offl-launcher", "NX_OFFL_LAUNCHER");
-    
+
     config.registerConfigOption("offl-nodetype", NEW Config::StringVar(_mpiNodeType), "Defines which type of nodes will be used for Offload. "
                                                                                       "Only applies for Parastation MPI. Values: {cluster, booster}");
     config.registerArgOption("offl-nodetype", "offl-nodetype");
     config.registerEnvOption("offl-nodetype", "NX_OFFL_NODETYPE");
-    
+
 
     config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: "
     "One host per line with blank lines and lines beginning with # ignored\n"
@@ -73,8 +84,8 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts list where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA<env_vars hostB:2<env_vars hostC:3 hostD:4");
     config.registerArgOption("offl-hosts", "offl-hosts");
     config.registerEnvOption("offl-hosts", "NX_OFFL_HOSTS");
-    
-    
+
+
     config.registerConfigOption("offl-controlfile", NEW Config::StringVar(_mpiControlFile), "Defines a shared (GPFS or similar) file which will be used "
                                  " to automatically manage offload hosts (round robin). This means that each alloc will consume hosts, so future allocs"
                                  " do not oversubscribe on the same host.");
@@ -100,31 +111,31 @@ void MPIProcessor::prepareConfig(Config &config) {
 //    config.registerConfigOption("offl-buffer-size", NEW Config::SizeVar(_bufferDefaultSize), "Defines size of the nanox MPI Buffer (MPI_Buffer_Attach/detach)");
 //    config.registerArgOption("offl-buffer-size", "offl-buffer-size");
 //    config.registerEnvOption("offl-buffer-size", "NX_OFFLBUFFERSIZE");
-    
+
     config.registerConfigOption("offl-align-threshold", NEW Config::SizeVar(_alignThreshold), "Defines minimum size (bytes) which determines if offloaded variables (copy_in/out) will be aligned (default value: 128), arrays with size bigger or equal than this value will be aligned when offloaded");
     config.registerArgOption("offl-align-threshold", "offl-align-threshold");
     config.registerEnvOption("offl-align-threshold", "NX_OFFL_ALIGNTHRESHOLD");
-    
+
     config.registerConfigOption("offl-alignment", NEW Config::SizeVar(_alignment), "Defines the alignment (bytes) applied to offloaded variables (copy_in/out) (default value: 4096)");
     config.registerArgOption("offl-alignment", "offl-alignment");
     config.registerEnvOption("offl-alignment", "NX_OFFL_ALIGNMENT");
-        
+
     config.registerConfigOption("offl-workers", NEW Config::SizeVar(_maxWorkers), "Defines the maximum number of worker threads created per alloc (Default: 1) ");
     config.registerArgOption("offl-workers", "offl-max-workers");
     config.registerEnvOption("offl-workers", "NX_OFFL_MAX_WORKERS");
-    
+
     config.registerConfigOption("offl-cache-threads", NEW Config::BoolVar(_useMultiThread), "Defines if offload processes will have an extra cache thread,"
         " this is good for applications which need data from other tasks so they don't have to wait until task in owner node finishes. "
         "(Default: False, but if this kind of behaviour is detected, the thread will be created)");
     config.registerArgOption("offl-cache-threads", "offl-cache-threads");
     config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
-    
-    
+
+
     config.registerConfigOption( "offl-alloc-wide", NEW Config::FlagOption( _allocWide ),
                                 "Alloc full objects in the cache." );
     config.registerEnvOption( "offl-alloc-wide", "NX_OFFL_ENABLE_ALLOCWIDE" );
     config.registerArgOption( "offl-alloc-wide", "offl-enable-alloc-wide" );
-    
+
     #ifndef OPEN_MPI
     config.registerConfigOption("offl-disable-spawn-lock", NEW Config::BoolVar(_disableSpawnLock), "Disables file lock used to serialize"
                   "different calls to DEEP_BOOSTER_ALLOC performed by different processes when using MPI_COMM_SELF,"
@@ -154,7 +165,7 @@ WorkDescriptor & MPIProcessor::getMasterWD() const {
 
 BaseThread &MPIProcessor::createThread(WorkDescriptor &helper, SMPMultiThread *parent ) {
      MPIThread &th = *NEW MPIThread(helper, this, _core);
- 
+
      return th;
 }
 

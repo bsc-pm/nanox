@@ -36,22 +36,23 @@ namespace ext
 
          friend class MPIProcessor;
 
-      private:        
-         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
-         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
-         std::vector<MPIThread*> _threadList;
-         Lock _selfLock;
+      private:
+         Lock  _selfLock;
+         Lock* _groupLock;
+
+         std::vector<MPIThread*>  _threadList;
+         std::vector<MPIThread*>* _groupThreadList;
+
+         int                        _currentPE;
          std::vector<MPIProcessor*> _runningPEs;
+
          //Optimization so we do not search for active comms for early-release across all the nodes
          //Its a little slower but in an hipotetical distributed exascale scenario, it should be much better
-         std::list<int> _ranksWithPendingComms;
-         int _currPe;
-         std::vector<MPIThread*>* _groupThreadList;
-         Lock* _groupLock;
+
          Atomic<unsigned int> _selfTotRunningWds;
          Atomic<unsigned int>* _groupTotRunningWds;
          std::list<WD*> _wdMarkedToDelete;
-         
+
          //size_t      _stackSize;
          //bool        _useUserThreads;         
 //         MPI_Comm _communicator;
@@ -63,21 +64,28 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe, SMPProcessor *core) : SMPThread( w,pe ,core), _threadList() , _selfLock(), _runningPEs(), _ranksWithPendingComms()  {
-             _currPe=0;
-             _selfTotRunningWds=0;
-             _groupTotRunningWds=&_selfTotRunningWds;
-             _groupThreadList=&_threadList;
-             _groupLock=NULL;
+         MPIThread( WD &w, PE *pe, SMPProcessor *core) :
+             SMPThread( w,pe ,core),
+             _selfLock(),
+             _groupLock(NULL),
+             _threadList(),
+             _groupThreadList(&_threadList),
+             _currentPE(0),
+             _runningPEs(),
+             _selfTotRunningWds(0),
+             _groupTotRunningWds(&_selfTotRunningWds),
+             _wdMarkedToDelete()
+         {
          }
-//         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
 
          // named parameter idiom
          //MPIThread & stackSize( size_t size ) { _stackSize = size; return *this; }
          //MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
-         virtual ~MPIThread() {}
+         virtual ~MPIThread()
+         {
+         }
 
          void join() {
             if( !hasJoined() ) {
@@ -90,20 +98,20 @@ namespace ext
          virtual void runDependent ( void );
 
          void initializeDependent( void );
-         
+
          void idle( bool debug = false );
 
          void addRunningPEs( MPIProcessor** pe, int nPes);
-         
+
          bool switchToNextFreePE( int uuid );
-         
+
          bool switchToPE(int rank, int uuid);
 
          virtual bool inlineWorkDependent( WD &work );
-         
+
          virtual bool canBlock() { return false;}
 
-         
+
          /**
           * Deletes an WD if no thread is executing it
           * @param wd
@@ -111,7 +119,7 @@ namespace ext
           * @return if thread was deleted
           */
          bool deleteWd(WD* wd, bool markToDelete);
-         
+
          /**
           * Checks which tasks have completed "input" communication and early-releases deps
           */
@@ -130,19 +138,19 @@ namespace ext
          void freeCurrExecutingWD(MPIProcessor* finishedPE);
          
          void setGroupLock(Lock* gLock);
-         
+
          Lock* getSelfLock();
-         
+
          Atomic<unsigned int>* getSelfCounter();
-         
+
          void setGroupCounter(Atomic<unsigned int>* gCounter);
-                  
+
          std::vector<MPIThread*>* getSelfThreadList();
-         
+
          void setGroupThreadList(std::vector<MPIThread*>* threadList);
-         
+
          std::vector<MPIThread*>* getGroupThreadList();
-         
+
          std::vector<MPIProcessor*>& getRunningPEs();
          
    };

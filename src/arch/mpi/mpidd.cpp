@@ -62,7 +62,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
     
     //If compatible, set the device as busy (if possible) and reserve it for this DD
-    resul = resul && myPE->testAndSetBusy(uid, mpiThread->getGroupThreadList()->size() > 1);
+    resul = resul && myPE->acquire(uid);
     
     //If our current PE is not the right one for the task, check if the right one is free
     if ( !resul && myPE->getRank()!=_assignedRank && ( res == MPI_IDENT || 
