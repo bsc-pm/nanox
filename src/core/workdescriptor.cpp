@@ -565,9 +565,6 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
 
    if ( it == _taskReductions.rend() ) {
        //! We must register p_orig as a new reduction
-       //No padding now as this leads to incorrect number of elements for certain cases. Fix: compute total number of elements before padding and pass it to the construct below
-       //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
-       //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
                new TaskReduction(
             		   p_orig,
@@ -594,8 +591,6 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
-      NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
-
      _taskReductions.push_back(
             new TaskReduction(
             		p_orig,
@@ -620,65 +615,27 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
       if((*it)->has( p_addr )) break;
    }
 
-   if ( it != _taskReductions.rend() ) {
-	  void * ptr = (*it)->get(id);
-
-      if ( ptr != NULL ) {
-    	  if((*it)->isInitialized(id))
-    	  {
-    		  //std::cout << "1:" << ptr << ",WD:"<<this <<", "<< _taskReductions[0]->_original<< "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-			  return ptr;
-      	  }
-      	  else
-      	  {
-      		//std::cout << "2:" << ptr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-      		return (*it)->initialize(id);
-      	  }
-      }else
-      {
-    	  //allocate memory
-    	  //std::cout << "3:" << ptr << ",WD:"<<this<<", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-		  (*it)->allocate(id);
-		  return (*it)->initialize(id);
-      }
-   }
-
-   if(isFinal()) return NULL;
-  // std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
-
-   //this should never be reached
-   return NULL;
-}
-
-bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
-{
-   // Check if we have registered a reduction with this address
-   task_reduction_vector_t::reverse_iterator it;
-   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->has( p_dep ) ) break;
-   }
+   // If 'p_addr' is not registered as a reduction we should return NULL
+   void *storage = NULL;
 
    if ( it != _taskReductions.rend() ) {
-      if ( del ) {
-         delete (*it);
-         // Reverse iterators cannot be erased directly, we need to transform them
-         // to common iterators
-         _taskReductions.erase( --(it.base()) );
-      }
-      return true;
+      storage = (*it)->get(id);
+
+      if ( storage == NULL )
+         storage = (*it)->allocate(id);
+
+      if ( !(*it)->isInitialized(id) )
+         (*it)->initialize(id);
    }
-   return false;
+   return storage;
 }
 
 void WorkDescriptor::removeAllTaskReductions( void )
 {
-   bool b;
-   // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( _parent )  b = _parent->removeTaskReduction( (*it)->get(0), false ) ; 
-      else b = false;
-      if ( !b) {
+      // Am I the owner of this reduction?
+      if (_depth == (*it)->getDepth()) {
          delete (*it);
          _taskReductions.erase( --(it.base()) );
       }

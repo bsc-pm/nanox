@@ -34,9 +34,9 @@ inline void CommutationDO::dependenciesSatisfied ( )
       domain->removeCommDO ( this, *_target );
    }
    if ( _taskReduction != NULL ) {
-      _taskReduction->finalize(false);
+      _taskReduction->reduce();
    }
-   
+
    finished();
 }
 
