@@ -17,9 +17,10 @@ class CommandRequestor {
 
 	public:
 		CommandRequestor( Channel const& channel ) :
-			_data( command_id ),
+			_data(),
 			_channel( channel )
 		{
+			_data.initialize(command_id);
 			_channel.send( _data );
 		}
 
