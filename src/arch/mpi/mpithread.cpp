@@ -258,9 +258,9 @@ std::vector<int> MPIThread::waitFinishedTaskEnd( std::vector<mpi::request>& pend
 void MPIThread::finish() {
     SMPThread::finish();
     //If I'm the master thread of the group (group counter == self-counter)
-    int resul;
-    MPI_Finalized(&resul);
-    if (!resul){
+    int finalized;
+    MPI_Finalized(&finalized);
+    if (!finalized){
         //while (&_selfTotRunningWds!=0) {
         while (_selfTotRunningWds!=0) {
           checkTaskEnd();
@@ -269,11 +269,14 @@ void MPIThread::finish() {
             std::vector<MPIProcessor*>& myPEs = getRunningPEs();
             for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
                 //Only release if we are the owner of the process (once released, we are not the owner anymore)
-                if ( (*it)->getOwner() ) 
+                MPIProcessor* remote = *it;
+                if ( remote->getOwner() )
                 {
-                    mpi::command::Finish::Requestor command( *(*it) );
+                    mpi::command::Finish::Requestor command( *remote );
                     command.dispatch();
-                    (*it)->setOwner(false);
+
+                    remote->waitAllRequests();
+                    remote->setOwner(false);
                 }
             }
        }
