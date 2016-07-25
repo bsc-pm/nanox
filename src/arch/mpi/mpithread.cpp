@@ -70,16 +70,16 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
 
 //Switch to next PE (Round robin way of change PEs to query scheduler)
 bool MPIThread::switchToNextFreePE(int uuid){
-   int startPE=_currPe;
-	int currPe=_currPe;
-	bool switchedCorrectly=false;
-	
-   do {        
-       currPe=(currPe+1)%_runningPEs.size();
-	    switchedCorrectly=switchToPE(currPe,uuid);
-   } while ( !switchedCorrectly && currPe!=startPE );
-		
-	return switchedCorrectly;
+   int startPE   = _currentPE;
+   int currentPE = _currentPE;
+   bool switchedCorrectly=false;
+
+   do {
+       currentPE = (currentPE+1) % _runningPEs.size();
+       switchedCorrectly = switchToPE(currentPE,uuid);
+   } while ( !switchedCorrectly && currentPE != startPE );
+
+   return switchedCorrectly;
 }
 
 //Switch to PE, under request, if we see a task for this group of PEs
@@ -130,7 +130,7 @@ Lock* MPIThread::getSelfLock() {
 Atomic<unsigned int>* MPIThread::getSelfCounter() {
     return &_selfTotRunningWds;
 }
-         
+
 void MPIThread::setGroupCounter(Atomic<unsigned int>* gCounter) {
     _groupTotRunningWds=gCounter;
 }
