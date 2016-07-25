@@ -47,12 +47,14 @@ class CommandChannel {
 			_source( MPI_ANY_SOURCE ), _destination( destination ),
 			_communicator( communicator )
 		{
+			checkDestinationRank();
 		}
 
 		CommandChannel( int source, int destination, MPI_Comm communicator ) :
 			_source( source ), _destination( destination ),
 			_communicator( communicator )
 		{
+			checkDestinationRank();
 		}
 
 		CommandChannel( MPIProcessor const& destination ) :
@@ -115,28 +117,41 @@ class CommandChannel {
 		void receive( Payload &data, size_t n = 1 );
 
 		void send( Payload const& data, size_t n = 1 );
+
+		void checkDestinationRank()
+		{
+			using namespace nanos::ext;
+			if( _destination == UNKNOWN_RANK ) {
+				MPIProcessor& remote = *static_cast<MPIProcessor*>( myThread->runningOn() );
+				_destination = remote.getRank();
+				_communicator = remote.getCommunicator();
+			}
+		}
 };
 
 template< int command_id, typename Payload, int tag >
 void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
 {
-	MPIRemoteNode::nanosMPIRecv( &data, n, Payload::getDataType(),
+	int err = MPI_Recv( &data, n, Payload::getDataType(),
 	        getSource(), getTag(), getCommunicator(), MPI_STATUS_IGNORE );
+	fatal_cond0( err != MPI_SUCCESS, "MPI_Recv finished with errors" );
 }
 
 template< int command_id, typename Payload, int tag >
 void CommandChannel<command_id,Payload,tag>::send( Payload const& data, size_t n )
 {
-	MPIRemoteNode::nanosMPISend( &data, n, Payload::getDataType(),
+	int err = MPI_Send( &data, n, Payload::getDataType(),
 	        getDestination(), getTag(), getCommunicator() );
+	fatal_cond0( err != MPI_SUCCESS, "MPI_Send finished with errors" );
 }
 
 template< int command_id, typename Payload, int tag >
 request CommandChannel<command_id,Payload,tag>::isend( Payload const& data, size_t n )
 {
 	request result;
-	MPIRemoteNode::nanosMPIIsend( &data, n, Payload::getDataType(),
+	int err = MPI_Isend( &data, n, Payload::getDataType(),
 	        getDestination(), getTag(), getCommunicator(), result );
+	fatal_cond0( err != MPI_SUCCESS, "MPI_ISend finished with errors" );
 	return result;
 }
 
