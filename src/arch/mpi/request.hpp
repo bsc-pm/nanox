@@ -4,6 +4,7 @@
 
 #include "status.hpp"
 
+#include <vector>
 #include <mpi.h>
 
 namespace nanos {
@@ -71,12 +72,15 @@ class request
 		bool test()
 		{
 			int flag;
-			MPI_Test(
-						&_value,
-						&flag,
-						MPI_STATUS_IGNORE
-					);
+			MPI_Test( &_value,
+			          &flag,
+			          MPI_STATUS_IGNORE );
 			return flag == 1;
+		}
+
+		void wait()
+		{
+			MPI_Wait( &_value, MPI_STATUS_IGNORE );
 		}
 
 		bool isNull() const
@@ -105,10 +109,14 @@ class request
 		}
 
 		template <typename Iterator>
-		static void wait_all( Iterator begin, Iterator end );
+		static bool test_all( Iterator begin, Iterator end );
 
 		template <typename Iterator>
-		static bool test_all( Iterator begin, Iterator end );
+		static void wait_all( Iterator begin, Iterator end );
+
+		static std::vector<int> test_some( std::vector<mpi::request>& requests );
+
+		static std::vector<int> wait_some( std::vector<mpi::request>& requests );
 };
 
 class persistent_request : public request
@@ -175,6 +183,35 @@ bool request::test_all( Iterator begin, Iterator end )
 	std::vector<MPI_Request> requests( begin, end );
 	MPI_Testall( requests.size(), &requests[0], &flag, MPI_STATUSES_IGNORE );
 	return flag == 1;
+}
+
+std::vector<int> request::test_some( std::vector<mpi::request>& requests )
+{
+	int finishedReqs;
+	std::vector<int> finishedReqIds( requests.size(), -1 );
+	MPI_Testsome( requests.size(), static_cast<MPI_Request*>(requests[0]), &finishedReqs, finishedReqIds.data(), MPI_STATUSES_IGNORE );
+
+        if( finishedReqs == MPI_UNDEFINED )
+		finishedReqIds.clear();
+        else
+		finishedReqIds.resize(finishedReqs);
+
+	return finishedReqIds;
+}
+
+std::vector<int> request::wait_some( std::vector<mpi::request>& requests )
+{
+	int finishedReqs;
+	std::vector<int> finishedReqIds( requests.size(), -1 );
+	int err __attribute__((unused));
+        err = MPI_Waitsome( requests.size(), static_cast<MPI_Request*>(requests[0]), &finishedReqs, finishedReqIds.data(), MPI_STATUSES_IGNORE );
+
+        if( finishedReqs == MPI_UNDEFINED )
+		finishedReqIds.clear();
+        else
+		finishedReqIds.resize(finishedReqs);
+
+	return finishedReqIds;
 }
 
 template < typename Iterator >
