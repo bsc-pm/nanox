@@ -30,9 +30,9 @@ devinclude_HEADERS = \
 	mpiremotenode_fwd.hpp \
 	mpiremotenode_decl.hpp \
 	mpiremotenode.hpp \
-	mpidevice_decl.hpp \
 	mpidevice.hpp \
 	mpidd.hpp \
+	mpithread_fwd.hpp \
 	mpithread.hpp \
 	hostinfo.hpp \
 	info.hpp \
@@ -40,11 +40,11 @@ devinclude_HEADERS = \
 	status.hpp \
 	$(END)
 
+
 offload_sources= \
  nanos-mpi.h \
- mpi-api.cpp \
  mpiall.cpp \
- mpiplugin.cpp \
+ mpi-api.cpp \
  mpiprocessor_fwd.hpp \
  mpiprocessor_decl.hpp \
  mpiprocessor.hpp \
@@ -53,11 +53,11 @@ offload_sources= \
  mpiremotenode_decl.hpp \
  mpiremotenode.hpp \
  mpiremotenode.cpp \
- mpidevice_decl.hpp \
  mpidevice.hpp \
  mpidevice.cpp \
  mpidd.hpp \
  mpidd.cpp \
+ mpithread_fwd.hpp \
  mpithread.hpp \
  mpithread.cpp \
  mpiicpc_syms.cpp \
@@ -69,6 +69,8 @@ offload_sources= \
  pagealignedallocator_decl.hpp \
  pagealignedallocator.hpp \
  mpiworker.hpp \
+ mpispawn_fwd.hpp \
+ mpispawn.hpp \
  rmi/allocate.hpp \
  rmi/cachecommand.cpp \
  rmi/cachecommand.hpp \
@@ -92,11 +94,12 @@ offload_sources= \
  rmi/realloc.hpp \
  $(END)
 
-EXTRA_DIST=$(offload_sources)
-
 pe_mpi_sources = \
-	mpiplugin.cpp \
-	$(END)
+ mpiplugin.hpp \
+ mpiplugin.cpp \
+ $(END)
+
+EXTRA_DIST=$(offload_sources) $(pe_mpi_sources)
 
 
 noinst_LTLIBRARIES =
@@ -109,6 +112,7 @@ mpioffloaddir = $(prefix)/src/arch/mpi
 
 mpioffload_DATA=\
  $(offload_sources)\
+ $(pe_mpi_sources)\
  nanos-config.h \
  nanox_compiler \
  test_flags \
