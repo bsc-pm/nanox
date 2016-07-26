@@ -20,9 +20,10 @@
 #ifndef _NANOS_MPI_H_
 #define _NANOS_MPI_H_
 
-#include "mpi.h"
+#include <mpi.h>
 #include "nanos-int.h" 
 #include "nanos_error.h"
+
 #define MPI_Init nanos_mpi_init
 #define MPI_Init_thread nanos_mpi_init_thread
 #define MPI_Finalize nanos_mpi_finalize

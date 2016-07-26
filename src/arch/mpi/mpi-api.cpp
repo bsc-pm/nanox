@@ -17,13 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "mpi.h"
 #include "nanos-mpi.h"
-#include "mpiremotenode_decl.hpp"
+#include "mpiremotenode.hpp"
 #include "system.hpp"
 #include "mpidd.hpp"
-#include <string.h>
 
+#include <mpi.h>
+#include <string.h>
 
 using namespace nanos;
 

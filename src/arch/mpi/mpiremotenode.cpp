@@ -49,13 +49,14 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-extern __attribute__((weak)) int ompss_mpi_masks[];
-extern __attribute__((weak)) unsigned int ompss_mpi_filenames[];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[];
-extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[];
-extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
-
+RemoteSpawnMap MPIRemoteNode::_spawnedRemotes;
+ProducerConsumerQueue<std::pair<int,int> >* MPIRemoteNode::_pendingTasksWithParent = NULL;
+mpi::command::Dispatcher* MPIRemoteNode::_commandDispatcher = NULL;
+std::vector<MPI_Datatype*> MPIRemoteNode::_taskStructsCache;
+bool MPIRemoteNode::_initialized=false;
+bool MPIRemoteNode::_disconnectedFromParent=false;
+int MPIRemoteNode::_currentTaskParent=-1;
+int MPIRemoteNode::_currProcessor=0;
 
 bool MPIRemoteNode::executeTask(int taskId) {
     if( taskId == TASK_END_PROCESS ) {
@@ -179,8 +180,9 @@ void MPIRemoteNode::nanosMPIFinalize() {
       // disconnect from parent communicator
       MPI_Comm parent;
       MPI_Comm_get_parent( &parent );
-      if( parent != MPI_COMM_NULL )
+      if( parent != MPI_COMM_NULL ) {
          MPI_Comm_disconnect( &parent );
+      }
 
       MPI_Finalize();
     }

@@ -20,20 +20,37 @@
 #ifndef _NANOS_MPI_REMOTE_NODE_DECL
 #define _NANOS_MPI_REMOTE_NODE_DECL
 
-#include "mpi.h"
 #include "atomic_decl.hpp"
+
 #include "config.hpp"
+
 #include "mpidevice.hpp"
 #include "mpithread.hpp"
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
-#include "processingelement.hpp"
 
 #include "concurrent_queue.hpp"
 #include "commanddispatcher.hpp"
 
+#include "mpispawn_fwd.hpp"
+
+#include <map>
+#include <mpi.h>
+
+extern "C" {
+
+extern __attribute__((weak)) int ompss_mpi_masks[];
+extern __attribute__((weak)) unsigned int ompss_mpi_filenames[];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[];
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[];
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
+
+}
+
 namespace nanos {
-    namespace ext {
+namespace ext {
+
+        // Probably better to use unordered_map
+        typedef std::map< MPI_Comm, mpi::RemoteSpawn* > RemoteSpawnMap;
 
         /**
          * Class which implements all the remote-node logic which is not in the cache (executing tasks etc...)
@@ -47,16 +64,19 @@ namespace nanos {
             
             static bool _initialized;   
             static bool _disconnectedFromParent;
+
             static ProducerConsumerQueue<std::pair<int,int> >* _pendingTasksWithParent;
             static mpi::command::Dispatcher* _commandDispatcher;
             static std::vector<MPI_Datatype*> _taskStructsCache;   
+
             static int _currentTaskParent;
             static int _currProcessor;
+
+            static RemoteSpawnMap _spawnedRemotes;
 
             // disable copy constructor and assignment operator
             MPIRemoteNode(const MPIRemoteNode &pe);
             const MPIRemoteNode & operator=(const MPIRemoteNode &pe);
-
 
         public:
             static int getCurrentTaskParent();
@@ -76,6 +96,10 @@ namespace nanos {
             static bool executeTask(int taskId);
 
             static mpi::command::Dispatcher& getDispatcher();
+
+            static void registerSpawn( MPI_Comm communicator, mpi::RemoteSpawn& spawn );
+
+            static RemoteSpawnMap& getRegisteredSpawns();
             
             /**
              * Initialize OmpSs
@@ -258,7 +282,7 @@ namespace nanos {
             
         };   
 
-    }
+} // namespace ext
+} // namespace nanos
 
-}
 #endif

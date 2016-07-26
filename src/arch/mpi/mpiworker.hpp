@@ -2,7 +2,7 @@
 #ifndef MPI_WORKER_HPP
 #define MPI_WORKER_HPP
 
-#include "mpidevice_decl.hpp"
+#include "mpidevice.hpp"
 #include "mpiremotenode_decl.hpp"
 #include "commanddispatcher.hpp"
 
@@ -13,9 +13,11 @@
 
 namespace nanos {
 
+using namespace nanos::ext;
+
 // Dedicated cache worker
 template<>
-void MPIDevice::remoteNodeCacheWorker<true>() {
+inline void MPIDevice::remoteNodeCacheWorker<true>() {
 
     mpi::command::Dispatcher& dispatcher = MPIRemoteNode::getDispatcher();
     // Before waiting for new commands, execute those that were left
@@ -30,7 +32,7 @@ void MPIDevice::remoteNodeCacheWorker<true>() {
 
 // Worker thread that waits for commands as well
 template<>
-void MPIDevice::remoteNodeCacheWorker<false>() {
+inline void MPIDevice::remoteNodeCacheWorker<false>() {
 
     mpi::command::Dispatcher& dispatcher = MPIRemoteNode::getDispatcher();
     dispatcher.waitForCommands();
@@ -38,23 +40,21 @@ void MPIDevice::remoteNodeCacheWorker<false>() {
     dispatcher.executeCommands();
 }
 
-void MPIDevice::createExtraCacheThread() {
+inline void MPIDevice::createExtraCacheThread() {
     //Create extra worker thread
-    MPI_Comm mworld= MPI_COMM_WORLD;
-    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
+    SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
     if (core==NULL) {
-        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,MPIRemoteNode::getCurrentProcessor());
+        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode( 0, MPIRemoteNode::getCurrentProcessor() );
     }
-    MPIProcessor *mpi = NEW MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
+    MPIProcessor *mpi = NEW MPIProcessor( MPI_COMM_WORLD, CACHETHREADRANK, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
     MPIDD * dd = NEW MPIDD((MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker<true> );
     WD* wd = NEW WD(dd);
-    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
     mpi->startMPIThread(wd);
 }
 
 namespace ext {
 
-int MPIRemoteNode::nanosMPIWorker() {
+inline int MPIRemoteNode::nanosMPIWorker() {
     // Meanwhile communications thread is not created
     while( !mpi::command::CreateAuxiliaryThread::Servant::isCreated()
            && !mpi::command::Finish::Servant::isFinished() ) {
@@ -79,7 +79,7 @@ int MPIRemoteNode::nanosMPIWorker() {
     return 0;
 }
 
-void MPIRemoteNode::mpiOffloadSlaveMain() {
+inline void MPIRemoteNode::mpiOffloadSlaveMain() {
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);    
 

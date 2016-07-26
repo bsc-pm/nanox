@@ -53,18 +53,23 @@ using namespace nanos::ext;
 char MPIDevice::_executingTask=0;
 bool MPIDevice::_createdExtraWorkerThread=false;
 
-MPIDevice::MPIDevice(const char *n) : Device(n) {
+MPIDevice::MPIDevice(const char *n) :
+    Device(n)
+{
 }
 
 /*! \brief MPIDevice copy constructor
  */
-MPIDevice::MPIDevice(const MPIDevice &arch) : Device(arch) {
+MPIDevice::MPIDevice(const MPIDevice &arch) :
+    Device(arch)
+{
 }
 
 /*! \brief MPIDevice destructor
  */
-MPIDevice::~MPIDevice() {
-};
+MPIDevice::~MPIDevice()
+{
+}
 
 /* \breif allocate size bytes in the device
  */
