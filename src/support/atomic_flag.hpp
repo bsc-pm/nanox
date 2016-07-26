@@ -72,7 +72,7 @@ class atomic_flag {
 		void clear();
 };
 
-bool atomic_flag::test_and_set()
+inline bool atomic_flag::test_and_set()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
 	return __atomic_test_and_set(&_value,__ATOMIC_ACQ_REL);
@@ -81,7 +81,7 @@ bool atomic_flag::test_and_set()
 #endif
 }
 
-bool atomic_flag::load()
+inline bool atomic_flag::load()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
 	return __sync_load_n(&_value,__ATOMIC_ACQUIRE);
@@ -90,7 +90,7 @@ bool atomic_flag::load()
 #endif
 }
 
-void atomic_flag::clear()
+inline void atomic_flag::clear()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
 	__atomic_clear(&_value,__ATOMIC_RELEASE);
