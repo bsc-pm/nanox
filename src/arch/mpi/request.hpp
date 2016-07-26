@@ -78,6 +78,15 @@ class request
 			return flag == 1;
 		}
 
+		bool test( MPI_Status& status )
+		{
+			int flag;
+			MPI_Test( &_value,
+			          &flag,
+			          &status );
+			return flag == 1;
+		}
+
 		void wait()
 		{
 			MPI_Wait( &_value, MPI_STATUS_IGNORE );

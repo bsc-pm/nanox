@@ -183,12 +183,21 @@ class Dispatcher {
 
 		virtual ~Dispatcher()
 		{
-			testForCommands();
-			request_storage::iterator request_it;
-			for( request_it = _requests.begin(); request_it != _requests.end(); request_it++ )
-			{
-				request_it->free();
+			_readyRequestIndices.clear();
+			_statuses.resize( _requests.size() );
+
+			size_t s = 0;
+			for( size_t r = 0; r < _requests.size(); ++r ) {
+				bool finished = _requests[r].test( _statuses[s] );
+				if( !finished ) {
+					_requests[r].cancel();
+				} else {
+					_readyRequestIndices.push_back(r);
+					++s;
+				}
+				_requests[r].free();
 			}
+			_statuses.resize( _readyRequestIndices.size() );
 
 			queueAvailableCommands( false );
 			executeCommands();
