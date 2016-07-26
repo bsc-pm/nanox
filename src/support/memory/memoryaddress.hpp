@@ -262,7 +262,7 @@ bool is_properly_aligned( Address address, size_t alignment_constraint );
 #endif
 
 nanos_constexpr
-bool is_properly_aligned( Address address, size_t alignment_constraint )
+inline bool is_properly_aligned( Address address, size_t alignment_constraint )
 {
    return ( static_cast<uintptr_t>(address) & (alignment_constraint-1) ) == 0;
 }
