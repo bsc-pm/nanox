@@ -2,8 +2,10 @@
 #ifndef COMMAND_SENDER_HPP
 #define COMMAND_SENDER_HPP
 
-#include <mpi.h>
 #include "memoryaddress.hpp"
+#include "mpiprocessor_decl.hpp"
+
+#include <mpi.h>
 
 namespace nanos {
 namespace mpi {
@@ -57,13 +59,13 @@ class CommandChannel {
 			checkDestinationRank();
 		}
 
-		CommandChannel( MPIProcessor const& destination ) :
+		CommandChannel( const ext::MPIProcessor& destination ) :
 			_source( MPI_ANY_SOURCE ), _destination( destination.getRank() ),
 			_communicator( destination.getCommunicator() )
 		{
 		}
 
-		CommandChannel( MPIProcessor const& source, MPIProcessor const& destination ) :
+		CommandChannel( const ext::MPIProcessor& source, const ext::MPIProcessor& destination ) :
 			_source( source.getRank() ), _destination( destination.getRank() ),
 			_communicator( source.getCommunicator() )
 		{
@@ -71,7 +73,7 @@ class CommandChannel {
 		}
 
 		template < typename OldPayload, int other_tag >
-		CommandChannel( CommandChannel<command_id,OldPayload,other_tag> const& other ) :
+		CommandChannel( const CommandChannel<command_id,OldPayload,other_tag>& other ) :
 			_source( other.getSource() ), _destination( other.getDestination() ),
 			_communicator( other.getCommunicator() )
 		{
@@ -130,7 +132,7 @@ class CommandChannel {
 };
 
 template< int command_id, typename Payload, int tag >
-void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
+inline void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
 {
 	int err = MPI_Recv( &data, n, Payload::getDataType(),
 	        getSource(), getTag(), getCommunicator(), MPI_STATUS_IGNORE );
@@ -138,7 +140,7 @@ void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
 }
 
 template< int command_id, typename Payload, int tag >
-void CommandChannel<command_id,Payload,tag>::send( Payload const& data, size_t n )
+inline void CommandChannel<command_id,Payload,tag>::send( Payload const& data, size_t n )
 {
 	int err = MPI_Send( &data, n, Payload::getDataType(),
 	        getDestination(), getTag(), getCommunicator() );
@@ -146,7 +148,7 @@ void CommandChannel<command_id,Payload,tag>::send( Payload const& data, size_t n
 }
 
 template< int command_id, typename Payload, int tag >
-request CommandChannel<command_id,Payload,tag>::isend( Payload const& data, size_t n )
+inline request CommandChannel<command_id,Payload,tag>::isend( Payload const& data, size_t n )
 {
 	request result;
 	int err = MPI_Isend( &data, n, Payload::getDataType(),

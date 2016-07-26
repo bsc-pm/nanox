@@ -15,7 +15,7 @@ struct Realloc : public CacheCommand<OPID_REALLOC> {
 
 
 template<>
-void Realloc::Requestor::dispatch()
+inline void Realloc::Requestor::dispatch()
 {
 	// Destination and source are swapped
 	Allocate::ack_channel_type ack( _channel.getDestination(), _channel.getSource(), _channel.getCommunicator() );
@@ -30,7 +30,7 @@ void Realloc::Requestor::dispatch()
  * be warrantee to be the same (in case memory block can not be expanded).
  */
 template<>
-void Realloc::Servant::serve()
+inline void Realloc::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
 

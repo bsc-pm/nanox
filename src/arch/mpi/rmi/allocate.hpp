@@ -5,7 +5,7 @@
 #include "cachecommand.hpp"
 #include "commandchannel.hpp"
 
-#include "mpidevice_decl.hpp" // OPID definitions
+#include "mpidevice.hpp" // OPID definitions
 
 #include "pagealignedallocator.hpp"
 
@@ -21,7 +21,7 @@ struct Allocate : public CacheCommand<OPID_ALLOCATE> {
  * Receives the updated information with final device address.
  */
 template<>
-void Allocate::Requestor::dispatch()
+inline void Allocate::Requestor::dispatch()
 {
 	// Destination and source are swapped
 	Allocate::ack_channel_type ack( _channel.getDestination(), _channel.getSource(), _channel.getCommunicator() );
@@ -32,7 +32,7 @@ void Allocate::Requestor::dispatch()
  * Dynamically allocates memory and sends back the result.
  */
 template<>
-void Allocate::Servant::serve()
+inline void Allocate::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
 

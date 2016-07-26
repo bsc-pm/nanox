@@ -61,7 +61,7 @@ class CommandRequestor<CopyIn::id,CopyIn::payload_type,CopyIn::main_channel_type
  * Appends the pending mpi::request to MPIProcessor request 
  * queue since we don't really need to use the send buffer inmediately.
  */
-void CopyIn::Requestor::dispatch()
+inline void CopyIn::Requestor::dispatch()
 {
 	// We transfer the data through a different channel to avoid
 	// message collisions (uses a different tag)
@@ -81,7 +81,7 @@ template<>
 // Note: as oposed to CopyIn::Requestor::dispatch(), template<> is needed here
 // because we are specializing the function and not defining a function of a
 // specialized class.
-void CopyIn::Servant::serve()
+inline void CopyIn::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
 

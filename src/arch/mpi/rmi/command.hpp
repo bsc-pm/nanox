@@ -5,8 +5,12 @@
 #include "commandid.hpp"
 #include "commandpayload.hpp"
 
+#include "commandrequestor.hpp"
+#include "commandservant.hpp"
+
 #include "memoryaddress.hpp"
-#include "mpidevice_decl.hpp"
+
+#include "mpidevice.hpp"
 #include "mpiprocessor_decl.hpp"
 
 namespace nanos {

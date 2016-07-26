@@ -15,7 +15,7 @@ typedef CacheCommand<OPID_FREE> Free;
  * No additional action required.
  */
 template<>
-void Free::Requestor::dispatch()
+inline void Free::Requestor::dispatch()
 {
 }
 
@@ -23,7 +23,7 @@ void Free::Requestor::dispatch()
  * Free specified memory 
  */
 template<>
-void Free::Servant::serve()
+inline void Free::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
 

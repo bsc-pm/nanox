@@ -2,7 +2,7 @@
 #ifndef COMMAND_REQUESTOR_HPP
 #define COMMAND_REQUESTOR_HPP
 
-#include "mpidevice_decl.hpp"
+#include "mpidevice.hpp"
 #include "commandchannel.hpp"
 
 namespace nanos {

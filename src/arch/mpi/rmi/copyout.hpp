@@ -16,7 +16,7 @@ struct CopyOut : public CacheCommand<OPID_COPYOUT> {
  * Receive tasks's output data from the remote process
  */
 template<>
-void CopyOut::Requestor::dispatch()
+inline void CopyOut::Requestor::dispatch()
 {
 	CopyOut::transfer_channel_type transfer_channel( _channel );
 
@@ -28,7 +28,7 @@ void CopyOut::Requestor::dispatch()
  * Send task's output data back to the master process
  */
 template<>
-void CopyOut::Servant::serve()
+inline void CopyOut::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
 

@@ -67,13 +67,13 @@ class iterator_range {
 };
 
 template < typename Iterator >
-iterator_range<Iterator> make_range( Iterator const& begin, Iterator const& end )
+inline iterator_range<Iterator> make_range( Iterator const& begin, Iterator const& end )
 {
 	return iterator_range<Iterator>(begin,end);
 }
 
 template < typename Iterator >
-iterator_range<Iterator> make_range( Iterator const& begin, size_t size )
+inline iterator_range<Iterator> make_range( Iterator const& begin, size_t size )
 {
 	return iterator_range<Iterator>(begin,size);
 }

@@ -65,7 +65,7 @@ class CommandRequestor<CopyDeviceToDevice::id,CopyDeviceToDevice::payload_type,C
 /**
  * No additional actions required. Just send the message.
  */
-void CopyDeviceToDevice::Requestor::dispatch()
+inline void CopyDeviceToDevice::Requestor::dispatch()
 {
 }
 
@@ -74,7 +74,7 @@ void CopyDeviceToDevice::Requestor::dispatch()
  * to the one which matches with destinationRank
  */
 template<>
-void CopyDeviceToDevice::Servant::serve()
+inline void CopyDeviceToDevice::Servant::serve()
 {
 	int myRank;
 	MPI_Comm_rank( _channel.getCommunicator(), &myRank );

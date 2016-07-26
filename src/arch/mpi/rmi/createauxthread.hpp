@@ -66,7 +66,7 @@ class CommandServant<
 atomic_flag CreateAuxiliaryThread::Servant::_alreadyCreated;
 
 template<>
-void CreateAuxiliaryThread::Requestor::dispatch()
+inline void CreateAuxiliaryThread::Requestor::dispatch()
 {
 }
 
@@ -76,7 +76,7 @@ void CreateAuxiliaryThread::Requestor::dispatch()
  * The thread is created only once. However, multiple request
  * may come from different masters.
  */
-void CreateAuxiliaryThread::Servant::serve()
+inline void CreateAuxiliaryThread::Servant::serve()
 {
 	bool alreadyCreated = _alreadyCreated.test_and_set();
 	if( !alreadyCreated ) {

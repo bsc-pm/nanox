@@ -4,7 +4,8 @@
 
 #include "atomic_flag.hpp"
 #include "command.hpp"
-#include "createauxthread.hpp"
+
+#include "mpiremotenode_decl.hpp"
 
 namespace nanos {
 namespace mpi {
@@ -65,14 +66,15 @@ class CommandServant<
 atomic_flag Finish::Servant::_finished;
 
 template<>
-void Finish::Requestor::dispatch()
+inline void Finish::Requestor::dispatch()
 {
 }
 
-void Finish::Servant::serve()
+inline void Finish::Servant::serve()
 {
-	_finished.test_and_set(); 
-	MPIRemoteNode::addTaskToQueue( TASK_END_PROCESS, _channel.getSource() );
+	bool alreadyFinalized = _finished.test_and_set();
+	if( !alreadyFinalized )
+		ext::MPIRemoteNode::addTaskToQueue( TASK_END_PROCESS, _channel.getSource() );
 }
 
 } // namespace command
