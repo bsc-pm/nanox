@@ -121,7 +121,7 @@ void MPIPlugin::createBindingList()
 void MPIPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
 }
 
-void MPIPlugin::addDevices( DeviceList &devices ) {}
+void MPIPlugin::addDevices( DeviceList &devices ) const {}
 
 void MPIPlugin::startSupportThreads() {
 }
