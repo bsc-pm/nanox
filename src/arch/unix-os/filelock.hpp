@@ -2,10 +2,14 @@
 #ifndef FILE_MUTEX_HPP
 #define FILE_MUTEX_HPP
 
+#include "debug.hpp"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 namespace nanos {
@@ -28,22 +32,24 @@ class FileMutex {
 			_lock.l_whence = SEEK_SET;
 			_lock.l_len    = 0;
 
-			// assert( _file_descriptor > 0 );
+			fatal_cond0( _file_descriptor == -1, "Could not open lock file: " << strerror(errno) );
 		}
 
 		~FileMutex()
 		{
-			close(fd);
+			close( _file_descriptor );
 		}
 
 		void lock()
 		{
-			fcntl(fd, F_SETLKW, &_lock);
+			int err = fcntl( _file_descriptor, F_SETLKW, &_lock);
+			fatal_cond0( err != 0, "Failed to lock file: " << strerror(errno) );
 		}
 
 		void unlock()
 		{
-			fcntl(fd, F_UNLCK, &_lock);
+			int err = fcntl( _file_descriptor, F_UNLCK, &_lock);
+			fatal_cond0( err != 0, "Failed to unlock file:" << strerror(errno) );
 		}
 
 		/* Unavailable
