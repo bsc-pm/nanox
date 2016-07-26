@@ -153,7 +153,6 @@ class Dispatcher {
 
 		MPI_Comm                         _communicator;
 		int                              _size;
-		int                              _readyRequestNumber;
 		index_storage                    _readyRequestIndices;
 
 		request_storage                  _requests;
@@ -171,7 +170,6 @@ class Dispatcher {
 	public:
 		Dispatcher( MPI_Comm communicator, size_t size ) :
 			_communicator( communicator ), _size( size ),
-			_readyRequestNumber(0),
 			_readyRequestIndices( num_command_types * size, -1 ),
 			_requests( num_command_types * size ),
 			_statuses( num_command_types * size ),
@@ -185,25 +183,30 @@ class Dispatcher {
 
 		virtual ~Dispatcher()
 		{
+			testForCommands();
 			request_storage::iterator request_it;
 			for( request_it = _requests.begin(); request_it != _requests.end(); request_it++ )
 			{
-				bool completed = request_it->test();
-				if( !completed )
-					request_it->cancel();
 				request_it->free();
 			}
+
+			queueAvailableCommands( false );
+			executeCommands();
+		}
+
+		void testForCommands()
+		{
+			_readyRequestIndices = mpi::request::test_some( _requests, _statuses );
 		}
 
 		void waitForCommands()
 		{
-			MPI_Waitsome( _size*num_command_types, _requests[0], &_readyRequestNumber, &_readyRequestIndices[0], &_statuses[0] );
-			assert( _readyRequestNumber != MPI_UNDEFINED );
+			_readyRequestIndices = mpi::request::wait_some( _requests, _statuses );
 		}
 
-		void queueAvailableCommands()
+		void queueAvailableCommands( bool restartRequest = true )
 		{
-			for( int r = 0; r < _readyRequestNumber; r++ ) {
+			for( size_t r = 0; r < _readyRequestIndices.size(); r++ ) {
 				int index = _readyRequestIndices.at(r);
 				// Create the command specialization
 				// TODO: Maybe there is a better way to do this
@@ -219,7 +222,8 @@ class Dispatcher {
 					_cacheCommands.queueCommand( (index-_size), _statuses.at(r) );
 				}
 				// and restart the request
-				_requests.at(index).start();
+				if( restartRequest )
+					_requests.at(index).start();
 			}
 		}
 
