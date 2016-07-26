@@ -131,7 +131,7 @@ class TaskReduction {
          _max = & storage[_size * threads];
          for ( size_t i=0; i<_num_threads; i++) {
             _storage[i].data = (void *) &storage[i * _size];
-            initialize(i);
+            _storage[i].isInitialized = false;
          }
       }
    }
