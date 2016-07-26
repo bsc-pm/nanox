@@ -92,8 +92,7 @@ class TaskReduction {
          }
       }
       else {
-         NANOS_ARCHITECTURE_PADDING_SIZE(size);
-         NANOS_ARCHITECTURE_PADDING_SIZE(size_elem);
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
 
          char * storage = (char*) malloc (_size*threads);
          _min = & storage[0];
@@ -125,7 +124,7 @@ class TaskReduction {
          }
       }
       else {
-         NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
          char * storage = (char*) malloc (_size * threads);
 
          _min = & storage[0];
