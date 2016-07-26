@@ -24,41 +24,21 @@
 #include "basethread.hpp"
 #include "smpthread.hpp"
 #include "mpiprocessor_fwd.hpp"
+#include "mpispawn_fwd.hpp"
 
 #include "request.hpp"
 
 //TODO: Make mpi independent from pthreads? move it to OS?
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
-   class MPIThread : public SMPThread
-   {
-
+   class MPIThread : public SMPThread {
          friend class MPIProcessor;
 
       private:
-         Lock  _selfLock;
-         Lock* _groupLock;
-
-         std::vector<MPIThread*>  _threadList;
-         std::vector<MPIThread*>* _groupThreadList;
-
          int                        _currentPE;
-         std::vector<MPIProcessor*> _runningPEs;
-
-         //Optimization so we do not search for active comms for early-release across all the nodes
-         //Its a little slower but in an hipotetical distributed exascale scenario, it should be much better
-
-         Atomic<unsigned int> _selfTotRunningWds;
-         Atomic<unsigned int>* _groupTotRunningWds;
-         std::list<WD*> _wdMarkedToDelete;
-
-         //size_t      _stackSize;
-         //bool        _useUserThreads;         
-//         MPI_Comm _communicator;
-//         int _rank;
+         mpi::RemoteSpawn*          _spawnGroup;
 
          // disable copy constructor and assignment operator
          MPIThread( const MPIThread &th );
@@ -68,21 +48,10 @@ namespace ext
          // constructor
          MPIThread( WD &w, PE *pe, SMPProcessor *core) :
              SMPThread( w,pe ,core),
-             _selfLock(),
-             _groupLock(NULL),
-             _threadList(),
-             _groupThreadList(&_threadList),
              _currentPE(0),
-             _runningPEs(),
-             _selfTotRunningWds(0),
-             _groupTotRunningWds(&_selfTotRunningWds),
-             _wdMarkedToDelete()
+             _spawnGroup(NULL)
          {
          }
-
-         // named parameter idiom
-         //MPIThread & stackSize( size_t size ) { _stackSize = size; return *this; }
-         //MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
          virtual ~MPIThread()
@@ -95,8 +64,6 @@ namespace ext
             }
          }
 
-         //void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
-         
          virtual void runDependent ( void );
 
          void initializeDependent( void );
@@ -113,55 +80,16 @@ namespace ext
 
          virtual bool canBlock() { return false;}
 
+         mpi::RemoteSpawn& getSpawnGroup() { return *_spawnGroup; }
 
-         /**
-          * Deletes an WD if no thread is executing it
-          * @param wd
-          * @param markToDelete If wd couldn't be deleted, add to pending list
-          * @return if thread was deleted
-          */
-         bool deleteWd(WD* wd, bool markToDelete);
-
-         /**
-          * Checks which tasks have completed "input" communication and early-releases deps
-          */
-         void checkCommunicationsCompletion( const std::vector<int>& finishedIds );
-
-         /**
-          * Checks which tasks have finished and frees/release deps them
-          */
-         void checkTaskEnd();
-
-         std::vector<mpi::request> getPendingTaskEndRequests();
+         void setSpawnGroup( mpi::RemoteSpawn& spawn ) { _spawnGroup = &spawn; }
 
          void finish();
-         /**
-          * Frees current exrcuting WD of given PE
-          * @param finishedPE
-          */
-         void freeWD( WD* finished );
 
-         void setGroupLock(Lock* gLock);
-
-         Lock* getSelfLock();
-
-         Atomic<unsigned int>* getSelfCounter();
-
-         void setGroupCounter(Atomic<unsigned int>* gCounter);
-
-         std::vector<MPIThread*>* getSelfThreadList();
-
-         void setGroupThreadList(std::vector<MPIThread*>* threadList);
-
-         std::vector<MPIThread*>* getGroupThreadList();
-
-         std::vector<MPIProcessor*>& getRunningPEs();
-
-         std::vector<int> waitFinishedTaskEnd( std::vector<mpi::request>& pendingTaskEnd );
    };
 
+} // namespace ext
+} // namespace nanos
 
-}
-}
+#endif // _NANOS_MPI_THREAD
 
-#endif
