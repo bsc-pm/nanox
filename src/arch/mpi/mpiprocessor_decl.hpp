@@ -20,22 +20,18 @@
 #ifndef _NANOS_MPI_PROCESSOR_DECL
 #define _NANOS_MPI_PROCESSOR_DECL
 
-#include <mpi.h>
-
-#include "atomic_decl.hpp"
 #include "atomic_flag.hpp"
-#include "config.hpp"
-#include "mpidevice.hpp"
-#include "mpithread.hpp"
 #include "hostinfo.hpp"
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 #include "request.hpp"
-#include "mpiremotenode_decl.hpp"
+#include "system_decl.hpp"
+
+#include "mpithread_fwd.hpp"
+
+#include <mpi.h>
 
 namespace nanos {
-    namespace ext {
+namespace ext {
 
         class MPIProcessor : public ProcessingElement {
         private:
@@ -71,7 +67,6 @@ namespace nanos {
             MPI_Comm _communicator;
             int _rank;
             bool _owner; //if we are the owner (process in charge of freeing the remote process)
-            bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
             int* _pphList; //saves which hosts in list/hostfile were ocuppied by this spawn
 
@@ -98,7 +93,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
+            MPIProcessor( MPI_Comm communicator, int rank, bool owned, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
 
             virtual ~MPIProcessor();
 
@@ -140,7 +135,7 @@ namespace nanos {
  
             int getRank() const;
             
-            bool getOwner() const;
+            bool isOwner() const;
             
             void setOwner(bool owner);
             
@@ -202,10 +197,11 @@ namespace nanos {
 
             mpi::persistent_request& getTaskEndRequest();
 
-            BaseThread& startMPIThread(WD* work);
+            MPIThread& startMPIThread(WD* work);
             
             WD & getWorkerWD() const;
             WD & getMasterWD() const;
+
             static void prepareConfig(Config &config);
 
             // capability query functions

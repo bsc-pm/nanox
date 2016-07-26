@@ -18,27 +18,55 @@
 /*************************************************************************************/
 
 #include "mpiprocessor.hpp"
+
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"
 #include "mpithread.hpp"
+#include "mpiremotenode_decl.hpp"
 #include "smpprocessor.hpp"
-#include <stdlib.h>
+
+#include "createauxthread.hpp"
+
 #include <iostream>
 #include <fstream>
-#include <unistd.h>
+
 #include <mpi.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using namespace nanos;
 using namespace nanos::ext;
 
-MPIProcessor::MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owner, bool shared,
+size_t MPIProcessor::_workers_per_process=0;
+
+System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
+size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
+size_t MPIProcessor::_alignThreshold = 128;
+size_t MPIProcessor::_alignment = 4096;
+size_t MPIProcessor::_maxWorkers = 1;
+std::string MPIProcessor::_mpiExecFile;
+std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
+std::string MPIProcessor::_mpiNodeType;
+std::string MPIProcessor::_mpiHosts;
+std::string MPIProcessor::_mpiHostsFile;
+std::string MPIProcessor::_mpiControlFile;
+int MPIProcessor::_numPrevPEs=-1;
+int MPIProcessor::_numFreeCores;
+int MPIProcessor::_currPE;
+bool MPIProcessor::_useMultiThread=false;
+bool MPIProcessor::_allocWide=false;
+
+#ifndef OPEN_MPI
+bool MPIProcessor::_disableSpawnLock=false;
+#endif
+
+MPIProcessor::MPIProcessor( MPI_Comm communicator, int rank, bool owner,
         MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) :
     ProcessingElement( &MPI, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ),
-    _communicator( *communicator ),
+    _communicator( communicator ),
     _rank( rank ),
     _owner( owner ),
-    _shared( shared ),
     _hasWorkerThread(false),
     _pphList(NULL),
     _busy(),
@@ -51,15 +79,39 @@ MPIProcessor::MPIProcessor( MPI_Comm* communicator, int rank, int uid, bool owne
     _core(core),
     _peLock()
 {
+    // Create taskEnd reception persistent request
     _busy.clear();
     MPI_Recv_init( &_currExecutingFunctionId, 1, MPI_INT, _rank, TAG_END_TASK, _communicator, _taskEndRequest );
+
+    // Synchronize linker arrays
+    if( owner ) {
+        int arrSize = 0;
+        while( ompss_mpi_masks[arrSize] == MASK_TASK_NUMBER ) {
+            arrSize++;
+        }
+
+	_pendingReqs.push_back( mpi::request() );
+        MPI_Isend(ompss_mpi_filenames,  arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, _communicator, _pendingReqs.back() );
+
+	_pendingReqs.push_back( mpi::request() );
+        MPI_Isend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, _communicator, _pendingReqs.back() );
+
+        //If user defined multithread cache behaviour, send the creation order
+        if (nanos::ext::MPIProcessor::isUseMultiThread()) {
+            mpi::command::CreateAuxiliaryThread::Requestor createThread( *this );
+            createThread.dispatch();
+
+            setHasWorkerThread(true);
+        }
+        waitAndClearRequests();
+    }
 }
 
 
 MPIProcessor::~MPIProcessor() {
+    // Free taskEnd reception persistent request
     _taskEndRequest.free();
 }
-
 
 void MPIProcessor::prepareConfig(Config &config) {
 
@@ -201,14 +253,17 @@ bool MPIProcessor::testAllRequests() {
     return completed;
 }
 
-BaseThread &MPIProcessor::startMPIThread(WD* wd) {
-   if (wd==NULL) wd=&getWorkerWD();
+MPIThread& MPIProcessor::startMPIThread(WD* wd ) {
+   if ( wd == NULL )
+      wd = &getWorkerWD();
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
 
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, 0 ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = wd->getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
-   return _core->startThread( *this, *wd, NULL );
+   return static_cast<MPIThread&>(_core->startThread( *this, *wd, NULL ));
 }
 
 WD* MPIProcessor::freeCurrExecutingWd() {
@@ -218,8 +273,6 @@ WD* MPIProcessor::freeCurrExecutingWd() {
 
     //Clear all async requests on this PE (they finished a while ago)
     waitAndClearRequests();
-
-    wd->finish();
 
     //Set the PE as free so we can re-schedule work to it
     release();

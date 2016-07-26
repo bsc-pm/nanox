@@ -20,179 +20,158 @@
 #ifndef _NANOS_MPI_PROCESSOR
 #define _NANOS_MPI_PROCESSOR
 
-#include "mpi.h"
-#include "atomic_decl.hpp"
+//#include "atomic_decl.hpp"
 #include "mpiprocessor_decl.hpp"
-#include "config.hpp"
-#include "mpidevice.hpp"
-#include "mpithread.hpp"
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
-#include "processingelement.hpp"
-#include <fcntl.h>
-#include <unistd.h>
 
-using namespace nanos;
-using namespace ext;
-    
-size_t MPIProcessor::_workers_per_process=0;
+//#include "cachedaccelerator.hpp"
+//#include "config.hpp"
+//#include "mpidevice.hpp"
+//#include "mpithread.hpp"
+//#include "processingelement.hpp"
+//
+//#include <mpi.h>
+//#include <fcntl.h>
+//#include <unistd.h>
 
-System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
-size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
-size_t MPIProcessor::_alignThreshold = 128;
-size_t MPIProcessor::_alignment = 4096;
-size_t MPIProcessor::_maxWorkers = 1;
-std::string MPIProcessor::_mpiExecFile;
-std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
-std::string MPIProcessor::_mpiNodeType;
-std::string MPIProcessor::_mpiHosts;
-std::string MPIProcessor::_mpiHostsFile;
-std::string MPIProcessor::_mpiControlFile;
-int MPIProcessor::_numPrevPEs=-1;
-int MPIProcessor::_numFreeCores;
-int MPIProcessor::_currPE;
-bool MPIProcessor::_useMultiThread=false;
-bool MPIProcessor::_allocWide=false;
+namespace nanos {
+namespace ext {
+
 #ifndef OPEN_MPI
-bool MPIProcessor::_disableSpawnLock=false;
-
-bool MPIProcessor::isDisableSpawnLock() {
+inline bool MPIProcessor::isDisableSpawnLock() {
     return _disableSpawnLock;
 }
 #endif
 
-size_t MPIProcessor::getCacheDefaultSize() {
+inline size_t MPIProcessor::getCacheDefaultSize() {
     return _cacheDefaultSize;
 }
 
-System::CachePolicyType MPIProcessor::getCachePolicy() {
+inline System::CachePolicyType MPIProcessor::getCachePolicy() {
     return _cachePolicy;
 }
 
-std::string MPIProcessor::getMpiHosts() {
+inline std::string MPIProcessor::getMpiHosts() {
     return _mpiHosts;
 }
 
-std::string MPIProcessor::getMpiHostsFile() {
+inline std::string MPIProcessor::getMpiHostsFile() {
     return _mpiHostsFile;
 }
 
-std::string MPIProcessor::getMpiExecFile() {
+inline std::string MPIProcessor::getMpiExecFile() {
     return _mpiExecFile;
 }
 
-std::string MPIProcessor::getMpiControlFile() {
+inline std::string MPIProcessor::getMpiControlFile() {
     return _mpiControlFile;
 }
 
-bool MPIProcessor::getAllocWide() {
+inline bool MPIProcessor::getAllocWide() {
     return _allocWide;
 }
 
-size_t MPIProcessor::getMaxWorkers() {
+inline size_t MPIProcessor::getMaxWorkers() {
     return _maxWorkers;
 }
 
-bool MPIProcessor::isUseMultiThread() {
+inline bool MPIProcessor::isUseMultiThread() {
     return _useMultiThread;
 }
 
-std::string MPIProcessor::getMpiLauncherFile() {
+inline std::string MPIProcessor::getMpiLauncherFile() {
     return _mpiLauncherFile;
 }
 
-size_t MPIProcessor::getAlignment() {
+inline size_t MPIProcessor::getAlignment() {
     return _alignment;
 }
 
-size_t MPIProcessor::getAlignThreshold() {
+inline size_t MPIProcessor::getAlignThreshold() {
     return _alignThreshold;
 }
 
-MPI_Comm MPIProcessor::getCommunicator() const {
+inline MPI_Comm MPIProcessor::getCommunicator() const {
     return _communicator;
 }
 
-void MPIProcessor::setCommunicator( MPI_Comm comm ) {
+inline void MPIProcessor::setCommunicator( MPI_Comm comm ) {
     _communicator = comm;
 }
 
-MPI_Comm MPIProcessor::getCommOfParents() const {
+inline MPI_Comm MPIProcessor::getCommOfParents() const {
     return _commOfParents;
 }
 
-int MPIProcessor::getRank() const {
+inline int MPIProcessor::getRank() const {
     return _rank;
 }
 
-bool MPIProcessor::getOwner() const {
+inline bool MPIProcessor::isOwner() const {
     return _owner;
 }
 
-void MPIProcessor::setOwner(bool owner) {
-    _owner=owner;
-}
-
-bool MPIProcessor::getHasWorkerThread() const {
+inline bool MPIProcessor::getHasWorkerThread() const {
     return _hasWorkerThread;
 }
 
-void MPIProcessor::setHasWorkerThread(bool hwt) {
+inline void MPIProcessor::setHasWorkerThread(bool hwt) {
     _hasWorkerThread=hwt;
 }
 
-bool MPIProcessor::getShared() const {
-    return _shared;
-}     
-
-WD* MPIProcessor::getCurrExecutingWd() const {
+inline WD* MPIProcessor::getCurrExecutingWd() const {
     return _currExecutingWd;
 }
 
-void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
+inline void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
     this->_currExecutingWd = currExecutingWd;
 }
 
-bool MPIProcessor::isBusy() {
+inline bool MPIProcessor::isBusy() {
     return _busy.load();
 }
 
-void MPIProcessor::setPphList(int* list){
+inline void MPIProcessor::setPphList(int* list){
     _pphList=list;
 }
 
-int* MPIProcessor::getPphList() {
+inline int* MPIProcessor::getPphList() {
     return _pphList;
 }
 
-mpi::persistent_request& MPIProcessor::getTaskEndRequest() {
+inline mpi::persistent_request& MPIProcessor::getTaskEndRequest() {
     return _taskEndRequest;
 }
 
 //Try to reserve this PE, if the one who reserves it is the same
 //which already has the PE, return true
-bool MPIProcessor::acquire( int dduid ) {
-    if( dduid == _currExecutingDD )
+inline bool MPIProcessor::acquire( int dduid ) {
+    if( _busy.load() && dduid == _currExecutingDD )
         return true;
 
     bool idle = !_busy.test_and_set();
-    return idle;
-}     
+    if( idle )
+        _currExecutingDD = dduid;
 
-void MPIProcessor::release() {
+    return idle;
+}
+
+inline void MPIProcessor::release() {
    _busy.clear();
 }
 
-int MPIProcessor::getCurrExecutingDD() const {
+inline int MPIProcessor::getCurrExecutingDD() const {
     return _currExecutingDD;
 }
 
-void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
+inline void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
     this->_currExecutingDD = currExecutingDD;
 }
 
-void MPIProcessor::appendToPendingRequests( mpi::request const& req ) {
+inline void MPIProcessor::appendToPendingRequests( mpi::request const& req ) {
     _pendingReqs.push_back(req);
 }
+
+} // namespace ext
+} // namespace nanos
 
 #endif
