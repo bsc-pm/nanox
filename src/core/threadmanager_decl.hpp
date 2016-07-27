@@ -41,6 +41,7 @@ namespace nanos {
       protected:
          Lock              _lock;
          bool              _initialized;
+         unsigned int      _maxThreads;
          const CpuSet     *_cpuProcessMask;     /* Read-only masks from SMPPlugin */
          const CpuSet     *_cpuActiveMask;
 
@@ -53,6 +54,7 @@ namespace nanos {
 
          virtual void init();
          bool lastActiveThread();
+         unsigned int getMaxThreads() { return _maxThreads; }
 
          virtual bool isGreedy() { return false; }
          virtual void idle( int& yields
@@ -83,8 +85,6 @@ namespace nanos {
    class BlockingThreadManager : public ThreadManager
    {
       private:
-         unsigned int      _maxCPUs;
-         unsigned int      _maxWorkers;
          bool              _isMalleable;
          unsigned int      _numYields;
          bool              _useBlock;
@@ -122,7 +122,6 @@ namespace nanos {
    class BusyWaitThreadManager : public ThreadManager
    {
       private:
-         unsigned int      _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
          unsigned int      _sleepTime;
@@ -161,7 +160,6 @@ namespace nanos {
    class DlbThreadManager : public ThreadManager
    {
       private:
-         unsigned int      _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
 

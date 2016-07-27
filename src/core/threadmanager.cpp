@@ -183,7 +183,8 @@ bool ThreadManagerConf::canUntieMaster() const
 /**********************************/
 
 ThreadManager::ThreadManager( bool warmup )
-   : _lock(), _initialized(false), _cpuProcessMask(NULL), _cpuActiveMask(NULL), _warmupThreads(warmup)
+   : _lock(), _initialized(false), _maxThreads(0),
+   _cpuProcessMask(NULL), _cpuActiveMask(NULL), _warmupThreads(warmup)
 {}
 
 void ThreadManager::init()
@@ -193,6 +194,7 @@ void ThreadManager::init()
    }
    _cpuProcessMask = &sys.getCpuProcessMask();
    _cpuActiveMask = &sys.getCpuActiveMask();
+   _maxThreads = sys.getSMPPlugin()->getRequestedWorkers();
    _initialized = true;
 }
 
@@ -219,8 +221,8 @@ bool ThreadManager::lastActiveThread()
 /**********************************/
 
 BlockingThreadManager::BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup )
-   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _maxWorkers(0),
-   _isMalleable(false), _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
+   : ThreadManager(warmup), _isMalleable(false),
+   _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
 {}
 
 BlockingThreadManager::~BlockingThreadManager()
@@ -231,17 +233,15 @@ BlockingThreadManager::~BlockingThreadManager()
 void BlockingThreadManager::init()
 {
    ThreadManager::init();
-   _maxWorkers = sys.getSMPPlugin()->getRequestedWorkers();
    _isMalleable = sys.getPMInterface().isMalleable();
+   _maxThreads = _useDLB ? OS::getMaxProcessors() : sys.getSMPPlugin()->getRequestedWorkers();
    if ( _useDLB ) DLB_Init();
 }
 
 bool BlockingThreadManager::isGreedy()
 {
    if ( !_initialized ) return false;
-
-   size_t max_threads = _useDLB ? _maxCPUs : _maxWorkers;
-   return _cpuActiveMask->size() < max_threads;
+   return _cpuActiveMask->size() < _maxThreads;
 }
 
 void BlockingThreadManager::idle( int& yields
@@ -284,18 +284,18 @@ void BlockingThreadManager::acquireOne()
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   if ( _cpuActiveMask->size() == _maxWorkers ) return;
+   if ( _cpuActiveMask->size() == _maxThreads ) return;
 
    LockBlock Lock( _lock );
 
    CpuSet new_active_cpus = *_cpuActiveMask;
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
 
-   // Check first that we have some owned CPU not active and that we don't have reach
-   // the maximum number of threads allowed by --smp-workers
-   if ( mine_and_active != *_cpuProcessMask && _cpuActiveMask->size() < _maxWorkers ) {
+   // Check first that we have some owned CPU not active
+   // and that we don't have reach the maximum number of threads
+   if ( mine_and_active != *_cpuProcessMask && _cpuActiveMask->size() < _maxThreads ) {
       // Iterate over default cpus not running and wake them up if needed
-      for ( unsigned int i=0; i<_maxCPUs; ++i ) {
+      for ( unsigned int i=0; i<_maxThreads; ++i ) {
          if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
             new_active_cpus.set(i);
             sys.setCpuActiveMask( new_active_cpus );
@@ -335,7 +335,7 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
          if ( mine_and_active != *_cpuProcessMask ) {
             bool dirty = false;
             // Iterate over default cpus not running and wake them up if needed
-            for ( unsigned int i=0; i<_maxCPUs; ++i ) {
+            for ( unsigned int i=0; i<_maxThreads; ++i ) {
                if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
                   new_active_cpus.set(i);
                   dirty = true;
@@ -426,7 +426,7 @@ void BlockingThreadManager::processMaskChanged()
 
 BusyWaitThreadManager::BusyWaitThreadManager( unsigned int num_yields, unsigned int sleep_time,
                                                 bool use_sleep, bool use_dlb, bool warmup )
-   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   : ThreadManager(warmup), _isMalleable(false),
    _numYields(num_yields), _sleepTime(sleep_time), _useSleep(use_sleep), _useDLB(use_dlb)
 {
 }
@@ -440,6 +440,7 @@ void BusyWaitThreadManager::init()
 {
    ThreadManager::init();
    _isMalleable = sys.getPMInterface().isMalleable();
+   _maxThreads = _useDLB ? OS::getMaxProcessors() : sys.getSMPPlugin()->getRequestedWorkers();
    if ( _useDLB ) DLB_Init();
 }
 
@@ -448,7 +449,7 @@ bool BusyWaitThreadManager::isGreedy()
    if ( !_initialized ) return false;
    if ( !_useDLB ) return false;
 
-   return _cpuActiveMask->size() < _maxCPUs;
+   return _cpuActiveMask->size() < _maxThreads;
 }
 
 void BusyWaitThreadManager::idle( int& yields
@@ -656,8 +657,7 @@ void BusyWaitThreadManager::processMaskChanged()
 /**********************************/
 
 DlbThreadManager::DlbThreadManager( unsigned int num_yields, bool warmup )
-   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(false), _numYields(num_yields)
+   : ThreadManager(warmup), _isMalleable(false), _numYields(num_yields)
 {
 }
 
@@ -670,6 +670,7 @@ void DlbThreadManager::init()
 {
    ThreadManager::init();
    _isMalleable = sys.getPMInterface().isMalleable();
+   _maxThreads = OS::getMaxProcessors();
    DLB_Init();
 }
 
@@ -677,7 +678,7 @@ bool DlbThreadManager::isGreedy()
 {
    if ( !_initialized ) return false;
 
-   return _cpuActiveMask->size() < _maxCPUs;
+   return _cpuActiveMask->size() < _maxThreads;
 }
 
 void DlbThreadManager::idle( int& yields
