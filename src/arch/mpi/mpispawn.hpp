@@ -118,7 +118,6 @@ class RemoteSpawn {
 	
 						WD* finishedWD = finishedPE->freeCurrExecutingWd();
 						if( finishedWD != NULL ) { // PE already released?
-							message0("Received task end message. Finishing workdescriptor " << finishedWD->getId() );
 							_runningWDs--;
 	
 							//Finish the wd, finish work
@@ -195,6 +194,8 @@ class RemoteSpawn {
 						mutex.unlock();
 					}
 				}
+				sys.getPEList().erase( remote->getId() );
+				delete remote;
 			}
 #ifdef OPEN_MPI
 			MPI_Comm_free(&_intercommunicator);

@@ -51,6 +51,7 @@ namespace ext {
              _currentPE(0),
              _spawnGroup(NULL)
          {
+             setLeaveTeam(true);
          }
 
          // destructor
