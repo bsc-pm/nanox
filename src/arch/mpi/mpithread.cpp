@@ -65,6 +65,7 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     (dd.getWorkFct())(wd.getData());
 
     //Check if any task finished
+    getSpawnGroup().registerTaskInit();
     getSpawnGroup().waitFinishedTasks();
 
     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseStateAndBurst(key, val));

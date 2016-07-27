@@ -77,7 +77,7 @@ class request
 			          MPI_STATUS_IGNORE );
 			return flag == 1;
 		}
-
+	
 		bool test( MPI_Status& status )
 		{
 			int flag;

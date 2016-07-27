@@ -7,6 +7,8 @@
 #include "mpithread.hpp"
 
 #include "finish.hpp"
+
+#include "mutex.hpp"
 #include "lock.hpp"
 #include "filelock.hpp"
 
@@ -44,7 +46,8 @@ class RemoteSpawn {
 			_intercommunicator( intercommunicator ),
 			_remotes( remotes ),
 			_threads(),
-			_runningWDs( 0 )
+			_runningWDs( 0 ),
+			_lock()
 		{
 			ensure0( helperThreadNumber <= _remotes.size(), "Too many helper threads requested" );
 
@@ -89,40 +92,51 @@ class RemoteSpawn {
 		
 			return pendingTaskEnd;
 		}
+
+		void registerTaskInit() {
+			_runningWDs++;
+		}
 	
 		std::vector<int> waitFinishedTasks() {
-			std::vector<mpi::request> pendingTaskEnd;
-			pendingTaskEnd = getPendingTaskEndRequests();
-	
+			UniqueLock<Lock> guard( _lock, nanos::try_to_lock );
 			std::vector<int> finishedTaskEndIds;
-			finishedTaskEndIds = mpi::request::wait_some( pendingTaskEnd );
-		
-			if( !finishedTaskEndIds.empty() && _lock.tryAcquire() ) {
-				std::vector<int>::iterator taskEndIdIter;
-				for( taskEndIdIter = finishedTaskEndIds.begin();
-					 taskEndIdIter != finishedTaskEndIds.end(); ++taskEndIdIter ) {
+
+			if( _runningWDs > 0 ) {
+				std::vector<mpi::request> pendingTaskEnd;
+				pendingTaskEnd = getPendingTaskEndRequests();
+
+				finishedTaskEndIds = mpi::request::wait_some( pendingTaskEnd );
+
+				if( !finishedTaskEndIds.empty() && guard.owns_lock() ) {
+
+					std::vector<int>::iterator taskEndIdIter;
+					for( taskEndIdIter = finishedTaskEndIds.begin();
+						 taskEndIdIter != finishedTaskEndIds.end(); ++taskEndIdIter ) {
 	
-					ext::MPIProcessor* finishedPE = _remotes.at( *taskEndIdIter );
-					myThread->setRunningOn(finishedPE);
+						ext::MPIProcessor* finishedPE = _remotes.at( *taskEndIdIter );
+						myThread->setRunningOn(finishedPE);
 	
-					WD* finishedWD = finishedPE->freeCurrExecutingWd();
-					message0("Received task end message. Finishing workdescriptor " << finishedWD->getId() );
+						WD* finishedWD = finishedPE->freeCurrExecutingWd();
+						if( finishedWD != NULL ) { // PE already released?
+							message0("Received task end message. Finishing workdescriptor " << finishedWD->getId() );
+							_runningWDs--;
 	
-					//Finish the wd, finish work
-					WD* previousWD = myThread->getCurrentWD();
-					myThread->setCurrentWD( *finishedWD );
+							//Finish the wd, finish work
+							WD* previousWD = myThread->getCurrentWD();
+							myThread->setCurrentWD( *finishedWD );
 	
-					finishedWD->releaseInputDependencies();
-					finishedWD->finish();
-					Scheduler::finishWork( finishedWD, true );
+							finishedWD->releaseInputDependencies();
+							finishedWD->finish();
+							Scheduler::finishWork( finishedWD, true );
 	
-					myThread->setCurrentWD(*previousWD);
+							myThread->setCurrentWD(*previousWD);
 	
-					// Destroy wd
-					finishedWD->~WorkDescriptor();
-					delete[] (char *)finishedWD;
+							// Destroy wd
+							finishedWD->~WorkDescriptor();
+							delete[] (char *)finishedWD;
+						}
+					}
 				}
-				_lock.release();
 			}
 			return finishedTaskEndIds;
 		}
