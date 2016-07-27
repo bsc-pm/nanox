@@ -41,10 +41,22 @@ namespace nanos
          // destructor
          ~Lock() {}
 
-         void acquire ( void );
-         void acquire_noinst ( void );
-         bool tryAcquire ( void );
-         void release ( void );
+         void acquire();
+
+         void acquire_noinst();
+
+         // compatibility
+         void lock() { acquire(); }
+
+         bool tryAcquire();
+
+         // compatibility
+         bool try_lock() { return tryAcquire(); }
+
+         void release();
+
+         // compatibility
+         void unlock() { release(); }
 
          state_t operator* () const;
 

@@ -60,9 +60,15 @@ class Mutex {
 		}
 };
 
+// Empty structures used to disambiguate
+// LockGuard construction variants
 struct defer_lock_t {};
 struct try_to_lock_t {};
 struct adopt_lock_t {};
+
+defer_lock_t defer_lock;
+try_to_lock_t try_to_lock;
+adopt_lock_t adopt_lock;
 
 template < class MutexType >
 class LockGuard {
