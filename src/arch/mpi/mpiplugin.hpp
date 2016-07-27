@@ -62,7 +62,7 @@ class MPIPlugin : public ArchPlugin {
 
     virtual void createBindingList();
        
-    virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+    virtual void addPEs( PEList &pes ) const;
 
     virtual void addDevices( DeviceList &devices ) const;
 

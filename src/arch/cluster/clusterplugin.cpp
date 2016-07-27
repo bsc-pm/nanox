@@ -257,7 +257,7 @@ void ClusterPlugin::finalize() {
 }
 
 
-void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+void ClusterPlugin::addPEs( PEList &pes ) const {
    if ( _nodes ) {
       std::vector<ClusterNode *>::const_iterator it = _nodes->begin();
       it++; //position 0 is null, node 0 does not have a ClusterNode object

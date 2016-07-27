@@ -75,7 +75,6 @@ namespace nanos
 
       private:
          // types
-         typedef std::map<unsigned int, PE *>         PEList;
          typedef std::map<unsigned int, BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
@@ -576,6 +575,8 @@ namespace nanos
          
          NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
+
+         PEList& getPEList();
          
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
          

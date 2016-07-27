@@ -378,7 +378,7 @@ class SMPPlugin : public SMPBasePlugin
       }
    }
 
-   virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const
+   virtual void addPEs( PEList &pes ) const
    {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             pes.insert( std::make_pair( (*it)->getId(), *it ) );
