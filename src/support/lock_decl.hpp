@@ -46,17 +46,17 @@ namespace nanos
          void acquire_noinst();
 
          // compatibility
-         void lock() { acquire(); }
+         void lock();
 
          bool tryAcquire();
 
          // compatibility
-         bool try_lock() { return tryAcquire(); }
+         bool try_lock();
 
          void release();
 
          // compatibility
-         void unlock() { release(); }
+         void unlock();
 
          state_t operator* () const;
 

@@ -67,6 +67,11 @@ spin:
 #endif
 }
 
+inline void Lock::lock()
+{
+   acquire();
+}
+
 inline void Lock::acquire_noinst ( void )
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
@@ -100,6 +105,11 @@ inline bool Lock::tryAcquire ( void )
 #endif
 }
 
+inline bool Lock::try_lock()
+{
+   return tryAcquire();
+}
+
 inline void Lock::release ( void )
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
@@ -107,6 +117,11 @@ inline void Lock::release ( void )
 #else
    __sync_lock_release( &state_ );
 #endif
+}
+
+inline void Lock::unlock()
+{
+   release();
 }
 
 inline LockBlock::LockBlock ( Lock & lock ) : _lock(lock)
