@@ -72,20 +72,29 @@ inline void CopyDeviceToDevice::Requestor::dispatch()
 /**
  * The process that matches with sourceRank has to send the data
  * to the one which matches with destinationRank
+ * Note: device to device copies are only allowed when both source
+ *       and destination processes are created with the same
+ *       MPI_Comm_spawn (i.e. they share the same intercommunicator).
+ *       Since the intercommunicator is used to communicate with the
+ *       process in the other end (masters), this function must make use
+ *       of MPI_COMM_WORLD instead (communicate between process in the same
+ *       end: slaves).
  */
 template<>
 inline void CopyDeviceToDevice::Servant::serve()
 {
 	int myRank;
-	MPI_Comm_rank( _channel.getCommunicator(), &myRank );
+	MPI_Comm communicator = MPI_COMM_WORLD;
+	MPI_Comm_rank( communicator, &myRank );
+
+	CopyDeviceToDevice::transfer_channel_type transfer_channel( _data.getSource(),
+	                                                            _data.getDestination(),
+	                                                            communicator );
 
 	if ( myRank == _data.getSource() ) {
 		// This process has to send the data
 		NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
 
-		CopyDeviceToDevice::transfer_channel_type transfer_channel( _channel );
-		transfer_channel.setDestination( _data.getDestination() );
-	
 		RawPayload destinationData( _data.getHostAddress() );
 		transfer_channel.send( destinationData, _data.size() );
 
@@ -107,9 +116,6 @@ inline void CopyDeviceToDevice::Servant::serve()
 //		   }
 //		}
 
-		CopyDeviceToDevice::transfer_channel_type transfer_channel( _channel );
-		transfer_channel.setSource( _data.getSource() );
-	
 		RawPayload destinationData( _data.getDeviceAddress() );
 		transfer_channel.receive( destinationData, _data.size() );
 
