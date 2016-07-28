@@ -312,15 +312,19 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
 
     //If im the root do all the automatic control file work
     if ( rank == 0 && !nanos::ext::MPIProcessor::getMpiControlFile().empty() ) {
-        if (offset != 0 || pph_list != NULL ) fatal0("NX_OFFL_CONTROLFILE environment variable has been defined, deep_booster_alloc_list is not supported"
-                "/needed with automatic control of hosts");
+        if (offset != 0 || pph_list != NULL )
+            fatal0("NX_OFFL_CONTROLFILE environment variable has been defined, "
+                   "deep_booster_alloc_list is not supported"
+                   "/needed with automatic control of hosts");
+
         //Maximum length of pph_list alloc
         pph_list=new int[availableHosts+1];
         int currStatus=0;
 
         std::string controlName=nanos::ext::MPIProcessor::getMpiControlFile();
         FileMutex mutex( const_cast<char*> (controlName.c_str()) );
-	mutex.lock();
+	UniqueLock<FileMutex> guard( mutex );
+
         FILE* file = fdopen( mutex.native_handle(), "r+" );
 
         int reserved=0;
@@ -340,7 +344,7 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
             }
         }
         fclose(file);
-        mutex.unlock();
+        guard.unlock();
 
         //Mark the real length of pph_list
         availableHosts=i;

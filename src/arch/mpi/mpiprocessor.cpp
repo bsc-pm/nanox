@@ -229,14 +229,13 @@ bool MPIProcessor::testAllRequests() {
     //Wait and clear for all the requests
     bool completed = false;
     if (!_pendingReqs.empty()) {
-        _peLock.acquire();
+        UniqueLock<Lock> guard( _peLock );
         if (!_pendingReqs.empty()) {
             completed = mpi::request::test_all( _pendingReqs.begin(), _pendingReqs.end() );
             if ( completed ) {
                 _pendingReqs.clear();
             }
         }
-        _peLock.release();
     }
     return completed;
 }
