@@ -39,10 +39,10 @@ class CommandRequestor<CopyDeviceToDevice::id,CopyDeviceToDevice::payload_type,C
 			_data.initialize( CopyDeviceToDevice::id, source.getRank(), destination.getRank(),
 			       sourceAddr, destinationAddr, size );
 
-			MPI_Request reqs[2];
+			std::vector<mpi::request> reqs(2);
 			reqs[0] = _channelSource.isend( _data );
 			reqs[1] = _channelDestination.isend( _data );
-			MPI_Waitall( 2, reqs, MPI_STATUSES_IGNORE );
+			mpi::request::wait_all( reqs.begin(), reqs.end() );
 		}
 
 		virtual ~CommandRequestor()

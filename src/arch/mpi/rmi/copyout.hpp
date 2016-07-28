@@ -19,9 +19,10 @@ template<>
 inline void CopyOut::Requestor::dispatch()
 {
 	CopyOut::transfer_channel_type transfer_channel( _channel );
+	transfer_channel.setSource( _channel.getDestination() );
 
-	RawPayload sourceData( _data.getDeviceAddress() );
-	request req = transfer_channel.isend( sourceData, _data.size() );
+	RawPayload hostData( _data.getHostAddress() );
+	transfer_channel.receive( hostData, _data.size() );
 }
 
 /**
@@ -47,9 +48,10 @@ inline void CopyOut::Servant::serve()
 //	}
 
 	CopyOut::transfer_channel_type transfer_channel( _channel );
+	transfer_channel.setDestination( _channel.getSource() );
 
-	RawPayload destinationData( _data.getHostAddress() );
-	transfer_channel.receive( destinationData, _data.size() );
+	RawPayload deviceData( _data.getDeviceAddress() );
+	transfer_channel.send( deviceData, _data.size() );
 
 	NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
