@@ -54,9 +54,6 @@ namespace ext {
             static std::string _mpiControlFile;   
             static bool _useMultiThread;
             static bool _allocWide;
-            #ifndef OPEN_MPI
-            static bool _disableSpawnLock;  
-            #endif
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
@@ -115,11 +112,6 @@ namespace ext {
             
             static size_t getAlignThreshold();            
 
-
-            #ifndef OPEN_MPI
-            static bool isDisableSpawnLock();
-            #endif
-                        
             static bool getAllocWide();
 
             static size_t getMaxWorkers();

@@ -36,12 +36,6 @@
 namespace nanos {
 namespace ext {
 
-#ifndef OPEN_MPI
-inline bool MPIProcessor::isDisableSpawnLock() {
-    return _disableSpawnLock;
-}
-#endif
-
 inline size_t MPIProcessor::getCacheDefaultSize() {
     return _cacheDefaultSize;
 }

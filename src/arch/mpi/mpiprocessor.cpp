@@ -57,10 +57,6 @@ int MPIProcessor::_currPE;
 bool MPIProcessor::_useMultiThread=false;
 bool MPIProcessor::_allocWide=false;
 
-#ifndef OPEN_MPI
-bool MPIProcessor::_disableSpawnLock=false;
-#endif
-
 MPIProcessor::MPIProcessor( MPI_Comm communicator, int rank, bool owner,
         MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) :
     ProcessingElement( &MPI, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ),
@@ -190,14 +186,6 @@ void MPIProcessor::prepareConfig(Config &config) {
                                 "Alloc full objects in the cache." );
     config.registerEnvOption( "offl-alloc-wide", "NX_OFFL_ENABLE_ALLOCWIDE" );
     config.registerArgOption( "offl-alloc-wide", "offl-enable-alloc-wide" );
-
-    #ifndef OPEN_MPI
-    config.registerConfigOption("offl-disable-spawn-lock", NEW Config::BoolVar(_disableSpawnLock), "Disables file lock used to serialize"
-                  "different calls to DEEP_BOOSTER_ALLOC performed by different processes when using MPI_COMM_SELF,"
-                  "if disabled user will be responsible of serializing calls (Default: Lock enabled).");
-    config.registerArgOption("offl-disable-spawn-lock", "offl-disable-spawn-lock");
-    config.registerEnvOption("offl-disable-spawn-lock", "NX_OFFL_DISABLE_SPAWN_LOCK");
-    #endif
 
     config.registerConfigOption("offl-workers", NEW Config::SizeVar(_workers_per_process, 0), "Specifies how many worker threads per spawned process should be created.");
     config.registerArgOption("offl-workers", "offl-workers");

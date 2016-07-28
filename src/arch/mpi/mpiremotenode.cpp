@@ -138,8 +138,6 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
     //Remove possible trashfiles from other executions
     if (myRank==0 && !imSlave) {
-       std::string lockname="./.ompssOffloadLock";
-       remove(const_cast<char*> (lockname.c_str()));
        if (!nanos::ext::MPIProcessor::getMpiControlFile().empty()) remove(const_cast<char*> (nanos::ext::MPIProcessor::getMpiControlFile().c_str()));
     }
 
@@ -566,28 +564,11 @@ void MPIRemoteNode::callMPISpawn(
         }
     }
 
-    #ifndef OPEN_MPI
-    //std::string lockname=NANOX_PREFIX"/bin/nanox-pfm";
-    std::string lockname="./.ompssOffloadLock";
-    FileMutex* mutex = NULL;
-    if( !nanos::ext::MPIProcessor::isDisableSpawnLock() && !shared ) {
-       mutex = new FileMutex( const_cast<char*> (lockname.c_str()) );
-       mutex->lock();
-    }
-    #endif
-
     std::vector<MPI_Info> array_of_mpiinfo( host_info.begin(), host_info.end() );
     MPI_Comm_spawn_multiple(spawnedHosts,
 				&commands.front(),
 				&argvs.front(), &num_processes.front(),
             &array_of_mpiinfo.front(), 0, comm, intercomm, MPI_ERRCODES_IGNORE);
-
-    #ifndef OPEN_MPI
-    if( mutex ) {
-       mutex->unlock();
-       delete mutex;
-    }
-    #endif
 
     //Free all args sent
     for( int i=0; i<spawnedHosts; i++ ) {
