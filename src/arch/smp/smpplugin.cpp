@@ -1018,10 +1018,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       sys.getPMInterface().setupWD( threadWD );
    }
 
-   bool SMPPlugin::isValidMask( const CpuSet& mask )
+   bool SMPPlugin::isValidMask( const CpuSet& mask ) const
    {
       // A mask is valid if it shares at least 1 bit with the system mask
-      return _cpuSystemMask.countCommon( mask ) > 0;
+      return (mask * _cpuSystemMask).size() > 0;
    }
 
    bool SMPPlugin::asyncTransfersEnabled() const {
