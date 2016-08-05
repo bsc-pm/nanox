@@ -36,7 +36,7 @@
 #include "gpudd.hpp"
 #endif
 
-#include "memcachecopy_decl.hpp"
+#include "memcachecopy.hpp"
 #include "globalregt.hpp"
 
 
