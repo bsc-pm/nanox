@@ -607,7 +607,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     }
     for ( int rankCounter = 0; rankCounter < totalNumberOfSpawns; rankCounter++ ){
         memory_space_id_t id = sys.getNewSeparateMemoryAddressSpaceId();
-        SeparateMemoryAddressSpace *mpiMem = NEW SeparateMemoryAddressSpace( id, nanos::ext::MPI, nanos::ext::MPIProcessor::getAllocWide());
+        SeparateMemoryAddressSpace *mpiMem = NEW SeparateMemoryAddressSpace( id, nanos::ext::MPI, nanos::ext::MPIProcessor::getAllocWide(), 0);
         mpiMem->setNodeNumber( 0 );
         sys.addSeparateMemory(id,mpiMem);
 
