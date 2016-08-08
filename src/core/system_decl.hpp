@@ -43,7 +43,6 @@
 #include "hwloc_decl.hpp"
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
-#include "clustermpiplugin_fwd.hpp"
 
 #include "newregiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
@@ -55,6 +54,16 @@
 
 #ifdef OpenCL_DEV
 #include "openclprocessor_fwd.hpp"
+#endif
+
+#ifdef CLUSTER_DEV
+#include "clustermpiplugin_fwd.hpp"
+#else
+namespace nanos {
+namespace ext {
+class ClusterMPIPlugin;
+}
+}
 #endif
 
 namespace nanos {
