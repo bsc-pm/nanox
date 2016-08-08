@@ -60,21 +60,33 @@ class FPGAPlugin : public ArchPlugin
           * We must init the DMA lib before any operation using it is performed
           */
          if ( !FPGAConfig::isDisabled() ) {
-            debug0("xilinx dma initialization");
+            if ( sys.getRegionCachePolicyStr().compare( "fpga" ) != 0 ) {
+               if ( sys.getRegionCachePolicyStr().compare( "" ) != 0 ) {
+                  warning0( "Switching the cache-policy from '" << sys.getRegionCachePolicyStr() << "' to 'fpga'" );
+               } else {
+                  debug0( "Setting the cache-policy option to 'fpga'" );
+               }
+               sys.setRegionCachePolicyStr( "fpga" );
+            }
+
+            debug0( "xilinx dma initialization" );
             //Instrumentation has not been initialized yet so we cannot trace things yet
             int status = xdmaOpen();
             //Abort if dma library failed to initialize
             //Otherwise this will cause problems (segfaults/hangs) later on the execution
             if (status)
-               fatal0("Error initializing DMA library: Returned status: " << status );
+               fatal0( "Error initializing DMA library: Returned status: " << status );
             //get a core to run the helper thread. First one available
-            for ( int i = 0; i<FPGAConfig::getNumFPGAThreads(); i++) {
+            for ( int i = 0; i<FPGAConfig::getNumFPGAThreads(); i++ ) {
 
-               memory_space_id_t memSpaceId = sys.getNewSeparateMemoryAddressSpaceId();
-               SeparateMemoryAddressSpace *fpgaAddressSpace =
-                  NEW SeparateMemoryAddressSpace( memSpaceId, nanos::ext::FPGA, true );
-               sys.addSeparateMemory( memSpaceId, fpgaAddressSpace );
-               fpgaAddressSpace->setNodeNumber( 0 ); //there is only 1 node on this machine
+//               memory_space_id_t memSpaceId = sys.getNewSeparateMemoryAddressSpaceId();
+//               SeparateMemoryAddressSpace *fpgaAddressSpace =
+//                  NEW SeparateMemoryAddressSpace( memSpaceId, nanos::ext::FPGA, true );
+
+               memory_space_id_t memSpaceId = sys.addSeparateMemoryAddressSpace(
+                     nanos::ext::FPGA, true, 0 );
+               SeparateMemoryAddressSpace &fpgaAddressSpace = sys.getSeparateMemory( memSpaceId );
+               fpgaAddressSpace.setNodeNumber( 0 ); //there is only 1 node on this machine
                ext::SMPProcessor *core;
                core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
                if ( !core ) {
@@ -85,7 +97,7 @@ class FPGAPlugin : public ArchPlugin
                } else {
                   core->setNumFutureThreads( 1 );
                }
-               FPGAProcessor* fpga = NEW FPGAProcessor(memSpaceId, core);
+               FPGAProcessor* fpga = NEW FPGAProcessor( memSpaceId, core );
                (*_fpgas)[i] = fpga;
             }
          } //!FPGAConfig::isDisabled()
@@ -93,17 +105,17 @@ class FPGAPlugin : public ArchPlugin
       /*!
        * \brief Finalize plugin and close dma library.
        */
-      void fini() {
+      void finalize() {
          /*
           * After the plugin is unloaded, no more operations regarding the DMA
           * library nor the FPGA device will be performed so it's time to close the dma lib
           */
-         if (!FPGAConfig::isDisabled() ) { //cleanup only if we have initialized
+         if ( !FPGAConfig::isDisabled() ) { //cleanup only if we have initialized
             int status;
-            debug0("Xilinx close dma");
+            debug0( "Xilinx close dma" );
             status = xdmaClose();
-            if (status) {
-               warning("Error de-initializing xdma core library: " << status);
+            if ( status ) {
+               warning( "Error de-initializing xdma core library: " << status );
             }
          }
       }
@@ -113,10 +125,14 @@ class FPGAPlugin : public ArchPlugin
       }
 
       virtual unsigned getNumPEs() const {
-         return FPGAConfig::getNumFPGAThreads();
+         return getNumHelperPEs();
       }
 
       virtual unsigned getNumThreads() const {
+         return getNumWorkers() /* + getNumHelperThreads() */;
+      }
+
+      virtual unsigned getNumWorkers() const {
          return FPGAConfig::getNumFPGAThreads();
       }
 
@@ -132,14 +148,18 @@ class FPGAPlugin : public ArchPlugin
          if ( !_fpgas->empty() ) {
             //Insert device type.
             //Any position in _fpgas will work as we only need the device type
-            devices.insert( ( *_fpgas->begin() )->getDeviceType() );
+            std::vector<const Device*> const &pe_archs = ( *_fpgas->begin() )->getDeviceTypes();
+            for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+                  it != pe_archs.end(); it++ ) {
+               devices.insert( *it );
+            }
          }
       }
 
       virtual void startSupportThreads () {
-         for (unsigned int i=0; i<_fpgas->size(); i++) {
-            FPGAProcessor *fpga = (*_fpgas)[i];
-            (*_fpgaThreads)[i] = (FPGAThread*) &fpga->startFPGAThread();
+         for ( unsigned int i = 0; i<_fpgas->size(); i++ ) {
+            FPGAProcessor *fpga = ( *_fpgas )[i];
+            ( *_fpgaThreads )[i] = ( FPGAThread* ) &fpga->startFPGAThread();
          }
       }
 

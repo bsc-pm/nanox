@@ -23,8 +23,7 @@
 #include "basedependency_decl.hpp"
 #include "trackableobject_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class DepsRegion
    *  \brief Represents a memory address
@@ -107,6 +106,6 @@ namespace nanos
          }
          
    };
-};
+} // namespace nanos
 
 #endif

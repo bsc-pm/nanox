@@ -22,7 +22,7 @@
 
 #include "copydescriptor_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline uint64_t CopyDescriptor::getTag() const
 {
@@ -33,5 +33,8 @@ inline unsigned int CopyDescriptor::getDirectoryVersion() const
 {
    return _dirVersion;
 }
+
+
+} // namespace nanos
 
 #endif

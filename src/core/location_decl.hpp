@@ -23,6 +23,7 @@
 //#include <vector>
 
 namespace nanos {
+
    class Location {
          unsigned int _clusterNode;
          unsigned int _numaNode;
@@ -58,6 +59,7 @@ namespace nanos {
          Location &operator[]( unsigned int locationId );
    };
    */
-}
+
+} // namespace nanos
 
 #endif /* LOCATION_DECL_H */

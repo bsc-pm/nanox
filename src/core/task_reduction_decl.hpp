@@ -20,19 +20,28 @@
 #ifndef _NANOS_TASK_REDUCTION_DECL_H
 #define _NANOS_TASK_REDUCTION_DECL_H
 
+#include "nanos-int.h"
+
 //! \brief This class represent a Task Reduction.
 //!
 //! It contains all the information needed to handle a task reduction. It storages the
 //! thread private copies and also keep all the information in order to compute final
 //! reduction: reducers.
 //
+
+namespace nanos {
+
 class TaskReduction {
 
    public:
 
       typedef void ( *initializer_t ) ( void *omp_priv,  void* omp_orig );
       typedef void ( *reducer_t ) ( void *obj1, void *obj2 );
-      typedef std::vector<char> storage_t;
+      typedef struct {void * data; bool isInitialized;} field_t;
+      typedef std::vector<field_t> storage_t;
+
+
+
 
    private:
 
@@ -50,62 +59,121 @@ class TaskReduction {
       reducer_t       _reducer_orig_var; //!< Reducer on orignal variable
 
       storage_t       _storage;          //!< Private copy vector
-      size_t          _size;             //!< Size of element
-      size_t          _threads;          //!< Number of threads (private copies)
+      size_t          _size;             //!< Size of array (size of element is scalar)
+      size_t          _size_element;     //!< Size of element
+      size_t          _num_elements;     //!< Number of elements (for a scalar reduction, this is 1)
+      size_t          _num_threads;      //!< Number of threads (private copies)
       void           *_min;              //!< Pointer to first private copy
       void           *_max;              //!< Pointer to last private copy
+      bool            _isLazyPriv;       //!< Is lazy privatization enabled
+      bool            _isFortranArrayReduction;//!< whether this is a Fortran array reudction
 
       //! \brief TaskReduction copy constructor (disabled)
       TaskReduction( const TaskReduction &tr ) {}
 
    public:
 
-      //! \brief Common TaskReduction constructor
-      TaskReduction( void *orig, initializer_t init, reducer_t red,
-                      size_t size, size_t threads, unsigned depth )
-                    : _original(orig), _dependence(orig), _depth(depth), _initializer(init),
-                      _reducer(red), _reducer_orig_var(red), _storage(size*threads),
-                      _size(size), _threads(threads), _min(NULL), _max(NULL)
-      {
-         _min = & _storage[0];
-         _max = & _storage[_size*threads];
+      //! \brief TaskReduction constructor only used when we are performing a Reduction
+      TaskReduction( void *orig, initializer_t f_init, reducer_t f_red,
+    		  	  size_t size, size_t size_elem, size_t
+				  threads, unsigned depth, bool lazy )
+               	   : _original(orig), _dependence(orig), _depth(depth), _initializer(f_init),
+					 _reducer(f_red), _reducer_orig_var(f_red), _storage(threads),
+					 _size(size), _size_element(size_elem),_num_elements(size/size_elem),
+					 _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv (lazy), _isFortranArrayReduction(false)
+   {
+      if(_isLazyPriv) {
+         //Note that renaming tracking for nested reductions is not supported
+         //for lazy privatization (_min = _max = NULL)
 
-         for ( size_t i=0; i<threads; i++) {
-             _initializer( &_storage[i*_size], _original );
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = NULL;
+            _storage[i].isInitialized = false;
          }
       }
+      else {
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
 
-      //! \brief TaskReduction constructor only used when we are performing a Fortran Array Reduction
-      TaskReduction( void *orig, void *dep, initializer_t init, reducer_t red,
-            reducer_t red_orig_var, size_t array_descriptor_size, size_t
-            threads, unsigned depth )
-               : _original(orig), _dependence(dep), _depth(depth),
-                 _initializer(init), _reducer(red), _reducer_orig_var(red_orig_var),
-                 _storage(array_descriptor_size*threads), _size(array_descriptor_size),
-                 _threads(threads), _min(NULL), _max(NULL)
-      {
-         _min = & _storage[0];
-         _max = & _storage[_size*threads];
-
-         for ( size_t i=0; i<threads; i++) {
-            // char ** addr = (char**) &_storage[i*_size];
-            // *addr = &_storage[i*_size + array_descriptor];
-            _initializer( &_storage[i*_size], _original );
+         char * storage = (char*) malloc (_size*threads);
+         _min = & storage[0];
+         _max = & storage[_size * threads];
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = (void *) &storage[i * _size];
+            _storage[i].isInitialized = false;
          }
       }
+   }
+
+      //!brief TaskReduction constructor only used when we are performing a Fortran Array Reduction
+   TaskReduction( void *orig, void *dep, initializer_t f_init, reducer_t f_red,
+            reducer_t f_red_orig_var, size_t array_descriptor_size, size_t
+            threads, unsigned depth, bool lazy )
+         : _original(orig), _dependence(dep), _depth(depth),
+         _initializer(f_init), _reducer(f_red), _reducer_orig_var(f_red_orig_var), _storage(threads),
+         _size(array_descriptor_size), _size_element(0),_num_elements(0),
+         _num_threads(threads), _min(NULL), _max(NULL), _isLazyPriv(lazy), _isFortranArrayReduction(true)
+   {
+
+      if(_isLazyPriv) {
+         //Note that renaming tracking for nested reductions is not supported
+         //for lazy privatization (_min = _max = NULL)
+
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = NULL;
+            _storage[i].isInitialized = false;
+         }
+      }
+      else {
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
+         char * storage = (char*) malloc (_size * threads);
+
+         _min = & storage[0];
+         _max = & storage[_size * threads];
+         for ( size_t i=0; i<_num_threads; i++) {
+            _storage[i].data = (void *) &storage[i * _size];
+            _storage[i].isInitialized = false;
+         }
+      }
+   }
 
       //! \brief Taskreduction destructor
-     ~TaskReduction() {}
+      ~TaskReduction() {
+         if(_isLazyPriv) {
+            for ( size_t i = 0; i < _num_threads; i++) {
+               free(_storage[i].data);
+            }
+         }
+         else {
+            free(_storage[0].data);
+         }
+      }
 
-      //! \brief Is the provided address the original symbol or one of the private copies
-      //! \return NULL if not matches, id's corresponding private copy if matches
-      void * have ( const void *ptr, size_t id );
+      //! \brief
+      //! \smart text here
+      bool has ( const void *ptr );
 
-      //! \brief Finalizes reduction
-      void * finalize ( void );
+      //! \brief
+      //! \smart text here
+      void * get ( size_t id );
+
+      //! \brief This function reduces the content of the private copies to the
+      //original one. Currently, it also re-initializes to the neutral element
+      //these private copies because we cannot guarantee that the reduction has
+      //been finalized
+      void reduce();
+
+      //! \brief It allocates the private copy associated with the 'id' thread
+      void * allocate( size_t id );
+
+      //! \brief It initializes the private copy associated with the 'id' thread
+      void initialize( size_t id );
 
       //! \brief Get depth where task reduction were registered
       unsigned getDepth( void ) const;
+
+      bool isInitialized( size_t id );
 };
+
+} // namespace nanos
 
 #endif

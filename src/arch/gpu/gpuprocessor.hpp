@@ -28,8 +28,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class GPUProcessor::GPUProcessorInfo
    {
@@ -156,7 +155,7 @@ inline GPUMemoryTransferList * GPUProcessor::getOutTransferList ()
    return _gpuProcessorTransfers._pendingCopiesOut;
 }
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

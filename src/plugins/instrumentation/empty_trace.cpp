@@ -56,7 +56,31 @@ class InstrumentationEmptyTrace: public Instrumentation
       void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {}
       void addSuspendTask( WorkDescriptor &w, bool last ) {}
-      void addEventList ( unsigned int count, Event *events ) {}
+      void addEventList ( unsigned int count, Event *events )
+      {
+// XXX: Used as template to help instrumentation plugin programmers to generate their code
+#if 0
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+         nanos_event_key_t wd_ptr   = true ? iD->getEventKey("create-wd-ptr") : 0xFFFFFFFF;
+         for (unsigned int i = 0; i < count; i++)
+         {
+            Event &e = events[i];
+            nanos_event_type_t type = e.getType();
+            nanos_event_key_t key = e.getKey();
+            if ( key == 0 ) continue;
+            switch ( type ) {
+               case NANOS_POINT:
+                  if ( key == wd_ptr ) {
+                     WD *wd = (WD *) e.getValue();
+                     fprintf(stderr,"NANOS++: Creating task id = %ld\n", (long int) wd->getId() );
+                  }
+                  break;
+               default:
+                  break;
+            }
+         }
+#endif
+      }
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #endif

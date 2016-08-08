@@ -20,8 +20,8 @@
 #ifndef _NANOS_BASE_DEPENDENCY_DECL_H
 #define _NANOS_BASE_DEPENDENCY_DECL_H
 
-namespace nanos
-{
+namespace nanos {
+
    //! \class Base dependency class.
    //! \brief Abstract class to represent a memory address dependency or a region.
    class BaseDependency
@@ -48,6 +48,6 @@ namespace nanos
          virtual bool overlap ( const BaseDependency &obj ) const = 0;
    };
 
-};
+} // namespace nanos
 
 #endif

@@ -20,7 +20,8 @@
 #ifndef VERSION_HPP
 #define VERSION_HPP
 #include "system_decl.hpp"
-using namespace nanos;
+
+namespace nanos {
 
 inline Version::Version() : _version( 0 ) {
 }
@@ -62,4 +63,7 @@ inline void Version::setVersion( unsigned int version ) {
 inline void Version::resetVersion() {
    _version = 0;
 }
+
+} // namespace nanos
+
 #endif /* VERSION_HPP */

@@ -27,8 +27,7 @@
 #include <list>
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
    class GPUMemoryTransfer
    {
       public:
@@ -196,7 +195,7 @@ namespace ext
          void executeMemoryTransfers ();
    };
 
-}
-}
+} // namespace nanos
+} // namespace ext
 
 #endif // _NANOS_MEMORY_TRANSFER_DECL

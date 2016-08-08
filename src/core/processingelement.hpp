@@ -25,8 +25,9 @@
 #include "processingelement_decl.hpp"
 #include "workdescriptor_decl.hpp"
 #include "location.hpp"
+#include "basethread.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline ProcessingElement::~ProcessingElement()
 {
@@ -42,17 +43,29 @@ inline ProcessingElement::ThreadList &ProcessingElement::getThreads() {
    return _threads;
 }
 
-inline const Device * ProcessingElement::getDeviceType () const
+inline std::vector<const Device*> const &ProcessingElement::getDeviceTypes () const
 {
-   return _device;
+   return _devices;
 }
 
-//inline const Device * ProcessingElement::getSubDeviceType () const
-//{
-//   return _subDevice;
-//}
- 
+inline void ProcessingElement::setActiveDevice(unsigned int devIdx) {
+   _activeDevice = devIdx;
+}
+
+inline void ProcessingElement::setActiveDevice(const Device *dev) {
+   unsigned int devIdx = 0;
+   for ( ; devIdx < _devices.size() && dev != _devices[devIdx]; devIdx += 1 );
+   ensure( devIdx < _devices.size(), "Could not found the given device in the supported devices array");
+   _activeDevice = devIdx;
+}
+
+inline unsigned int ProcessingElement::getActiveDevice() const {
+   return _activeDevice;
+}
+
 inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
+
+} // namespace nanos
 
 #endif
 

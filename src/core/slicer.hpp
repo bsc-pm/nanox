@@ -26,12 +26,14 @@
 #include "slicer_decl.hpp"
 #include <list>                                                                                                                                          
 
-using namespace nanos;
+namespace nanos {
 
 inline void *Slicer::getSpecificData ( ) const
 {
    return NULL;
 }
+
+} // namespace nanos
 
 #endif
 

@@ -22,7 +22,8 @@
 
 #include "archplugin_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
+} // namespace nanos
 
 #endif

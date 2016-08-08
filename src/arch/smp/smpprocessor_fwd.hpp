@@ -20,10 +20,11 @@
 #ifndef SMPPROCESSOR_FWD
 #define SMPPROCESSOR_FWD
 namespace nanos {
-namespace ext
-{
+namespace ext {
+
    class SMPProcessor;
-}
-}
+
+} // namespace ext
+} // namespace nanos
 
 #endif /* SMPPROCESSOR_FWD */

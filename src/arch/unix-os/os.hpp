@@ -20,20 +20,18 @@
 #ifndef _NANOS_OS
 #define _NANOS_OS
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "nanos-int.h"
+#include "cpuset.hpp"
+#include "smartpointer.hpp"
+
 #include <string>
 #include <vector>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <time.h>
-#include "nanos-int.h"
-#include "cpuset.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
 // this is UNIX-like OS
 // TODO: ABS and virtualize
@@ -86,9 +84,9 @@ namespace nanos
          static long _argc; 
          static char ** _argv;
 
-         static InitList   *_initList;
-         static InitList   *_postInitList;
-         static ModuleList *_moduleList;
+         static nanos::unique_pointer<InitList>   _initList;
+         static nanos::unique_pointer<InitList>   _postInitList;
+         static nanos::unique_pointer<ModuleList> _moduleList;
          static CpuSet      _systemMask;
          static CpuSet      _processMask;
       public:
@@ -167,7 +165,7 @@ namespace nanos
 
       return res;
    }
-};
+} // namespace nanos
 
 
 #endif

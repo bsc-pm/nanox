@@ -23,6 +23,9 @@
 #include "config.hpp"
 #include "basethread.hpp"
 #include <iostream>
+#ifdef CLUSTER_DEV
+#include "clusterthread_decl.hpp"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -33,7 +36,7 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
-   PE( &SMP, memId, 0 /* always local node */, numaNode, true, socket, true ),
+   PE( &getSMPDevice(), memId, 0 /* always local node */, numaNode, true, socket, true ),
    _bindingId( bindingId ), _reserved( false ), _active( active ), _futureThreads( 0 ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -52,7 +55,7 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
    DeviceData **dd_ptr = NEW DeviceData*[1];
    dd_ptr[0] = (DeviceData*)dd;
 
-   WD *wd = NEW WD( 1, dd_ptr );
+   WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Worker" );
 
    return *wd;
 }
@@ -60,11 +63,13 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
 {
 #ifdef CLUSTER_DEV
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerClusterLoop );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )ClusterThread::workerClusterLoop );
 #else
    SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )NULL); //this is an error if we are not runnig with cluster
 #endif
-   WD *wd = NEW WD( dd );
+   WD *wd = NEW WD( dd, 0, 1, 0, 0, NULL, NULL, "SMP MultiWorker" );
+   wd->_mcontrol.preInit();
+
    return *wd;
 }
 
@@ -74,14 +79,14 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
    DeviceData **dd_ptr = NEW DeviceData*[1];
    dd_ptr[0] = (DeviceData*)dd;
 
-   WD * wd = NEW WD( 1, dd_ptr );
+   WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Main" );
 
    return *wd;
 }
 
 BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
-   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPThread( helper, this, this );
    th.stackSize( _threadsStackSize ).useUserThreads( _useUserThreads );
 
@@ -90,7 +95,7 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 
 BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned int numPEs, PE **repPEs )
 {
-   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPMultiThread( helper, this, numPEs, repPEs );
    th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
 
@@ -111,6 +116,7 @@ SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
    thread.initMain();
    thread.setMainThread();
    thread.associate( &master );
+   worker._mcontrol.preInit();
 
    getThreads().push_back( &thread );
 

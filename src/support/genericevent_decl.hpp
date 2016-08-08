@@ -31,8 +31,8 @@
 //#define NANOS_GENERICEVENT_DEBUG
 #endif
 
-namespace nanos
-{
+namespace nanos {
+
    /****** Action definitions ******/
 
    /* !\brief Action virtual class
@@ -649,6 +649,6 @@ namespace nanos
 
 
    };
-}
+} // namespace nanos
 
 #endif //_GENERIC_EVENT_DECL

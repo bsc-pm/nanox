@@ -23,7 +23,7 @@
 
 #include "bitcounter_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 template<typename T, int BITS>
 bool inline BitCounter<T,BITS>::hasMoreThanOneOne(T value)
@@ -43,5 +43,7 @@ bool inline BitCounter<T, 2>::hasMoreThanOneOne(T value)
    T lowPart = value & 1;
    return lowPart & highPart;
 }
+
+} // namespace nanos
 
 #endif // _NANOS_BIT_COUNTER

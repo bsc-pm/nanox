@@ -26,8 +26,8 @@
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    class NewNewDirectoryEntryData : public Version {
       private:
          //int _writeLocation;
@@ -36,11 +36,13 @@ namespace nanos
          std::set< memory_space_id_t > _location;
          std::set< ProcessingElement *> _pes;
          memory_space_id_t _rooted;
+         memory_space_id_t _home;
          Lock _setLock;
          ProcessingElement * _firstWriterPE;
          uint64_t _baseAddress;
       public:
          NewNewDirectoryEntryData();
+         NewNewDirectoryEntryData( memory_space_id_t home );
          NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
          ~NewNewDirectoryEntryData();
          NewNewDirectoryEntryData & operator= ( NewNewDirectoryEntryData &de );
@@ -50,18 +52,12 @@ namespace nanos
          void addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
          void addRootedAccess( memory_space_id_t loc, unsigned int version );
          bool delAccess( memory_space_id_t id );
-         //void invalidate(); 
-         //bool hasBeenInvalidated() const; 
          bool isLocatedIn( ProcessingElement *pe, unsigned int version );
          bool isLocatedIn( ProcessingElement *pe );
          bool isLocatedIn( memory_space_id_t loc );
-         //void setRooted();
          bool isRooted() const;
          memory_space_id_t getRootedLocation() const;
-         //void merge( const NewNewDirectoryEntryData &de ) ;
-         void print() const ;
-         //bool equal( const NewNewDirectoryEntryData &d ) const ;
-         //bool contains( const NewNewDirectoryEntryData &d ) const ;
+         void print(std::ostream &o) const ;
          int getFirstLocation();
          ProcessingElement *getFirstWriterPE() const;
          int getNumLocations();
@@ -70,6 +66,9 @@ namespace nanos
          DeviceOps *getOps() ;
          void setBaseAddress(uint64_t addr);
          uint64_t getBaseAddress() const;
+         memory_space_id_t getHome() const;
+         void lock();
+         void unlock();
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 
@@ -95,24 +94,33 @@ namespace nanos
                this->_registeredObject = o._registeredObject;
                return *this;
             }
+            ~Object() {
+               destroyDictionary();
+               delete _registeredObject;
+            }
             GlobalRegionDictionary *getGlobalRegionDictionary() const {
                return _object;
             }
             CopyData *getRegisteredObject() const {
                return _registeredObject;
             }
-            void resetGlobalRegionDictionary() {
+            void destroyDictionary() {
+               for ( unsigned int reg_id = 1; reg_id < _object->getRegionNodeCount()+1; reg_id += 1 ) {
+                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _object->getRegionData( reg_id );
+                  delete entry;
+               }
                delete _object;
-               if ( _registeredObject == NULL ) {
-                  _object = NULL;
-               } else {
+               _object = NULL;
+            }
+            void resetGlobalRegionDictionary() {
+               destroyDictionary();
+               if ( _registeredObject != NULL ) {
                   _object = NEW GlobalRegionDictionary( *_registeredObject );
                   _object->setRegisteredObject( _registeredObject );
                   NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
                   if ( entry == NULL ) {
                      entry = NEW NewNewDirectoryEntryData();
-                     //entry->addAccess( 0, 1 );
-                     _object->setRegionData( 1, entry );
+                     _object->setRegionData( 1, entry ); //resetGlobalRegionDictionary
                   }
                }
             }
@@ -120,10 +128,8 @@ namespace nanos
                _object = object;
             }
          };
-         //struct __attribute__((aligned(64))) HashBucket {
          struct HashBucket {
             Lock _lock;
-            //std::map< uint64_t, Object > _bobjects;
             MemoryMap< Object > *_bobjects;
             HashBucket();
             HashBucket( HashBucket const & hb );
@@ -148,7 +154,7 @@ namespace nanos
 
          GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd );
          GlobalRegionDictionary *getRegionDictionary( CopyData const &cd );
-         GlobalRegionDictionary *getRegionDictionary( uint64_t addr );
+         GlobalRegionDictionary *getRegionDictionary( uint64_t addr, bool canFail );
          static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
          uint64_t _getKey( uint64_t addr, std::size_t len, WD const *wd );
          uint64_t _getKey( uint64_t addr ) const;
@@ -162,6 +168,8 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd );
          void synchronize( WD &wd );
+         void synchronize( WD &wd, void *addr );
+         void synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data );
 
          /*! \brief NewDirectory default constructor
           */
@@ -169,7 +177,7 @@ namespace nanos
 
          /*! \brief NewDirectory destructor
           */
-         ~NewNewRegionDirectory() {};
+         ~NewNewRegionDirectory();
 
          void invalidate( CacheRegionDictionary *regions, unsigned int from );
 
@@ -181,16 +189,12 @@ namespace nanos
          static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
          static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
-         static reg_t tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
-         //static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
-         //static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
          static void addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version );
-         //static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
          static bool delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId );
          static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
          static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
@@ -202,10 +206,7 @@ namespace nanos
          static void setOps( RegionDirectoryKey dict, reg_t id, DeviceOps *ops );
 
 
-         static void tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void __getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
-         static void initializeEntry( RegionDirectoryKey dict, reg_t reg );
-         static void initializeEntryWithAnother( RegionDirectoryKey dict, reg_t reg, reg_t from );
          static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
@@ -214,6 +215,7 @@ namespace nanos
          void registerObject(nanos_copy_data_internal_t *obj);
          void unregisterObject(void *baseAddr);
    };
-}
+
+} // namespace nanos
 
 #endif

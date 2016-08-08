@@ -25,8 +25,8 @@ devincludedir = $(prefix)/include/nanox-dev
 
 AM_CPPFLAGS=-D_NANOS_INTERNAL @cc_dep_CPPFLAGS@ @hwlocinc@ $(common_includes) -DLIBDIR='$(libdir)'
 AM_CXXFLAGS=@PTHREAD_CFLAGS@ @cc_dep_CXXFLAGS@
-AM_LDFLAGS=@hwloclib@
-LIBS+=@hwloclibs@
+AM_LDFLAGS=@hwloclib@ @cudalib@ @xdmalib@
+LIBS+=@hwloclibs@ @cudalibs@ @xdmalibs@
 
 common_performance_CPPFLAGS= $(AM_CPPFLAGS) @performance_CPPFLAGS@
 common_debug_CPPFLAGS= $(AM_CPPFLAGS) @debug_CPPFLAGS@

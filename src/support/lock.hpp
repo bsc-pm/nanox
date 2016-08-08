@@ -174,6 +174,6 @@ inline SyncLockBlock::~SyncLockBlock ( )
    memoryFence();
 }
 
-}
+} // namespace nanos
 
 #endif

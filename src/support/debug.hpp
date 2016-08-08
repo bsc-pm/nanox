@@ -21,14 +21,13 @@
 #define _NANOS_LIB_DEBUG
 
 #include <stdexcept>
-#include <iostream>
 //Having system.hpp here generate too many circular dependences
 //but it's not really needed so we can delay it most times until the actual usage
 //#include "system.hpp"
 #include "xstring.hpp"
+#include <iostream>
 
-namespace nanos
-{
+namespace nanos {
 
    class FatalError : public  std::runtime_error
    {
@@ -55,6 +54,8 @@ namespace nanos
    void printBt( std::ostream &o );
 
    void printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set );
+
+} // namespace nanos
 
 #define _nanos_ostream ( /* myThread ? *(myThread->_file) : */ std::cerr )
 
@@ -97,7 +98,5 @@ namespace nanos
 #define debug(msg)
 #define debug0(msg)
 #endif
-
-};
 
 #endif

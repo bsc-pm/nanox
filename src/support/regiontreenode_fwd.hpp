@@ -26,7 +26,7 @@ namespace nanos {
    
    template <typename T> struct RegionTree<T>::Node;
    
-}
+} // namespace nanos
 
 
 #endif // _NANOS_REGION_TREE_NODE_FWD

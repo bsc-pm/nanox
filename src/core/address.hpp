@@ -22,7 +22,7 @@
 
 #include "address_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline const Address & Address::operator= ( const Address &obj )
 {
@@ -60,5 +60,7 @@ inline void * Address::getAddress () const
 {
    return _address;
 }
+
+} // namespace nanos
 
 #endif

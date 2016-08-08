@@ -25,6 +25,7 @@
 #include "cpuset.hpp"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "debug.hpp"
 
 // atexit
 #include <stdlib.h>
@@ -142,4 +143,36 @@ NANOS_API_DEF(void, ompss_nanox_main, ( ))
 NANOS_API_DEF(void, nanos_atexit, (void *p))
 {
     ::atexit((void (*)())p);
+}
+NANOS_API_DEF(int, nanos_cmpi_init, (int *argc, char **argv[]))
+{
+   return sys.initClusterMPI(argc, argv);
+}
+
+NANOS_API_DEF(void, nanos_cmpi_finalize, (void))
+{
+   sys.finalizeClusterMPI();
+}
+
+NANOS_API_DEF(void, nanos_into_blocking_mpi_call, (void))
+{
+   sys.notifyIntoBlockingMPICall();
+}
+
+NANOS_API_DEF(void, nanos_out_of_blocking_mpi_call, (void))
+{
+   sys.notifyOutOfBlockingMPICall();
+}
+
+NANOS_API_DEF(void, nanos_thread_print, (char *str))
+{
+   *myThread->_file << str << std::flush;
+}
+NANOS_API_DEF(void, nanos_set_watch_addr, (void *addr))
+{
+   sys._watchAddr = addr;
+}
+NANOS_API_DEF(void, nanos_print_bt, (void))
+{
+   printBt(std::cerr);
 }

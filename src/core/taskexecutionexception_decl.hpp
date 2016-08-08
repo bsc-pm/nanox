@@ -80,6 +80,7 @@ namespace nanos {
           */
          const ucontext_t getExceptionContext ( ) const;
    };
-}
+
+} // namespace nanos
 
 #endif /* _NANOS_TASKEXECUTIONEXCEPTION_DECL */

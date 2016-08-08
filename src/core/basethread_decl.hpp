@@ -35,8 +35,8 @@
 #include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
 
    /*!
@@ -186,6 +186,7 @@ namespace nanos
          // Current/following tasks: 
          WD                     &_threadWD;      /**< Thread implicit WorkDescriptor */
          WD                     *_currentWD;     /**< Current WorkDescriptor the thread is executing */
+         WD                     *_heldWD;
          WDDeque                 _nextWDs;       /**< Queue with all the tasks that the thread is being run simultaneously */
          // Thread's Team info:
          TeamData               *_teamData;      /**< Current team data, thread is registered and also it has entered to the team */
@@ -208,15 +209,9 @@ namespace nanos
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual bool inlineWorkDependent (WD &work) = 0;
-         virtual void outlineWorkDependent (WD &work) = 0;
-         virtual void preOutlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
-      protected:
-         /*! \brief Must be called by children classes after the join operation (protected)
-          */ 
-         void joined ( void ); 
       private:
          //! \brief BaseThread default constructor (private)
          BaseThread ();
@@ -226,6 +221,7 @@ namespace nanos
          const BaseThread & operator= ( const BaseThread & );
       public:
          std::ostream          *_file;
+         bool                   _gasnetAllowAM;
          std::set<void *> _pendingRequests;
          //! \brief BaseThread constructor
          BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
@@ -257,11 +253,16 @@ namespace nanos
          virtual void processTransfers();
          virtual void yield() {};
 
+         /*! \brief Must be called by children classes after the join operation (protected)
+          */ 
+         void joined ( void ); 
          virtual void join() = 0;
 
          bool hasJoined() const;
 
          virtual void bind() {};
+         virtual void outlineWorkDependent (WD &work) = 0;
+         virtual void preOutlineWorkDependent (WD &work) = 0;
 
          virtual void wait();
          virtual void resume();
@@ -269,6 +270,8 @@ namespace nanos
          virtual bool canBlock() { return false; }
 
          // set/get methods
+         void setHeldWD ( WD *wd );
+         WD * getHeldWD () const;
          void setCurrentWD ( WD &current );
 
          WD * getCurrentWD () const;
@@ -423,6 +426,6 @@ namespace nanos
 
    BaseThread * getMyThreadSafe();
 
-}
+} // namespace nanos
 
 #endif

@@ -36,14 +36,14 @@
 #include <climits>
 
 
-using namespace nanos;
+namespace nanos {
 
-// methods to access configuration variable         
+// methods to access configuration variable
 //inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 //
 //inline int System::getNumPEs () const { return _numPEs; }
 //
-//inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+//inline unsigned System::getMaxThreads () const { return _targetThreads; }
 //
 //inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 //
@@ -96,6 +96,9 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 
 inline int System::getNumCreatedPEs() const { return _pes.size(); }
 
+inline System::ThreadList::iterator System::getWorkersBegin() { return _workers.begin(); }
+inline System::ThreadList::iterator System::getWorkersEnd() { return _workers.end(); }
+
 //inline int System::getNumSockets() const { return _numSockets; }
 //inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 //
@@ -141,17 +144,17 @@ inline void System::loadHwloc ()
 #ifdef HWLOC
    // Allocate and initialize topology object.
    hwloc_topology_init( ( hwloc_topology_t* )&_hwlocTopology );
-   
+
    // If the user provided an alternate topology
    if ( !_topologyPath.empty() )
    {
       int res = hwloc_topology_set_xml( ( hwloc_topology_t ) _hwlocTopology, _topologyPath.c_str() );
       fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
    }
-   
+
    // Enable GPU detection
    hwloc_topology_set_flags( ( hwloc_topology_t ) _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
-   
+
    // Perform the topology detection.
    hwloc_topology_load( ( hwloc_topology_t ) _hwlocTopology );
 #endif
@@ -166,13 +169,13 @@ inline void System::loadNUMAInfo ()
    unsigned allowedNodes = 0;
    // Hardware threads
    unsigned hwThreads = 0;
-   
+
    // Read the number of numa nodes if the user didn't set that value
    if ( _numSockets == 0 )
    {
       int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
 
-      
+
       // If there are NUMA nodes in this machine
       if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
          //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
@@ -195,7 +198,7 @@ inline void System::loadNUMAInfo ()
       }
       // Otherwise, set it to 1
       else {
-         allowedNodes = 1; 
+         allowedNodes = 1;
          _numSockets = 1;
       }
    }
@@ -207,11 +210,11 @@ inline void System::loadNUMAInfo ()
    // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
    // Cores per socket:
    // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
-   
+
    // Assume just 1 socket
    if ( _numSockets == 0 )
       _numSockets = 1;
-   
+
    // Same thing, just change the value if the user didn't provide one
    if ( _coresPerSocket == 0 )
       _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
@@ -259,13 +262,13 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
 #ifdef HWLOC
    // cast just once
    hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
-   
+
    hwloc_obj_t pu = hwloc_get_pu_obj_by_os_index( topology, pe );
-   
+
    // Now we have the PU object, go find its parent numa node
    hwloc_obj_t numaNode =
       hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, pu );
-   
+
    // If the machine is not NUMA
    if ( numaNode == NULL )
       return 0;
@@ -275,7 +278,7 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
    // Dirty way, will not work with hyperthreading
    // Use /sys/bus/cpu/devices/cpuX/
    //return pe / getCoresPerSocket();
-   
+
    // Otherwise, return
    return sys.getNumSockets() - 1;
 #endif
@@ -296,15 +299,15 @@ inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factor
 
 inline void System::setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-inline Slicer * System::getSlicer( const std::string &label ) const 
-{ 
+inline Slicer * System::getSlicer( const std::string &label ) const
+{
    Slicers::const_iterator it = _slicers.find(label);
    if ( it == _slicers.end() ) return NULL;
    return (*it).second;
 }
 
-inline WorkSharing * System::getWorkSharing( const std::string &label ) const 
-{ 
+inline WorkSharing * System::getWorkSharing( const std::string &label ) const
+{
    WorkSharings::const_iterator it = _worksharings.find(label);
    if ( it == _worksharings.end() ) return NULL;
    return (*it).second;
@@ -390,10 +393,10 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline Network * System::getNetwork( void ) { return &_net; }
 inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::usingClusterMPI( void ) const { return _usingClusterMPI; }
 inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
 inline bool System::usePacking( void ) const { return _usingPacking; }
 inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
-inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
 
 inline void System::setPMInterface(PMInterface *pm)
 {
@@ -421,9 +424,9 @@ inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOu
 inline void System::threadReady()
 {
    _initializedThreads++;
-  
+
    /*! It's better not to call Scheduler::waitOnCondition here as the initialization is not
-       yet finished 
+       yet finished
 
       TODO: we can consider thread yielding */
    while (_initializedThreads.value() < _targetThreads) {}
@@ -487,12 +490,12 @@ inline void System::registerPluginOption ( const std::string &option, const std:
       // Find deps
       std::pair<ModulesPlugins::const_iterator, ModulesPlugins::const_iterator> ret
          = _validPlugins.equal_range( module );
-      
+
       // For each deps plugin, add it as an option
       for ( it = ret.first; it != ret.second; ++it ){
          pluginVar->addOption( it->second );
       }
-      
+
       cfg.registerConfigOption ( option, pluginVar, helpMessage );
    }
    else {
@@ -529,6 +532,10 @@ inline ThreadTeam *System::getMainTeam() {
    return _mainTeam;
 }
 
+inline void System::setVerboseDevOps(bool value) {
+   _verboseDevOps = value;
+}
+
 inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
 }
@@ -539,6 +546,13 @@ inline bool System::getVerboseCopies() const {
 
 inline bool System::getSplitOutputForThreads() const {
    return _splitOutputForThreads;
+}
+
+inline std::string System::getRegionCachePolicyStr() const {
+   return _regionCachePolicyStr;
+}
+inline void System::setRegionCachePolicyStr( std::string policy ) {
+   _regionCachePolicyStr = policy;
 }
 
 inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
@@ -596,7 +610,7 @@ inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
 }
 
-inline const ThreadManagerConf& System::getThreadManagerConf() const {
+inline ThreadManagerConf& System::getThreadManagerConf() {
    return _threadManagerConf;
 }
 
@@ -647,5 +661,36 @@ inline bool System::usePredecessorCopyInfo() const {
    return !_predecessorCopyInfoDisabled;
 }
 
-#endif
+inline bool System::invalControlEnabled() const {
+   return _invalControl;
+}
 
+inline std::set<memory_space_id_t> const &System::getActiveMemorySpaces() const {
+   return _activeMemorySpaces;
+}
+
+inline PEList const &System::getPEs() const {
+   return _pes;
+}
+
+inline void System::allocLock() {
+   while ( !_allocLock.tryAcquire() ) {
+      myThread->processTransfers();
+   }
+}
+
+inline void System::allocUnlock() {
+   _allocLock.release();
+}
+
+inline bool System::useFineAllocLock() const {
+   return !_cgAlloc;
+}
+
+inline SMPDevice &System::_getSMPDevice() {
+   return _SMP;
+}
+
+} // namespace nanos
+
+#endif

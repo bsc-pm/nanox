@@ -19,7 +19,9 @@
 
 #ifndef VERSION_DECL_HPP
 #define VERSION_DECL_HPP
+
 namespace nanos {
+
    class Version {
       private:
          unsigned int _version;
@@ -34,5 +36,7 @@ namespace nanos {
          void setVersion( unsigned int version );
          void resetVersion();
    };
-}
+
+} // namespace nanos
+
 #endif /* VERSION_DECL_HPP */

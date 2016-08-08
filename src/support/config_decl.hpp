@@ -29,8 +29,7 @@
 #include <sstream>
 #include <string.h>
 
-namespace nanos
-{
+namespace nanos {
 
 #if 0
    class StringList {
@@ -736,6 +735,7 @@ namespace nanos
          virtual void setDefaults();
          void parseFiles();
          void parseArguments();
+         void parseArgumentsFromCmdLine();
          void parseEnvironment();
          void clear();
          void copy( const Config &origin );
@@ -823,6 +823,6 @@ namespace nanos
 
    };
 
-};
+} // namespace nanos
 
 #endif

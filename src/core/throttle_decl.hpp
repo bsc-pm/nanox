@@ -20,8 +20,7 @@
 #ifndef __NANOS_THROTTLE_POLICY_DECL_H
 #define __NANOS_THROTTLE_POLICY_DECL_H
 
-namespace nanos
-{
+namespace nanos {
    class ThrottlePolicy
    {
       private:
@@ -42,6 +41,6 @@ namespace nanos
          virtual bool throttleIn( void )  = 0 ;
          virtual void throttleOut( void ) { /* empty function */ }
    };
-}
+} // namespace nanos
 
 #endif

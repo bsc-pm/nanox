@@ -20,18 +20,7 @@
 #ifndef _NANOS_MPI_PROCESSOR
 #define _NANOS_MPI_PROCESSOR
 
-//#include "atomic_decl.hpp"
 #include "mpiprocessor_decl.hpp"
-
-//#include "cachedaccelerator.hpp"
-//#include "config.hpp"
-//#include "mpidevice.hpp"
-//#include "mpithread.hpp"
-//#include "processingelement.hpp"
-//
-//#include <mpi.h>
-//#include <fcntl.h>
-//#include <unistd.h>
 
 namespace nanos {
 namespace ext {

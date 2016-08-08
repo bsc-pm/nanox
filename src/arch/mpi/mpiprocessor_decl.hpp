@@ -251,7 +251,6 @@ namespace ext {
            NANOS_MPI_GENERIC_EVENT                         /* 26 */
         } in_mpi_runtime_event_value;
 
-    }
-
-}
+} // namespace ext
+} // namespace nanos
 #endif

@@ -20,10 +20,6 @@
 #ifndef _NANOS_SYNCHRONIZED_CONDITION_DECL
 #define _NANOS_SYNCHRONIZED_CONDITION_DECL
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include <stdlib.h>
 #include <list>
 #include <vector>
@@ -34,8 +30,8 @@
 
 #define NANOX_MULTIPLE_SYNC_COND_SIZE 100
 
-namespace nanos
-{
+namespace nanos {
+
   /*! \brief Represents an object that checks a given condition.
    */
    class ConditionChecker
@@ -429,6 +425,6 @@ namespace nanos
             return reslt;
          }
    };
-}
+} // namespace nanos
 
 #endif

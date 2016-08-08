@@ -28,8 +28,8 @@
 #include "nanos_omp.h"
 #include "cpuset.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    namespace OpenMP {
 
       class OpenMPInterface : public PMInterface
@@ -93,6 +93,7 @@ namespace nanos
             virtual PMInterface::Interfaces getInterface() const;
       };
    }
-}
+
+} // namespace nanos
 
 #endif

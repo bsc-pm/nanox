@@ -24,8 +24,7 @@
 #include "config_decl.hpp"
 #include "compatibility.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    class Plugin
    {
@@ -82,9 +81,9 @@ namespace nanos
          bool load ( const std::string &plugin_name, const bool init=true );
          Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
          Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true );
-
+         void unloadPlugins();
    };
 
-}
+} // namespace nanos
 
 #endif

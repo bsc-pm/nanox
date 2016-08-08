@@ -20,16 +20,11 @@
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD_DECL
 #define _NANOS_DEPENDABLE_OBJECT_WD_DECL
 
-#ifdef HAVE_CONFIG_H
-   #include <config.h>
-#endif
-
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
    /*! \class DOSubmit
     *  \brief DependableObject representing a WorkDescriptor as Dependable entity
@@ -158,7 +153,8 @@ namespace nanos
           */
          virtual void instrument ( DependableObject& successor );
    };
-};
+
+} // namespace nanos
 
 #endif
 

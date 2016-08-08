@@ -20,9 +20,10 @@
 #ifndef _NANOS_SYSTEM_FWD_H
 #define _NANOS_SYSTEM_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class System;
-};
+
+} // namespace nanos
 
 #endif

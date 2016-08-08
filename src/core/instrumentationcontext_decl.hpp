@@ -311,5 +311,6 @@ namespace nanos {
 
 #endif
 
-}
+} // namespace nanos
+
 #endif

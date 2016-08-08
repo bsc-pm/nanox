@@ -23,7 +23,7 @@
 #include "dependableobjectwd_decl.hpp"
 #include "dependableobject.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline const DOSubmit & DOSubmit::operator= ( const DOSubmit &dos )
 {
@@ -59,6 +59,8 @@ inline const void * DOWait::getRelatedObject ( ) const
 {
    return (void *) getWD();
 }
+
+} // namespace nanos
 
 #endif
 

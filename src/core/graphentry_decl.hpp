@@ -21,8 +21,8 @@
 #define GRAPHENTRY_H
 #include <iostream>
 
-namespace nanos
-{
+namespace nanos {
+
    class GraphEntry {
       unsigned int _id;
       unsigned int _peid;
@@ -56,6 +56,7 @@ namespace nanos
       }
       return io;
    }
-}
+
+} // namespace nanos
 
 #endif

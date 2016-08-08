@@ -26,8 +26,7 @@
 
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class GPUCallbackData
    {
@@ -66,7 +65,7 @@ namespace ext
 
 
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_GPU_CALLBACK

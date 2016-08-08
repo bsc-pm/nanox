@@ -97,6 +97,6 @@ class OpenCLDD : public DD
 
       return *this;
    }
-}
-}
+} // namespace ext
+} // namespace nanos
 #endif

@@ -20,10 +20,11 @@
 #ifndef _NANOS_CACHE_FWD_H
 #define _NANOS_CACHE_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Cache;
-};
+
+} // namespace nanos
 
 #endif
 

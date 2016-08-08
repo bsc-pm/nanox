@@ -40,8 +40,8 @@ namespace ext {
         virtual SPUDD *clone () const { NEW SPUDD(*this); }
    };
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif
 

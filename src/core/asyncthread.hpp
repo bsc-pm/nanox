@@ -24,8 +24,7 @@
 #include "system.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
 
 inline void AsyncThread::checkEvents()
 {
@@ -112,6 +111,6 @@ inline bool AsyncThread::canGetWork()
    return BaseThread::canGetWork() && ( int ) _runningWDsCounter < getMaxPrefetch();
 }
 
-}
+} // namespace nanos
 
 #endif //_ASYNC_THREAD_ELEMENT

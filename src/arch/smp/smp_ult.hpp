@@ -22,7 +22,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 
 extern "C"
 {
@@ -30,7 +30,7 @@ extern "C"
    void switchStacks( void *,void *,void *,void * );
 }
 
-void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
                        void *cleanup, void *cleanupArg );
 
 #ifndef SMP_SUPPORTS_ULT
@@ -39,7 +39,7 @@ extern "C" {
    inline void switchStacks( void *,void *,void *,void * ) {}
 }
 
-inline void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+inline void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
                        void *cleanup, void *cleanupArg ) { return 0; }
 
 #endif

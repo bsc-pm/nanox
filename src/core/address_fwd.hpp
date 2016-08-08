@@ -20,9 +20,8 @@
 #ifndef _NANOS_ADDRESS_FWD_H
 #define _NANOS_ADDRESS_FWD_H
 
-namespace nanos
-{
+namespace nanos {
    class Address;
-};
+} // namespace nanos
 
 #endif

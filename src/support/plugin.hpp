@@ -20,12 +20,13 @@
 #ifndef _NANOS_PLUGIN
 #define _NANOS_PLUGIN
 
-#include <string>
-#include <vector>
 #include "config.hpp"
 #include "plugin_decl.hpp"
+#include "smartpointer.hpp"
 
-using namespace nanos;
+#include <string>
+
+namespace nanos {
 
 inline const char * Plugin::getName() const
 {
@@ -52,19 +53,31 @@ inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name,
    return loadAndGetPlugin( plugin_name.c_str(), initPlugin );
 }
 
+} // namespace nanos
+
 #ifdef PIC 
 #define DECLARE_PLUGIN(name,type)     \
    extern "C" {                       \
-      Plugin * NanosXPluginFactory(); \
+      nanos::Plugin * NanosXPluginFactory(); \
    }                                  \
-   Plugin * NanosXPluginFactory() {   \
-      return new type();              \
+   nanos::Plugin * NanosXPluginFactory() {   \
+      static nanos::unique_pointer<type> plugin; \
+      if( !plugin ) {                 \
+         plugin.reset(new type());    \
+      }                               \
+      return plugin.get();            \
    }
 #else
 #define INITX {_registerPlugin, NULL} 
 #define DECLARE_PLUGIN(name,type) \
        static void _registerPlugin (void *arg); \
-       static void _registerPlugin (void *arg) { sys.registerPlugin(name, *NEW type()); } \
+       static void _registerPlugin (void *arg) { \
+          static nanos::unique_pointer<type> plugin; \
+          if( !plugin ) {                 \
+             plugin.reset(new type());    \
+          }                               \
+          nanos::sys.registerPlugin(name, *plugin ); \
+       }                                  \
        LINKER_SECTION(nanos_init, nanos_init_desc_t, INITX);
 #endif
 

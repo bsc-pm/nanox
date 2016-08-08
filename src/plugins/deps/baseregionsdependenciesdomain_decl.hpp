@@ -23,8 +23,8 @@
 #include "basedependenciesdomain_decl.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
+
    using namespace dependencies_domain_internal;
 
    /*! \brief Class with common code from the regions and non-regions plugins.
@@ -134,7 +134,7 @@ namespace nanos
             : BaseDependenciesDomain( depDomain ) {}
    };
 
-};
+} // namespace nanos
 
 #endif
 

@@ -19,9 +19,13 @@
 
 #ifndef GPUMEMORYSPACE_FWD
 #define GPUMEMORYSPACE_FWD
+
 namespace nanos {
 namespace ext {
+
    class GPUMemorySpace;
-}
-}
+
+} // namespace ext
+} // namespace nanos
+
 #endif /* GPUMEMORYSPACE_FWD */

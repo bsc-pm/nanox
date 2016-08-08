@@ -21,7 +21,10 @@
 #define CLUSTERPLUGIN_FWD_H
 namespace nanos {
 namespace ext {
+
 class ClusterPlugin;
-}
-}
+
+} // namespace ext
+} // namespace nanos
+
 #endif /* CLUSTERPLUGIN_FWD_H */

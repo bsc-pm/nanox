@@ -53,7 +53,7 @@ extern "C"
  * \sa switchStacks
  */
 
-void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
                      void *cleanup, void *cleanupArg )
 {
    // stack grows down

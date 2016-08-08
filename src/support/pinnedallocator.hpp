@@ -25,7 +25,7 @@
 #include "pinnedallocator_decl.hpp"
 #include "atomic.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 PinnedMemoryManager::PinnedMemoryManager() {}
 PinnedMemoryManager::~PinnedMemoryManager() {}
@@ -55,5 +55,7 @@ void PinnedAllocator::free( void * address )
    _lock.release();
    _manager->free( address );
 }
+
+} // namespace nanos
 
 #endif /* _NANOS_PINNEDALLOCATOR */

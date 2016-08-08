@@ -103,7 +103,7 @@ AS_IF([test "x$with_opencl" != xno],[
 
     #tests if provided headers and libraries are usable and correct
     AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $openclinc])
-    AX_VAR_PUSHVALUE([CxXFLAGS],[$CXXFLAGS -Wno-error=comment])
+    AX_VAR_PUSHVALUE([CXXFLAGS],[$CXXFLAGS -Wno-error=comment])
     AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $opencllib])
     AX_VAR_PUSHVALUE([LIBS])
 

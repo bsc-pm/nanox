@@ -22,8 +22,8 @@
 
 #include "nanos-int.h"
 
-namespace nanos
-{
+namespace nanos {
+
    /** \brief Forwared declaration required by RecursiveLock */
    class BaseThread;
 
@@ -89,6 +89,6 @@ namespace nanos
        ~SyncRecursiveLockBlock ( );
    };
 
-};
+} // namespace nanos
 
 #endif

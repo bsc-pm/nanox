@@ -18,18 +18,23 @@
 /*************************************************************************************/
 
 #include "smpdd.hpp"
-#include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 #include "taskexecutionexception.hpp"
+#include "smpdevice.hpp"
+#include "schedule.hpp"
 #include <string>
 
 using namespace nanos;
 using namespace nanos::ext;
 
-SMPDevice nanos::ext::SMP("SMP");
+//SMPDevice nanos::ext::SMP("SMP");
+
+SMPDevice &nanos::ext::getSMPDevice() {
+   return sys._getSMPDevice();
+}
 
 size_t SMPDD::_stackSize = 256*1024;
 

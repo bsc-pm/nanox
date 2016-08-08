@@ -28,7 +28,7 @@
 #include <iterator>
 #include <stddef.h>
 
-using namespace nanos;
+namespace nanos {
 
 template<class _T>
 inline List<_T>::~List()
@@ -144,5 +144,8 @@ inline void List<_T>::unlock ( )
    _lock.release();
 }
 */
+
+} // namespace nanos
+
 #endif
 

@@ -50,8 +50,8 @@
 #include "slicer_fwd.hpp"
 #include <list>                                                                                                                                          
 
-namespace nanos
-{
+namespace nanos {
+
    class Slicer
    {
       private:
@@ -78,7 +78,8 @@ namespace nanos
           */
          virtual void *getSpecificData ( ) const;
    };
-};
+
+} // namespace nanos
 
 #endif
 

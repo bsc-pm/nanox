@@ -210,15 +210,15 @@ namespace nanos {
                }
             }
 
-            int getPotentiallyParallelWDs( void )
+            int getNumConcurrentWDs()
             {
                TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
                if ( _usePriority || _useSmartPriority ) {
                   WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
-                  return q.getPotentiallyParallelWDs();
+                  return q.getNumConcurrentWDs();
                } else {
                   WDDeque &q = (WDDeque &) *(tdata._readyQueue);
-                  return q.getPotentiallyParallelWDs();
+                  return q.getNumConcurrentWDs();
                }
             }
             

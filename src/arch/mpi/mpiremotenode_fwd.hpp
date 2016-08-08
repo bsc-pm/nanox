@@ -24,7 +24,7 @@ namespace nanos {
 namespace ext
 {
    class MPIRemoteNode;
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

@@ -20,9 +20,10 @@
 #ifndef _REMOTEWORKDESCRIPTOR_FWD
 #define _REMOTEWORKDESCRIPTOR_FWD
 
-namespace nanos
-{
+namespace nanos {
+
    class RemoteWorkDescriptor;
-};
+
+} // namespace nanos
 
 #endif /* _REMOTEWORKDESCRIPTOR_FWD */

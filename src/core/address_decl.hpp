@@ -23,8 +23,7 @@
 #include "basedependency_decl.hpp"
 #include "trackableobject_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class Address
    *  \brief Represents a memory address
@@ -80,6 +79,6 @@ namespace nanos
          virtual bool overlap ( const BaseDependency &obj ) const;
    };
 
-};
+} // namespace nanos
 
 #endif

@@ -20,8 +20,8 @@
 #ifndef __NANOS_BARRIER_DECL_H
 #define __NANOS_BARRIER_DECL_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Barrier
    {
       public:
@@ -59,6 +59,6 @@ namespace nanos
 
    typedef Barrier * ( *barrFactory ) ();
 
-}
+} // namespace nanos
 
 #endif

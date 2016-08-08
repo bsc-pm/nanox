@@ -21,7 +21,9 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "instrumentationcontext_decl.hpp"
-#include "ompt_callbacks.h"
+#include "ompt.h"
+
+using namespace nanos;
 
 extern "C" {
 
@@ -59,9 +61,9 @@ extern "C" {
    }
 
    //! List of callback declarations
-   ompt_new_parallel_callback_t        ompt_nanos_event_parallel_begin = NULL;
-   ompt_parallel_callback_t            ompt_nanos_event_parallel_end = NULL;
-   ompt_new_task_callback_t            ompt_nanos_event_task_begin = NULL;
+   ompt_parallel_begin_callback_t      ompt_nanos_event_parallel_begin = NULL;
+   ompt_parallel_end_callback_t        ompt_nanos_event_parallel_end = NULL;
+   ompt_task_begin_callback_t          ompt_nanos_event_task_begin = NULL;
    ompt_task_callback_t                ompt_nanos_event_task_end = NULL;
    ompt_parallel_callback_t            ompt_nanos_event_implicit_task_begin = NULL;
    ompt_parallel_callback_t            ompt_nanos_event_implicit_task_end = NULL;
@@ -69,10 +71,13 @@ extern "C" {
    ompt_thread_type_callback_t         ompt_nanos_event_thread_end = NULL;
    ompt_control_callback_t             ompt_nanos_event_control = NULL;
    ompt_callback_t                     ompt_nanos_event_shutdown = NULL;
-   ompt_task_switch_callback_t         ompt_nanos_event_task_switch = NULL;
-   ompt_new_dependence_callback_t      ompt_nanos_event_dependence = NULL;
-   ompt_parallel_callback_t            ompt_nanos_event_barrier_begin = NULL;
+   ompt_task_pair_callback_t           ompt_nanos_event_task_switch = NULL;
+   ompt_task_pair_callback_t           ompt_nanos_event_dependence = NULL;
+   ompt_sync_callback_t                ompt_nanos_event_barrier_begin = NULL;
    ompt_parallel_callback_t            ompt_nanos_event_barrier_end = NULL;
+   ompt_parallel_callback_t            ompt_nanos_event_taskwait_begin = NULL;
+   ompt_parallel_callback_t            ompt_nanos_event_taskwait_end = NULL;
+
 
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback );
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback )
@@ -86,13 +91,13 @@ extern "C" {
 
       switch ( event ) {
          case ompt_event_parallel_begin:
-            ompt_nanos_event_parallel_begin = (ompt_new_parallel_callback_t) callback;
+            ompt_nanos_event_parallel_begin = (ompt_parallel_begin_callback_t) callback;
             return 4;
          case ompt_event_parallel_end:
-            ompt_nanos_event_parallel_end = (ompt_parallel_callback_t) callback;
+            ompt_nanos_event_parallel_end = (ompt_parallel_end_callback_t) callback;
             return 4;
          case ompt_event_task_begin: 
-            ompt_nanos_event_task_begin = (ompt_new_task_callback_t) callback;
+            ompt_nanos_event_task_begin = (ompt_task_begin_callback_t) callback;
             return 4;
          case ompt_event_task_end:
             ompt_nanos_event_task_end = (ompt_task_callback_t) callback;
@@ -117,7 +122,7 @@ extern "C" {
          case ompt_event_wait_barrier_end:
             return 1;
          case ompt_event_barrier_begin:
-            ompt_nanos_event_barrier_begin = (ompt_parallel_callback_t) callback;
+            ompt_nanos_event_barrier_begin = (ompt_sync_callback_t) callback;
             return 4;
          case ompt_event_barrier_end:
             ompt_nanos_event_barrier_end = (ompt_parallel_callback_t) callback;
@@ -141,7 +146,7 @@ extern "C" {
          case ompt_event_initial_task_end:
             return 1;
          case ompt_event_task_switch:
-            ompt_nanos_event_task_switch = (ompt_task_switch_callback_t) callback;
+            ompt_nanos_event_task_switch = (ompt_task_pair_callback_t) callback;
             return 4;
          case ompt_event_loop_begin:
          case ompt_event_loop_end:
@@ -155,8 +160,13 @@ extern "C" {
          case ompt_event_workshare_end:
          case ompt_event_master_begin:
          case ompt_event_master_end:
+            return 1;
          case ompt_event_taskwait_begin:
+            ompt_nanos_event_taskwait_begin = (ompt_parallel_callback_t) callback;
+            return 4;
          case ompt_event_taskwait_end:
+            ompt_nanos_event_taskwait_end = (ompt_parallel_callback_t) callback;
+            return 4;
          case ompt_event_taskgroup_begin:
          case ompt_event_taskgroup_end:
          case ompt_event_release_nest_lock_prev:
@@ -172,9 +182,11 @@ extern "C" {
          case ompt_event_acquired_atomic:
          case ompt_event_acquired_ordered:
             return 1;
-         case ompt_event_dependence:
-            ompt_nanos_event_dependence = (ompt_new_dependence_callback_t) callback;
+         case ompt_event_task_dependence_pair:
+            ompt_nanos_event_dependence = (ompt_task_pair_callback_t) callback;
             return 4;
+         case ompt_event_task_dependences:
+            return 1;
          default:
             warning0("Callback registration error: incorrect event id");
             return 0;
@@ -377,17 +389,18 @@ namespace nanos
             static const nanos_event_value_t api_barrier = iD->getEventValue("api","omp_barrier");
             static const nanos_event_value_t api_enter_team = iD->getEventValue("api","enter_team");
             static const nanos_event_value_t api_leave_team = iD->getEventValue("api","leave_team");
+            static const nanos_event_value_t api_taskwait = iD->getEventValue("api","wg_wait_completion");
 
             static const nanos_event_key_t parallel_outline = iD->getEventKey("parallel-outline-fct");
             static const nanos_event_key_t team_info = iD->getEventKey("team-ptr");
             static const nanos_event_key_t dependence =  iD->getEventKey("dependence");
-            static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
-            static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
+            //static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
+            //static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
 
             unsigned int i;
             for( i=0; i<count; i++) {
                Event &e = events[i];
-/*FIXME: debug information */
+// XXX: debug information
 #if 0
                int thid = nanos::myThread? nanos::myThread->getId():0; 
                fprintf(stderr,"NANOS++ [%d]: (%d/%d) event %ld value %lu\n",
@@ -412,32 +425,15 @@ namespace nanos
                                  );
                         }
                      }
-                     if ( e.getKey() == dependence ) {
+                     if ( e.getKey() == dependence && ompt_nanos_event_dependence ) {
                         nanos_event_value_t dependence_value = e.getValue();
                         int sender_id = (int) ( dependence_value >> 32 ) & 0xFFFFFFFF;
                         int receiver_id = (int) ( dependence_value & 0xFFFFFFFF );
 
-                        void * address_id = 0;
-                        if ( dep_address != 0xFFFFFFFF ) {
-                           unsigned int j = i;
-                           while ( (j < count) && ((nanos_event_key_t)(events[j]).getKey() != dep_address) ) j++;
-                           if ( j < count ) address_id = (void *) ((events[j]).getValue());
-                        }
-                        // Getting dep_address event (usually the following event to dependence)
-                        int direction = 0;
-                        if ( dep_direction != 0xFFFFFFFF ) {
-                           unsigned int j = i;
-                           while ( (j < count) && ((nanos_event_key_t)(events[j]).getKey() != dep_direction) ) j++;
-                           if ( j < count ) direction = ( int ) ((events[j]).getValue());
-                        }
-
                         ompt_nanos_event_dependence(
                            (ompt_task_id_t) sender_id,
-                           (ompt_task_id_t) receiver_id,
-                           (ompt_dependence_type_t) direction,
-                           (void *) address_id
+                           (ompt_task_id_t) receiver_id
                         );
-
                      }
                      break;
                   case NANOS_BURST_START:
@@ -472,13 +468,19 @@ namespace nanos
                            }
                            ompt_nanos_event_parallel_end (
                                  (ompt_parallel_id_t) p_id,
-                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                                 ompt_invoker_runtime);
                         } else if ( val == api_barrier && ompt_nanos_event_barrier_begin ) {
                            ompt_nanos_event_barrier_begin (
                                  (ompt_parallel_id_t) team_id,
-                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                                 NULL);
                         } else if ( val == api_leave_team && ompt_nanos_event_implicit_task_end ) {
                            ompt_nanos_event_implicit_task_end (
+                                 (ompt_parallel_id_t) team_id,
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                        } else if ( val == api_taskwait && ompt_nanos_event_taskwait_begin ) {
+                           ompt_nanos_event_taskwait_begin (
                                  (ompt_parallel_id_t) team_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         }
@@ -529,15 +531,24 @@ namespace nanos
                               }
                            }
 
+                           ompt_frame_t cb_frame;
+                           cb_frame.exit_runtime_frame = NULL; // FIXME: frame data of parent task
+                           cb_frame.reenter_runtime_frame = NULL; // FIXME: as ^^^
+
                            ompt_nanos_event_parallel_begin (
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
-                                 (ompt_frame_t) NULL,    // FIXME: frame data of parent task
+                                 &cb_frame,
                                  (ompt_parallel_id_t) p_id,
                                  (uint32_t) team_size,
-                                 (void *) parallel_fct  
+                                 (void *) parallel_fct,
+                                 ompt_invoker_runtime
                                  );
                         } else if ( val == api_enter_team && ompt_nanos_event_implicit_task_begin ) {
                            ompt_nanos_event_implicit_task_begin (
+                                 (ompt_parallel_id_t) team_id,
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                        } else if ( val == api_taskwait && ompt_nanos_event_taskwait_end ) {
+                           ompt_nanos_event_taskwait_end (
                                  (ompt_parallel_id_t) team_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         }

@@ -49,7 +49,7 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( ext::getSMPDevice() );
 
    while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
 
@@ -281,7 +281,7 @@ bool GPUThread::processDependentWD ( WD * wd )
    if ( doSubmit != NULL ) {
       DependableObject::DependableObjectVector & preds = wd->getDOSubmit()->getPredecessors();
       for ( DependableObject::DependableObjectVector::iterator it = preds.begin(); it != preds.end(); it++ ) {
-         WD * wdPred = ( WD * ) ( *it )->getRelatedObject();
+         WD * wdPred = ( WD * ) it->second->getRelatedObject();
          if ( wdPred != NULL ) {
             if ( wdPred->isTiedTo() == NULL || wdPred->isTiedTo() == ( BaseThread * ) this ) {
                if ( wdPred->getCudaStreamIdx() != -1 ) {
@@ -434,7 +434,10 @@ void GPUThread::raiseWDRunEvent ( WD * wd )
    if ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ) {
       wd->setRunTime( OS::getMonotonicTimeUs() );
    }
+}
 
+unsigned int GPUThread::getPrefetchedWDsCount() const {
+   return _prefetchedWDs;
 }
 
 void GPUThread::closeWDRunEvent ( WD * wd )

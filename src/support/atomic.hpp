@@ -243,8 +243,8 @@ template<typename T>
 inline bool compareAndSwap( volatile T *ptr, T oldval, T  newval )
 {
     return __sync_bool_compare_and_swap ( ptr, oldval, newval );
-#endif
 }
+#endif
 
 } // namespace nanos
 

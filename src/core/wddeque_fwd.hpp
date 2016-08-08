@@ -20,13 +20,14 @@
 #ifndef _NANOS_LIB_WDDEQUE_FWD_H
 #define _NANOS_LIB_WDDEQUE_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class SchedulePredicate;
    class WDPool;
    class WDDeque;
    class WDLFQueue;
    template<typename T> class WDPriorityQueue;
-};
+
+} // namespace nanos
 
 #endif

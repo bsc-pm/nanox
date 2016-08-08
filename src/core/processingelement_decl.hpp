@@ -27,11 +27,11 @@
 #include "schedule_fwd.hpp"
 #include "location_decl.hpp"
 
-namespace nanos
-{
-   namespace ext {
+namespace nanos {
+
+namespace ext {
    class SMPMultiThread;
-   };
+} // namespace ext
 
    class ProcessingElement : public Location
    {
@@ -42,11 +42,8 @@ namespace nanos
          int                                  _id;
          //! Unique ID
          int                                  _uid;
-         std::vector<const Device *>          _supportedDevices;
-         const Device *                       _device;
-//         const Device *                       _subDevice;
-//         const Device *                       _deviceNo;
-//         const Device *                       _subDeviceNo;
+         std::vector<const Device *>          _devices;
+         unsigned int                         _activeDevice; //if _activeDevice == _devices.size then all are active
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
 
@@ -80,9 +77,8 @@ namespace nanos
          /* get/put methods */
          int getId() const;
          
-         const Device * getDeviceType () const;
-         const Device * getSubDeviceType () const;
-         virtual const Device * getCacheDeviceType () const;
+         std::vector<Device const *> const &getDeviceTypes () const;
+         bool supports( Device const &dev ) const;
 
          ThreadList &getThreads();
 
@@ -97,9 +93,6 @@ namespace nanos
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
 
-         void setCurrentDevice( int idx ) {
-            _device = _supportedDevices[ idx ];
-         }
          void stopAll();
          void stopAllThreads();
 
@@ -133,10 +126,14 @@ namespace nanos
          std::size_t getRunningThreads() const;
 
          virtual bool isActive() const { return true; }
+         void setActiveDevice( unsigned int devIdx );
+         void setActiveDevice( const Device *dev );
+         unsigned int getActiveDevice() const;
    };
 
    typedef class ProcessingElement PE;
    typedef PE * ( *peFactory ) ( int pid, int uid );
-};
+
+} // namespace nanos
 
 #endif

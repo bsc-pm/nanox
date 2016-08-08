@@ -23,8 +23,7 @@
 #include <iostream>
 #include "nanos-int.h"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class CopyData
    *  \brief Contains information about Copies
@@ -38,7 +37,7 @@ namespace nanos
          *  \param output Whether the CopyData is output or not
          */
          CopyData ( uint64_t addr = ( uint64_t ) NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
-                    bool output = false, std::size_t numDimensions = 0, nanos_region_dimension_internal_t *dims = NULL, ptrdiff_t off = 0, uint64_t hostBaseAddress = 0, memory_space_id_t hostRegionId = 0 );
+                    bool output = false, std::size_t numDimensions = 0, nanos_region_dimension_internal_t const *dims = NULL, ptrdiff_t off = 0, uint64_t hostBaseAddress = 0, reg_t hostRegionId = 0 );
 
         /*! \brief CopyData copy constructor
          *  \param obj another CopyData
@@ -97,7 +96,7 @@ namespace nanos
 
          std::size_t getNumDimensions() const;
          void setNumDimensions( std::size_t ndims );
-         nanos_region_dimension_internal_t *getDimensions() const;
+         nanos_region_dimension_internal_t const *getDimensions() const;
          void setDimensions(nanos_region_dimension_internal_t *);
          
          uint64_t getAddress() const ;
@@ -105,12 +104,14 @@ namespace nanos
          uint64_t getHostBaseAddress() const ;
          void setHostBaseAddress(uint64_t addr);
          void getFitDimensions( nanos_region_dimension_internal_t *outDimensions ) const;
-         void setHostRegionId( memory_space_id_t id );
-         memory_space_id_t getHostRegionId() const;
+         void setHostRegionId( reg_t id );
+         reg_t getHostRegionId() const;
          bool isRemoteHost() const;
          void setRemoteHost( bool value );
-         void deductCd( CopyData const &ref, CopyData *out ) const;
+         void deductCd( CopyData const &ref, nanos_region_dimension_internal_t *newDims ) const;
          bool equalGeometry( CopyData const &cd ) const;
+         void setDeductedCD( CopyData *cd );
+         CopyData *getDeductedCD();
 
       friend std::ostream& operator<< (std::ostream& o, CopyData const &cd);
 
@@ -121,6 +122,7 @@ namespace nanos
 
    };
    std::ostream& operator<< (std::ostream& o, CopyData const &cd);
-}
+
+} // namespace nanos
 
 #endif

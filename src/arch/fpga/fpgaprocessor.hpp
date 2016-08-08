@@ -28,11 +28,10 @@
 #include "fpgadevice.hpp"
 #include "fpgaconfig.hpp"
 #include "cachedaccelerator.hpp"
+#include "fpgapinnedallocator.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
 
 //As in gpu, we could keep track of copied data
 
@@ -57,6 +56,8 @@ namespace nanos
 
             FPGAMemoryTransferList *_inputTransfers;
             FPGAMemoryTransferList *_outputTransfers;
+
+            static FPGAPinnedAllocator _allocator;
 
          public:
 
@@ -126,8 +127,9 @@ namespace nanos
             virtual void* getAddress(WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing ) {return NULL;}
 
             BaseThread &startFPGAThread();
+            static  FPGAPinnedAllocator& getPinnedAllocator() { return _allocator; }
       };
-   }
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

@@ -20,10 +20,11 @@
 #ifndef _NANOS_ALLOCATOR_FWD_HPP
 #define _NANOS_ALLOCATOR_FWD_HPP
 
-namespace nanos
-{
+namespace nanos {
+
    //class InternalAllocator;
    class Allocator;
-};
+
+} // namespace nanos
 
 #endif

@@ -42,5 +42,6 @@ class RegionSet {
    bool hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
 };
 
-}
+} // namespace nanos
+
 #endif /* REGIONSET_DECL_HPP */

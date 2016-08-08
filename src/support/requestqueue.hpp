@@ -24,6 +24,8 @@
 #include "atomic.hpp"
 #include "lock.hpp"
 
+namespace nanos {
+
 template <class T>
 RequestQueue<T>::RequestQueue() : _queue(), _lock() {
 }
@@ -99,5 +101,7 @@ T *RequestMap<T>::fetch( uint64_t key ) {
    }
    _lock.release();
 }
+
+} // namespace nanos
 
 #endif /* _REQUESTQUEUE */

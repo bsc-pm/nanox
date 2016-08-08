@@ -25,7 +25,7 @@
 #include "regioncache.hpp"
 #include "system.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 //inline CachedAccelerator::CachedAccelerator( const Device *arch,
 //   const Device *subArch, memory_space_id_t addressSpace ) :
@@ -39,5 +39,7 @@ using namespace nanos;
 //{
 //   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
 //}
+
+} // namespace nanos
 
 #endif

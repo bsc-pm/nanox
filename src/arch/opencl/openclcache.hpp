@@ -115,7 +115,7 @@ private:
    Atomic<size_t>    _bytesDevice;
 };
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_OpenCL_CACHE

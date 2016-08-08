@@ -28,8 +28,7 @@
 #define MAX_PRESEND 1024
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class ClusterThread : public BaseThread
    {
@@ -41,6 +40,8 @@ namespace ext
          Atomic<unsigned int> _completedHead2;
          unsigned int _completedTail;
          WD* _completedWDs[MAX_PRESEND];
+      std::list< WD * > _waitingDataWDs;
+      WD *_pendingInitWD;
          
          public:
          RunningWDQueue();
@@ -49,13 +50,19 @@ namespace ext
          unsigned int numRunningWDs() const;
          void clearCompletedWDs( ClusterThread *self );
          void completeWD( void *remoteWdAddr );
+
+         bool hasAPendingWDToInit() const;
+         WD *getPendingInitWD();
+         void setPendingInitWD( WD *wd );
+
+         bool hasWaitingDataWDs() const;
+         WD *getWaitingDataWD();
+         void addWaitingDataWD( WD *wd );
       };
 
       unsigned int                     _clusterNode; // Assigned Cluster device Id
-      RunningWDQueue _runningWDs[3]; //0: SMP, 1: GPU, 3: OCL
       Lock _lock;
-      WD *_pendingInitWD;
-      std::list< WD * > _waitingDataWDs;
+      RunningWDQueue _runningWDs[4]; //0: SMP, 1: GPU, 3: OCL, 4: FPGA
 
       // disable copy constructor and assignment operator
       ClusterThread( const ClusterThread &th );
@@ -76,17 +83,10 @@ namespace ext
       virtual void preOutlineWorkDependent ( WD &wd );
       virtual void outlineWorkDependent ( WD &wd );
 
-      void addRunningWDSMP( WorkDescriptor *wd );
-      unsigned int numRunningWDsSMP() const;
-      void clearCompletedWDsSMP2( );
-
-      void addRunningWDGPU( WorkDescriptor *wd );
-      unsigned int numRunningWDsGPU() const;
-      void clearCompletedWDsGPU2( );
-
-      void addRunningWDOCL( WorkDescriptor *wd );
-      unsigned int numRunningWDsOCL() const;
-      void clearCompletedWDsOCL2( );
+      void addRunningWD( unsigned int archId, WorkDescriptor *wd );
+      unsigned int numRunningWDs( unsigned int archId ) const;
+      void clearCompletedWDs( unsigned int archId );
+      bool acceptsWDs( unsigned int archId ) const;
 
       virtual void join();
       virtual void start();
@@ -108,22 +108,22 @@ namespace ext
 
       virtual void setupSignalHandlers();
 
+      bool hasAPendingWDToInit( unsigned int arch_id ) const;
+      WD *getPendingInitWD( unsigned int arch_id );
+      void setPendingInitWD( unsigned int arch_id, WD *wd );
 
-      bool acceptsWDsSMP() const;
-      bool acceptsWDsGPU() const;
-      bool acceptsWDsOCL() const;
+      bool hasWaitingDataWDs( unsigned int archId ) const;
+      WD *getWaitingDataWD( unsigned int archId );
+      void addWaitingDataWD( unsigned int archId, WD *wd );
 
-      bool hasAPendingWDToInit() const;
-      WD *getPendingInitWD();
-      void setPendingInitWD( WD *wd );
 
-      bool hasWaitingDataWDs() const;
-      WD *getWaitingDataWD();
-      void addWaitingDataWD( WD *wd );
+      static void workerClusterLoop ( void );
+      static WD * getClusterWD( BaseThread *thread );
    };
 
 
-}
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* _CLUSTERTHREAD_DECL */

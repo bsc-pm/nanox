@@ -25,6 +25,8 @@
 #include "debug.hpp"
 #include "router.hpp"
 
+using namespace nanos;
+
 uint64_t global_reg_t::getKeyFirstAddress() const {
    return getFirstAddress( key->getKeyBaseAddress() );
 }
@@ -106,16 +108,7 @@ unsigned int global_reg_t::getNumDimensions() const {
    return key->getNumDimensions();
 }
 
-global_reg_t::global_reg_t( reg_t r, reg_key_t k ) : id( r ), key( k ) {
-}
-
-global_reg_t::global_reg_t( reg_t r, const_reg_key_t k ) : id( r ), ckey( k ) {
-}
-
-global_reg_t::global_reg_t() : id( 0 ), key( NULL ) {
-}
-
-void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]) const {
+void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t *region) const {
    RegionNode *n = key->getRegionNode( id );
    std::vector< std::size_t > const &sizes = key->getDimensionSizes();
    for ( int dimIdx = key->getNumDimensions() - 1; dimIdx >= 0; dimIdx -= 1 ) {
@@ -130,30 +123,18 @@ void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]
 }
 
 
-bool global_reg_t::operator<( global_reg_t const &reg ) const {
-   bool result;
-   if ( key < reg.key )
-      result = true;
-   else if ( reg.key < key )
-      result = false;
-   else result = ( id < reg.id );
-   return result;
-}
-
-memory_space_id_t global_reg_t::getFirstLocation() const {
-   return NewNewRegionDirectory::getFirstLocation( key, id );
-}
-
 memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t dest ) const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    memory_space_id_t selected;
    if ( entry->isLocatedIn( dest ) ) {
       selected = dest;
-      printBt(std::cerr);
-      fatal("Data already in destination.");
+      printBt(*myThread->_file);
+      //fatal("Data already in destination.");
    } else {
+      entry->lock();
       selected = sys.getRouter().getSource( dest, entry->getLocations() );
+      entry->unlock();
    }
    return selected;
 }
@@ -202,6 +183,8 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
    nanos_region_dimension_internal_t fitDimensions[ key->getNumDimensions() ];
    if ( slabSize < this->getBreadth() ) {
       fatal("Can not allocate slab for this region. Not supported yet. slabSize "<< slabSize << " breadth " << this->getBreadth());
+   } else if ( this->getBreadth() < slabSize && id == 1 ) {
+      return id;
    } else {
 
       unsigned int lower_bounds[key->getNumDimensions()];
@@ -230,7 +213,7 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
                fitDimensions[ idx ].lower_bound = ( lower_bounds[idx] / slab_elems ) * slab_elems;
                keep_expanding = false;
             } else {
-               fatal("invalid slabSize.");
+               fatal("invalid slabSize: " << slabSize << " reg size is " << this->getBreadth() );
             }
          } else {
             fitDimensions[ idx ].accessed_length = 1;
@@ -242,19 +225,26 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
    return key->obtainRegionId( fitDimensions );
 }
 
-void global_reg_t::initializeGlobalEntryIfNeeded() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
-   if ( entry == NULL ) {
-      NewNewRegionDirectory::initializeEntry( key, id );
-   }
-}
-
 void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const {
    NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
 }
 
 DeviceOps *global_reg_t::getDeviceOps() const {
    return NewNewRegionDirectory::getOps( key, id );
+}
+
+DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) {
+   DeviceOps *ops = NULL;
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   memory_space_id_t home = (entry->getRootedLocation() == (unsigned int) -1) ? 0 : entry->getRootedLocation();
+   if ( home == 0 ) {
+      ops = NewNewRegionDirectory::getOps( key, id );
+   } else {
+      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, wd, copyIdx );
+      ops = chunk->getDeviceOps( *this, &wd, copyIdx );
+      chunk->unlock();
+   }
+   return ops;
 }
 
 bool global_reg_t::contains( global_reg_t const &reg ) const {
@@ -293,12 +283,6 @@ std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
    return entry->getLocations();
 }
 
-//void global_reg_t::setRooted() const {
-//   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
-//   ensure(entry != NULL, "invalid entry.");
-//   entry->setRooted();
-//}
-
 memory_space_id_t global_reg_t::getRootedLocation() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
@@ -312,13 +296,13 @@ bool global_reg_t::isRooted() const {
 }
 void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
    //setRooted();
-   NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
+   NewNewRegionDirectory::addRootedAccess( key, id, loc, 2 );
 }
 
 unsigned int global_reg_t::getNumLocations() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
-   return entry->getLocations().size();
+   return entry->getNumLocations();
 }
 
 ProcessingElement *global_reg_t::getFirstWriterPE() const {
@@ -328,8 +312,12 @@ ProcessingElement *global_reg_t::getFirstWriterPE() const {
 }
 
 bool global_reg_t::isLocatedInSeparateMemorySpaces() const {
+   bool res;
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
+   entry->lock();
    std::set< memory_space_id_t > const &locs = entry->getLocations();
-   return ( locs.size() > 1 || locs.count(0) == 0 ); 
+   res = ( locs.size() > 1 || locs.count(0) == 0 );
+   entry->unlock();
+   return res;
 }

@@ -24,18 +24,17 @@
 #include "openclprocessor.hpp" 
 #include "deviceops.hpp"
 
-using namespace nanos;
-using namespace nanos::ext;
+namespace nanos {
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx)
+void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WD const *wd, unsigned int copyIdx)
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
-   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
-       CopyData cdata=wd.getCopies()[copyIdx];
+   if( ext::OpenCLProcessor *proc = dynamic_cast<ext::OpenCLProcessor *>( pe ) ) {
+       CopyData cdata=wd->getCopies()[copyIdx];
        //If we are on allocWide mode and we have the complete size (aka we are allocating the whole structure), do offset = 0
-       if (nanos::ext::OpenCLConfig::getAllocWide() && cdata.getSize()!=cdata.getMaxSize()) {
+       if (ext::OpenCLConfig::getAllocWide() && cdata.getSize()!=cdata.getMaxSize()) {
          return proc->allocate( size , cdata.getAddress(), 0);
        } else {
          return proc->allocate( size , cdata.getAddress(), cdata.getOffset());
@@ -58,48 +57,44 @@ void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &m
 
 void OpenCLDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 {
-    nanos::ProcessingElement * pe = &(mem.getPE());
+    ProcessingElement * pe = &(mem.getPE());
 
-    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
+    if( ext::OpenCLProcessor *proc = dynamic_cast<ext::OpenCLProcessor *>( pe ) )
       return proc->free( (void*) addr );
 
 
    fatal( "Can free only on OpenCLProcessor" );
 }
 
-void OpenCLDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId )
+void OpenCLDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId )
 {
    nanos::ProcessingElement * pe = &(mem.getPE());
-   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
+   if( ext::OpenCLProcessor *proc = dynamic_cast<ext::OpenCLProcessor *>( pe ) )
    {
         proc->copyIn( devAddr, hostAddr, len, ops );
    }
 }
 
-void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId )
+void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId )
 {
    nanos::ProcessingElement * pe = &(mem.getPE());
-   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
+   if( ext::OpenCLProcessor *proc = dynamic_cast<ext::OpenCLProcessor *>( pe ) )
    {
         proc->copyOut( hostAddr, devAddr, len, ops );
    }
 }
 
-bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId )
+bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId )
 {
     //If user disabled devToDev copies (sometimes they give bad performance...)
     if (nanos::ext::OpenCLConfig::getDisableDev2Dev()) return false;
-    nanos::ext::OpenCLProcessor *procDst = (nanos::ext::OpenCLProcessor *)( &(memDest.getPE()) );
-    nanos::ext::OpenCLProcessor *procSrc = (nanos::ext::OpenCLProcessor *)( &(memOrig.getPE()) );
+    ext::OpenCLProcessor *procDst = (ext::OpenCLProcessor *)( &(memDest.getPE()) );
+    ext::OpenCLProcessor *procSrc = (ext::OpenCLProcessor *)( &(memOrig.getPE()) );
     //If both devices are in the same vendor/context do a real copy in       
    //If shared memory, no need to copy (I hope, all OCL devices should share the same memory space...)
-    if (procDst->getContext()==procSrc->getContext() && !OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) devOrigAddr, len)) {       
+    if (procDst->getContext()==procSrc->getContext() && !ext::OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) devOrigAddr, len)) {       
         cl_mem buf=procSrc->getBuffer( (void*) devOrigAddr, len);
         procDst->copyInBuffer( (void*) devDestAddr, buf, len, ops);
-        //TODO: Check this functor
-        if ( f ) {
-           (*f)(); 
-        }
         return true;
     }
     return false;
@@ -107,27 +102,29 @@ bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, st
 
 
 void OpenCLDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) {
-    nanos::ext::OpenCLProcessor const *pe = (nanos::ext::OpenCLProcessor const *)&(mem.getConstPE());
+    ext::OpenCLProcessor const *pe = (ext::OpenCLProcessor const *)&(mem.getConstPE());
     pe->getConstCacheAllocator().getFreeChunksList(list);
 }
 
 std::size_t OpenCLDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) {
-    nanos::ext::OpenCLProcessor const *pe = (nanos::ext::OpenCLProcessor const *)&(mem.getConstPE());
+    ext::OpenCLProcessor const *pe = (ext::OpenCLProcessor const *)&(mem.getConstPE());
     return pe->getConstCacheAllocator().getCapacity();
 }
 
 void OpenCLDevice::_canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) { }
 
-void OpenCLDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void OpenCLDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
 }
 
-void OpenCLDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void OpenCLDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
 }
 
-bool OpenCLDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+bool OpenCLDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
 }
+
+} // namespace nanos
 
 #endif // _OpenCL_DEVICE

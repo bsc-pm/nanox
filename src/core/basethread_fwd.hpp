@@ -20,12 +20,13 @@
 #ifndef _BASE_THREAD_ELEMENT_FWD_H
 #define _BASE_THREAD_ELEMENT_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class TeamData;
    class BaseThread;
 
    extern __thread BaseThread *myThread;
-};
+
+} // namespace nanos
 
 #endif

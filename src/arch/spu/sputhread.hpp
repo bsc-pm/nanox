@@ -57,8 +57,8 @@ namespace ext {
          static  void bootstrap ();
    };
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 
 #endif

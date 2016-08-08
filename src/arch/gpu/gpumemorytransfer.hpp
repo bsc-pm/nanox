@@ -24,17 +24,12 @@
 #include "basethread.hpp"
 
 
-using namespace nanos;
-using namespace nanos::ext;
-
+namespace nanos {
+namespace ext {
 
 void GPUMemoryTransfer::completeTransfer()
 {
    _hostAddress._ops->completeOp();
-   if ( _hostAddress._functor ) {
-      ( *_hostAddress._functor ) ();
-   }
-
    delete this;
 }
 
@@ -88,5 +83,8 @@ void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddre
    _requestedTransfers.push_back( mt );
    _lock.release();
 }
+
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_MEMORY_TRANSFER

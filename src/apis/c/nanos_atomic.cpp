@@ -20,10 +20,6 @@
 /*! \file nanos_atomic.cpp
  *  \brief 
  */
-#ifdef HAVE_CONFIG_H
-   #include "config.h"
-#endif
-
 #include "nanos_atomic.h"
 
 #include "atomic.hpp"

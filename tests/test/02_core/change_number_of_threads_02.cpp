@@ -32,6 +32,8 @@
 
 #define ITERS 1000
 
+using namespace nanos;
+
 int main ( int argc, char *argv[])
 {
    int i, error = 0;

@@ -20,10 +20,6 @@
 #ifndef _NANOS_THREAD_TEAM_DECL_H
 #define _NANOS_THREAD_TEAM_DECL_H
 
-#ifdef HAVE_CONFIG_H
-   #include <config.h>
-#endif
-
 #include <vector>
 #include <list>
 #include "basethread_decl.hpp"
@@ -32,8 +28,7 @@
 #include "task_reduction_decl.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
 
    class ThreadTeamData
    {
@@ -235,6 +230,6 @@ namespace nanos
          void removeExpectedThread( BaseThread *thread );
    };
 
-}
+} // namespace nanos
 
 #endif

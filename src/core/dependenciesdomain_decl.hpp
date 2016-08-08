@@ -49,24 +49,25 @@
  */
 #ifndef _NANOS_DEPENDENCIES_DOMAIN_DECL
 #define _NANOS_DEPENDENCIES_DOMAIN_DECL
+#include "atomic_decl.hpp"
+#include "recursivelock_decl.hpp"
+#include "lock_decl.hpp"
+#include "dataaccess_decl.hpp"
+#include "basedependency_decl.hpp"
+
+#include "commutationdepobj_fwd.hpp"
+#include "dependableobject_fwd.hpp"
+#include "schedule_fwd.hpp"
+
 #include <stdlib.h>
 #include <map>
 #include <list>
 #include <vector>
 #include <string>
-#include "atomic_decl.hpp"
-#include "recursivelock_decl.hpp"
-#include "lock_decl.hpp"
-#include "dependableobject_decl.hpp"
-#include "trackableobject_decl.hpp"
-#include "dataaccess_decl.hpp"
-#include "schedule_fwd.hpp"
-#include "basedependency_decl.hpp"
 
+namespace nanos {
 
-namespace nanos
-{
-   using namespace dependencies_domain_internal;
+using namespace dependencies_domain_internal;
    
   /*! \class DependenciesDomain
    *  Interface class of plugins used for dependencies domain.
@@ -235,7 +236,7 @@ namespace nanos
          virtual DependenciesDomain* createDependenciesDomain () const = 0;
    };
    
-};
+} // namespace nanos
 
 #endif
 

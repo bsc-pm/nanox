@@ -50,4 +50,4 @@ class OSAllocator {
       void *allocate_none( size_t len ); 
 };
 
-}
+} // namespace nanos

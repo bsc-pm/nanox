@@ -53,6 +53,7 @@ if is_debug_enabled
 noinst_LTLIBRARIES += debug/libspu.la
 
 
+debug_libspu_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libspu_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libspu_la_SOURCES=$(spu_sources)
 debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
@@ -63,6 +64,7 @@ if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libspu.la
 
 
+instrumentation_libspu_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libspu_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libspu_la_SOURCES=$(spu_sources)
 instrumentation_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
@@ -73,6 +75,7 @@ if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libspu.la
 
 
+instrumentation_debug_libspu_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
 instrumentation_debug_libspu_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libspu_la_SOURCES=$(spu_sources)
 instrumentation_debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
@@ -83,6 +86,7 @@ if is_performance_enabled
 noinst_LTLIBRARIES += performance/libspu.la
 
 
+performance_libspu_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libspu_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libspu_la_SOURCES=$(spu_sources)
 performance_libspu_la_DEPENDENCIES=.libs/libspu_embed.a

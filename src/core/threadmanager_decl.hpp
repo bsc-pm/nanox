@@ -25,8 +25,8 @@
 #include "cpuset.hpp"
 #include "basethread_decl.hpp"
 
-namespace nanos
-{
+namespace nanos {
+
    //! ThreadManager base class
    /*!
     * This class is used when yield, block and sleep are disabled.
@@ -220,6 +220,9 @@ namespace nanos
          void config( Config &cfg );
          ThreadManager* create();
          bool canUntieMaster() const;
+         void setForceTieMaster ( const bool value ) { _forceTieMaster = value; }
    };
-}
+
+} // namespace nanos
+
 #endif /* THREADMANAGER_DECL_HPP */

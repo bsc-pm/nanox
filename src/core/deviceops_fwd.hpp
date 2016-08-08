@@ -19,7 +19,11 @@
 
 #ifndef DEVICEOPS_FWD_HPP
 #define DEVICEOPS_FWD_HPP
+
 namespace nanos {
+
    class DeviceOps;
-} 
+
+} // namespace nanos 
+
 #endif /* DEVICEOPS_FWD_HPP */

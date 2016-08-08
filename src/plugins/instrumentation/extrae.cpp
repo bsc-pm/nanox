@@ -273,9 +273,11 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
 
         // Cluster specific information
-        Extrae_set_taskid_function ( nanos_extrae_node_id );
-        Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
-        Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
+        if ( sys.usingCluster() ) {
+           Extrae_set_taskid_function ( nanos_extrae_node_id );
+           Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
+           Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
+        }
 #ifdef HAVE_MPI_H
         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
         if (offload_trace_on != NULL){ 

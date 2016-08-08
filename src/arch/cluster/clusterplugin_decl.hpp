@@ -23,14 +23,14 @@
 #include "plugin.hpp"
 #include "system_decl.hpp"
 #include "clusternode_decl.hpp"
-#include "gasnetapi_decl.hpp"
+#include "gasnetapi_fwd.hpp"
 
 namespace nanos {
 namespace ext {
 
 class ClusterPlugin : public ArchPlugin
 {
-      GASNetAPI _gasnetApi;
+      GASNetAPI *_gasnetApi;
 
       unsigned int _numPinnedSegments;
       void ** _pinnedSegmentAddrList;
@@ -40,12 +40,14 @@ class ClusterPlugin : public ArchPlugin
       std::size_t _nodeMem;
       bool _allocFit;
       bool _allowSharedThd;
+      bool _unalignedNodeMem;
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
-      std::vector<ext::ClusterNode *> *_nodes;
+      std::vector<ext::ClusterNode *> *_remoteNodes;
       ext::SMPProcessor *_cpu;
       ext::SMPMultiThread *_clusterThread;
+      std::size_t _gasnetSegmentSize;
 
    public:
       ClusterPlugin();
@@ -53,19 +55,13 @@ class ClusterPlugin : public ArchPlugin
       virtual void init();
 
       void prepare( Config& cfg );
-      void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      void * getSegmentAddr( unsigned int idx );
-      std::size_t getSegmentLen( unsigned int idx );
-      void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      void * getPinnedSegmentAddr( unsigned int idx );
-      std::size_t getPinnedSegmentLen( unsigned int idx );
-      std::size_t getNodeMem();
-      int getGpuPresend();
-      int getSmpPresend();
-      System::CachePolicyType getCachePolicy ( void );
+      std::size_t getNodeMem() const;
+      int getGpuPresend() const;
+      int getSmpPresend() const;
+      System::CachePolicyType getCachePolicy ( void ) const;
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
-      bool getAllocFit();
-
+      bool getAllocFit() const;
+      bool unalignedNodeMemory() const;
 
       virtual void startSupportThreads();
       virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers);
@@ -74,14 +70,15 @@ class ClusterPlugin : public ArchPlugin
       virtual ProcessingElement * createPE( unsigned id, unsigned uid );
       virtual unsigned getNumThreads() const; 
       void addPEs( PEList &pes ) const;
-      void addDevices( DeviceList &devices ) const {}
+      virtual void addDevices( DeviceList &devices ) const {}
       virtual unsigned int getNumPEs() const;
       virtual unsigned int getMaxPEs() const;
       virtual unsigned int getNumWorkers() const;
       virtual unsigned int getMaxWorkers() const;
 };
 
-}
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* CLUSTERPLUGIN_DECL_H */

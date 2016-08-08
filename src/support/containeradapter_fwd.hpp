@@ -23,10 +23,11 @@
 
 
 
-namespace nanos
-{
+namespace nanos {
+
    template <class CONTAINER_T,bool IS_ASSOCIATIVE> class ContainerAdapter;
-}
+
+} // namespace nanos
 
 
 #endif // _NANOS_CONTAINER_ADAPTER_FWD

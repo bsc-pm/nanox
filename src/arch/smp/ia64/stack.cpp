@@ -62,7 +62,7 @@ extern "C"
    void startHelper ();
 }
 
-void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
                      void *cleanup, void *cleanupArg )
 {
    //! In this architecture stack grows down

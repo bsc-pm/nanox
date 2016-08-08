@@ -49,7 +49,8 @@ public:
   static bool getForceShMem() { return _forceShMem; } 
   static int getPrefetchNum() { return _prefetchNum +1; }
   static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
-  
+  static bool isEnableProfiling() { return _enableProfiling; }
+
 private:
   static void prepare( Config &cfg );
   static void apply( const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices );
@@ -90,6 +91,9 @@ private:
   static bool _disableOCLdev2dev;
   static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by OCL devices
 
+  // Whether to enable profiling: default=false
+  static bool _enableProfiling;
+
   friend class OpenCLPlugin;
 };
 
@@ -118,10 +122,11 @@ typedef enum {
    NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT,                 /* 12 */
    NANOS_OPENCL_GENERIC_EVENT,                         /* 13 */
    NANOS_OPENCL_PROFILE_KERNEL,                         /* 14 */
-   NANOS_OPENCL_UPDATE_PROFILE_DATA                     /* 15 */
+   NANOS_OPENCL_PROFILE_UPDATE_DATA,                     /* 15 */
+   NANOS_OPENCL_PROFILE_DB_ACCESS                        /* 16 */
 } in_opencl_runtime_event_value;
 
-} // End namespace ext.
-} // End namespace nanos.
+} // namespace ext
+} // namespace nanos
 
 #endif // _NANOS_OpenCL_CFG

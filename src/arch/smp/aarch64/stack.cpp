@@ -27,7 +27,7 @@ extern "C"
    void startHelper ();
 }
 
-void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos::WD&), nanos::WD *wd,
                     void *cleanup, void *cleanupArg )
 {
    intptr_t * state = (intptr_t *) stack;

@@ -27,6 +27,7 @@
 #include "fpgamemorytransfer.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "smpprocessor.hpp"
+#include "fpgapinnedallocator.hpp"
 
 #include "libxdma.h"
 
@@ -35,7 +36,7 @@ using namespace nanos::ext;
 
 int FPGAProcessor::_accelSeed = 0;
 Lock FPGAProcessor::_initLock;
-
+FPGAPinnedAllocator FPGAProcessor::_allocator;
 /*
  * TODO: Support the case where each thread may manage a different number of accelerators
  */
@@ -156,7 +157,7 @@ WD & FPGAProcessor::getMasterWD () const
 
 BaseThread & FPGAProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
-   ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ), "Incompatible worker thread" );
    FPGAThread &th = *NEW FPGAThread( helper, this, _core, _fpgaDevice );
    return th;
 }

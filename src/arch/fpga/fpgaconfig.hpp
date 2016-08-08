@@ -24,10 +24,8 @@
 
 #include "system_decl.hpp"
 
-namespace nanos
-{
-   namespace ext
-   {
+namespace nanos {
+namespace ext {
 
       class FPGAConfig
       {
@@ -38,20 +36,20 @@ namespace nanos
             //Basically determines where the waits will be placed for now we will only support sync
             static int                       _numAccelerators;
             static bool                      _disableFPGA;
-            static int _numFPGAThreads;
-            static const int                       _maxAccelerators;
+            static int                       _numFPGAThreads;
+            static const int                 _maxAccelerators;
 
-            static unsigned int _burst;
-            static int _maxTransfers;
-            static Atomic<int>  _accelID;      ///ID assigned to each individual accelerator
+            static unsigned int              _burst;
+            static int                       _maxTransfers;
+            static Atomic<int>               _accelID; ///ID assigned to each individual accelerator
 
             /*! Parses the GPU user options */
             static void prepare ( Config &config );
             /*! Applies the configuration options and retrieves the information of the GPUs of the system */
             static void apply ( void );
-            static Lock _dmaLock;
-            static int _idleSyncBurst;
-            static bool _syncTransfers;
+            static Lock                      _dmaLock;
+            static int                       _idleSyncBurst;
+            static bool                      _syncTransfers;
 
          public:
             static void printConfiguration( void );
@@ -94,6 +92,7 @@ namespace nanos
          NANOS_FPGA_WAIT_INPUT_DMA_EVENT,
          NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT
       }in_xdma_event_value;
-   }
-}
+
+} // namespace ext
+} // namespace nanos
 #endif

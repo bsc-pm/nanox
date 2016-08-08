@@ -21,8 +21,9 @@
 
 #ifndef _NANOS_WORK_SHARING_H
 #define _NANOS_WORK_SHARING_H
-namespace nanos
-{
+
+namespace nanos {
+
    class WorkSharing {
       private:
       public:
@@ -47,7 +48,9 @@ namespace nanos
 
 
    };
-}
+
+} // namespace nanos
+
 #endif
 
 // XXX: EOF - to remove after completing design

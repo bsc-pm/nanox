@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.10a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.11a], [pm-tools@bsc.es])
 AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
@@ -9,7 +9,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects foreign])
 AC_CONFIG_MACRO_DIR([m4])
 
 # Enable silent rules if available
@@ -144,6 +144,9 @@ AX_CHECK_CUDA
 # Check if OpenCL device has been selected
 AX_CHECK_OPENCL
 
+# Check if SQLite3 has been selected
+AX_CHECK_SQLITE3
+
 # Check hwloc availability
 AX_CHECK_HWLOC
 
@@ -152,6 +155,9 @@ AX_CHECK_DLB
 
 # Check for Zynq Xilinx DMA driver library (fpga)
 AX_CHECK_XDMA
+
+# Enable Task callback feature
+AX_ENABLE_TASK_CALLBACK
 
 # Extrae check
 MPITRACE_HOME=""
@@ -321,7 +327,6 @@ AC_CONFIG_FILES([
                  tests/gens/api-generator
                  tests/gens/api-omp-generator
                  tests/gens/core-generator
-                 tests/gens/gpu-generator
                  tests/gens/mcc-openmp-generator
                  tests/gens/mcc-ompss-generator
                  tests/gens/opencl-generator
@@ -337,6 +342,14 @@ AS_IF([test "$new_gcc_builtins" = yes],[
   gcc_builtins_used="legacy gcc __sync builtins"
 ])
 
+AC_DEFUN([ax_check_enabled],[
+  AS_IF([test -n "$1"],[
+    echo -n "enabled"
+  ],[
+    echo -n "disabled"
+  ])  
+])
+
 AS_ECHO(["
 Configuration summary of Nanos++
 ================================
@@ -347,9 +360,9 @@ Configured architectures: $ARCHITECTURES
 Configured versions:      $VERSIONS
 Extra options:            $OPTIONS
 GCC atomics:              $gcc_builtins_used
-Memory tracker:           $enable_memtracker
-Memory allocator:         $enable_allocator
-Task resiliency:          $resiliency"])
+Memory tracker:           $(ax_check_enabled $enable_memtracker)
+Memory allocator:         $(ax_check_enabled $enable_allocator)
+Task resiliency:          $(ax_check_enabled $resiliency)"])
 
 AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\

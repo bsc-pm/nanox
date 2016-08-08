@@ -23,13 +23,12 @@
 #include "plugin_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "basethread_fwd.hpp"
-#include "workdescriptor_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 #include <vector>
 #include <map>
 #include <iostream>
 
-namespace nanos
-{
+namespace nanos {
 
    typedef TR1::unordered_map<unsigned int, ProcessingElement *> PEList;
 
@@ -86,7 +85,11 @@ namespace nanos
          virtual unsigned int getMaxPEs() const;
          virtual unsigned int getNumWorkers() const;
          virtual unsigned int getMaxWorkers() const;
+
+         virtual int initNetwork(int *argc, char ***argv) { return 0; }
+         virtual BaseThread *getClusterThread() const { return NULL; }
    };
-}
+
+} // namespace nanos
 
 #endif

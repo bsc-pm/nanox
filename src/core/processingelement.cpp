@@ -33,19 +33,19 @@ using namespace nanos;
 ProcessingElement::ProcessingElement ( const Device *arch, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _supportedDevices( 1, arch ), _device ( arch ), _threads(), _memorySpaceId( memSpaceId )
+   _id ( sys.nextPEId() ), _devices( 1, arch ), _activeDevice( 0 ), _threads(), _memorySpaceId( memSpaceId )
 {
-   _threads.reserve(1024);
+   _threads.reserve(8);
 }
 
 ProcessingElement::ProcessingElement ( const Device **archs, unsigned int numArchs, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _supportedDevices( numArchs, NULL ), _device ( archs[0] ), _threads(), _memorySpaceId( memSpaceId ) 
+   _id ( sys.nextPEId() ), _devices( numArchs, NULL ), _activeDevice( numArchs ), _threads(), _memorySpaceId( memSpaceId ) 
 {
-   _threads.reserve(1024);
+   _threads.reserve(8);
    for(unsigned int idx = 0; idx < numArchs; idx += 1) {
-      _supportedDevices[idx] = archs[idx];
+      _devices[idx] = archs[idx];
    }
 }
 
@@ -97,6 +97,7 @@ bool ProcessingElement::testInputs( WorkDescriptor &work ) {
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
 {
    WD & worker = getWorkerWD();
+   worker._mcontrol.preInit();
 
    if ( parent == NULL ) {
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
@@ -166,10 +167,12 @@ void ProcessingElement::stopAllThreads ()
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       thread->join();
    }
-}
 
-Device const *ProcessingElement::getCacheDeviceType() const {
-   return NULL;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      thread = *it;
+      if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
+      delete thread->getCurrentWD();
+   }
 }
 
 void ProcessingElement::wakeUpThreads()
@@ -201,4 +204,13 @@ std::size_t ProcessingElement::getRunningThreads() const
       }
    }
    return num_threads;
+}
+
+bool ProcessingElement::supports( Device const &dev ) const {
+   bool result = false;
+   for ( std::vector<Device const *>::const_iterator it = _devices.begin();
+         it != _devices.end() && !result; it++ ) {
+      result = ( &dev == *it ); //address comparison
+   }
+   return result;
 }

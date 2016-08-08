@@ -22,7 +22,7 @@
 
 #include "location_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 //inline Location::Location() : _nodeId( (unsigned int) -1 ), _memorySpaceId( ( unsigned int ) -1 ), _socketId( ( unsigned int ) -1 ), _coreId( (unsigned int) -1 ) { }
 inline Location::Location( unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket) :
@@ -72,5 +72,7 @@ inline Location &LocationDirectory::operator[]( unsigned int locationId ) {
    return _locations[ locationId ];
 }
 */
+
+} // namespace nanos
 
 #endif /* LOCATION_H */

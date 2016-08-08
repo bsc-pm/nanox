@@ -25,7 +25,7 @@
 #include "instrumentationcontext_decl.hpp"
 #include "debug.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
@@ -85,5 +85,7 @@ inline void InstrumentationContext::disableStateEvents ( InstrumentationContextD
 inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = true; }
 
 #endif
+
+} // namespace nanos
 
 #endif

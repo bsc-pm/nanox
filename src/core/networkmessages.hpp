@@ -21,7 +21,6 @@
 #ifndef _NANOX_NETWORK
 #define _NANOX_NETWORK
 
-
 namespace nanos {
 
    class NetworkMessage
@@ -42,6 +41,7 @@ namespace nanos {
       {
       }
    }
-}
+
+} // namespace nanos
 
 #endif

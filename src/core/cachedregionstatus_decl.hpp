@@ -42,6 +42,6 @@ namespace nanos {
          void setDirty();
          void clearDirty();
    };
-}
+} // namespace nanos
 
 #endif /* CACHEDREGIONSTATUS_DECL_HPP */

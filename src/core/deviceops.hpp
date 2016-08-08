@@ -29,7 +29,7 @@
 
 #define VERBOSE_CACHE_OPS 0
 
-using namespace nanos;
+namespace nanos {
 
 inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) /* debug: */ , _owner( -1 ), _wd( NULL ), _loc( 0 ) {
 }
@@ -48,10 +48,10 @@ inline bool DeviceOps::allCompleted() {
 
 inline bool DeviceOps::addCacheOp( /* debug: */ WorkDescriptor const *wd, int loc ) {
    bool b = _pendingCacheOp.tryAcquire();
-      ensure( wd != NULL, "Invalid WD adding a Cache Op.")
+      ensure( wd != NULL, "Invalid WD adding a Cache Op.");
       if ( b ) {
          if ( VERBOSE_CACHE_OPS ) {
-            *(myThread->_file) << "[" << myThread->getId() << "] "<< (void *)this << " Added an op by " << wd->getId() << " at loc " << loc << std::endl;
+            *(myThread->_file) << "[" << myThread->getId() << "] " << OS::getMonotonicTime() << " " << (void *)this << " Added an op by " << wd->getId() << " at loc " << loc << std::endl;
          }
          _wd = wd;
          _owner = wd->getId();
@@ -72,12 +72,19 @@ inline void DeviceOps::completeCacheOp( /* debug: */ WorkDescriptor const *wd ) 
    ensure( _pendingCacheOp.getState() != NANOS_LOCK_FREE, "Already completed op!" );
         ensure( wd == _wd, "Invalid owner clearing a cache op." );
         if ( VERBOSE_CACHE_OPS ) {
-           *(myThread->_file) << "[" << myThread->getId() << "] "<< (void *)this << " cleared an op by " << wd->getId() << std::endl;
+           *(myThread->_file) << "[" << myThread->getId() << "] " << OS::getMonotonicTime() << " " << (void *)this << " cleared an op by " << wd->getId() << std::endl;
         }
         _wd = NULL;
         _owner = -1;
         _loc = 0;
    _pendingCacheOp.release();
 }
+
+inline std::ostream & operator<< ( std::ostream &o, nanos::DeviceOps const &ops ) {
+   o << "{_pDeviceOps: " << ops._pendingDeviceOps.value() << " _pCacheOp: " << ops._pendingCacheOp.getState() << " _owner " << ops._owner <<"}";
+   return o;
+}
+
+} // namespace nanos
 
 #endif /* DEVICEOPS_HPP */

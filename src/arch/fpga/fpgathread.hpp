@@ -27,8 +27,7 @@
 #include "smpthread.hpp"
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class FPGAThread : public SMPThread
    {
@@ -52,7 +51,7 @@ namespace ext
       private:
          std::queue< WD* > _pendingWD;
    };
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

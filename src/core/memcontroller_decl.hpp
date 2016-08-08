@@ -37,8 +37,9 @@ class MemController {
    bool                        _inputDataReady;
    bool                        _outputDataReady;
    bool                        _memoryAllocated;
+   bool                        _invalidating;
    bool                        _mainWd;
-   WD                         &_wd;
+   WD                         *_wd;
    ProcessingElement          *_pe;
    Lock                        _provideLock;
    //std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
@@ -57,7 +58,7 @@ public:
       NO_CACHE
    };
    MemCacheCopy *_memCacheCopies;
-   MemController( WD &wd );
+   MemController( WD *wd, unsigned int numCopies );
    ~MemController();
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
@@ -77,13 +78,16 @@ public:
    std::size_t getAmountOfTransferredData() const;
    std::size_t getTotalAmountOfData() const;
    bool isRooted( memory_space_id_t &loc ) const ;
+   bool isMultipleRooted( std::list<memory_space_id_t> &locs ) const ;
    void setMainWD();
    void synchronize();
+   void synchronize( std::size_t numDataAccesses, DataAccess *data);
    bool isMemoryAllocated() const;
    void setCacheMetaData();
    bool ownsRegion( global_reg_t const &reg );
    bool hasObjectOfRegion( global_reg_t const &reg );
+   bool containsAllCopies( MemController const &target ) const;
 };
 
-}
+} // namespace nanos
 #endif /* MEMCONTROLLER_DECL */

@@ -17,15 +17,15 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-/*
- <testinfo>
- test_generator='gens/mpi-offload-generator'
- </testinfo>
- */
+#ifndef CLUSTERMPIPLUGIN_FWD_H
+#define CLUSTERMPIPLUGIN_FWD_H
 
-//Dummy test, compilation
-int
-main(int argc, char **argv)
-{
-    return 0;
-}
+namespace nanos {
+namespace ext {
+
+class ClusterMPIPlugin;
+
+} // namespace ext
+} // namespace nanos
+
+#endif /* CLUSTERMPIPLUGIN_FWD_H */

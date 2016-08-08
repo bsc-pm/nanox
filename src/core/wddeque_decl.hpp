@@ -37,8 +37,7 @@
 #define NANOS_ABA_CTR(x) (((uintptr_t)(x))&NANOS_ABA_MASK)
 #define NANOS_ABA_COMPOSE(x, y) (void *)(((uintptr_t)NANOS_ABA_PTR(x)) | ((NANOS_ABA_CTR(y) + 1)&NANOS_ABA_MASK))
 
-namespace nanos
-{
+namespace nanos {
 
    class SchedulePredicate
    {
@@ -167,7 +166,7 @@ namespace nanos
          /*! \brief Returns the number of ready tasks that could be ran simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         int getPotentiallyParallelWDs( void );
+         int getNumConcurrentWDs();
 
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
@@ -409,11 +408,11 @@ namespace nanos
          /*! \brief Returns the number of ready tasks that could be ran simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         int getPotentiallyParallelWDs( void );
+         int getNumConcurrentWDs();
    };
 
 
-}
+} // namespace nanos
 
 #endif
 

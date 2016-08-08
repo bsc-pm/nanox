@@ -24,8 +24,7 @@
 #include "atomic_decl.hpp"
 #include "cache_fwd.hpp"
 
-namespace nanos
-{
+namespace nanos {
 
   /*! \class CacheMap
    *  \brief Builds a map of the caches to be used by the directories to identify data locality
@@ -90,6 +89,6 @@ namespace nanos
          unsigned int getAccesses( unsigned int cacheId );
    };
 
-};
+} // namespace nanos
 
 #endif

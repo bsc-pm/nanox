@@ -22,10 +22,7 @@
 
 #include "genericevent_decl.hpp"
 
-
-
-namespace nanos
-{
+namespace nanos {
 
    class OpenCLEvent : public GenericEvent
    {
@@ -76,6 +73,6 @@ namespace nanos
          // event synchronization related methods
          void waitForEvent();
    };
-}
+} // namespace nanos
 
 #endif //_OpenCL_EVENT_DECL

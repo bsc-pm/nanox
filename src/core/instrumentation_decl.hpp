@@ -216,6 +216,7 @@
 #define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
 
 namespace nanos {
+
    // This is an ordered list. The idea is to emit all events below or equal the event category
    // predetermined.
    typedef enum { EVENT_ENABLED = 0, EVENT_NONE, EVENT_USER, EVENT_DEVELOPER,
@@ -666,6 +667,13 @@ namespace nanos {
             registerEventValue("in-xdma", "NANOS_FPGA_WAIT_INPUT_DMA_EVENT", "xdma wait in");                /* 6 */
             registerEventValue("in-xdma", "NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT", "xdma wait out");                /* 7 */
             /* 68 */ registerEventKey("accelerator#", "Accelerator on which task is being executed", EVENT_ADVANCED);
+
+            /* 69 */ registerEventKey("reduction", "Reduction support", true, EVENT_DEVELOPER);
+            registerEventValue("reduction", "RED_REQUEST_NEW_STORAGE", "Allocating private storage" ); /* 1 */
+            registerEventValue("reduction", "RED_COMMIT_ALL", "Reducing private storages" );           /* 2 */
+            /* 70 */ registerEventKey("network-transfer", "Network transfer to node ", false, EVENT_ADVANCED);
+            /* 71 */ registerEventKey("cache-evict", "Cache eviction", false, EVENT_ADVANCED);
+            /* 72 */ registerEventKey("copy-data-alloc","Cache allocation", false, EVENT_ADVANCED);
 
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }
@@ -1182,5 +1190,7 @@ namespace nanos {
          void raiseCloseStateAndBurst ( nanos_event_key_t key, nanos_event_value_t value );
 #endif
    };
-}
+
+} // namespace nanos
+
 #endif

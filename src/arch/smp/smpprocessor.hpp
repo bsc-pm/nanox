@@ -20,10 +20,11 @@
 #ifndef _NANOS_SMP_PROCESSOR
 #define _NANOS_SMP_PROCESSOR
 
+#include "smpthread_fwd.hpp"
+#include "smpdevice_decl.hpp"
+#include "processingelement_decl.hpp"
+
 #include "config.hpp"
-#include "smpthread.hpp"
-#include "smpdevice.hpp"
-#include "processingelement.hpp"
 
 // xlc/icc compilers require the next include to emit the vtable of WDDeque
 #include <wddeque.hpp>
@@ -31,8 +32,7 @@
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class SMPProcessor : public PE
    {
@@ -81,12 +81,11 @@ namespace ext
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );
-         //virtual bool supportsDirectTransfersWith(ProcessingElement const & pe) const;
          void setNumFutureThreads( unsigned int nthreads );
          unsigned int getNumFutureThreads() const;
    };
 
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif

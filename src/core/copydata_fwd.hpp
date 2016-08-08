@@ -20,9 +20,10 @@
 #ifndef _NANOS_COPYDATA_FWD_H
 #define _NANOS_COPYDATA_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class CopyData;
-}
+
+} // namespace nanos
 
 #endif

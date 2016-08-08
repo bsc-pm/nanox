@@ -25,6 +25,6 @@ namespace nanos {
 class AllocatedChunk;
 class RegionCache;
 
-}
+} // namespace nanos
 
 #endif /* REGIONCACHE_FWD */

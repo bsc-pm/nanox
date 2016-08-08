@@ -20,10 +20,6 @@
 #ifndef _NANOS_SCHEDULE_DECL_H
 #define _NANOS_SCHEDULE_DECL_H
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include <stddef.h>
 #include <string>
 
@@ -38,8 +34,8 @@
 #include "basethread_decl.hpp"
 
 
-namespace nanos
-{
+namespace nanos {
+
    class Config; // FIXME: this should be on config_fwd
 
 // singleton class to encapsulate scheduling data and methods
@@ -76,7 +72,6 @@ namespace nanos
 
          static void workerLoop ( void );
          static void asyncWorkerLoop ( void );
-         static void workerClusterLoop ( void );
          static void yield ( void );
 
          static void exit ( void );
@@ -91,7 +86,6 @@ namespace nanos
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread const &thread );
-	 static WD * getClusterWD( BaseThread *thread, int inGPU );
    };
 
    class SchedulerConf
@@ -344,7 +338,7 @@ namespace nanos
          /*! \brief Returns the number of ready tasks that could be run simultaneously
           * Tied and commutative WDs in the queue could decrease this number.
           */
-         virtual int getPotentiallyParallelWDs( void );
+         virtual int getNumConcurrentWDs();
 
          /*! \brief Returns if the scheduler needs WD run time */
          virtual bool isCheckingWDRunTime()
@@ -372,7 +366,7 @@ namespace nanos
       void operator() ( DependableObject *predecessor, DependableObject *successor );
    };
    
-};
+} // namespace nanos
 
 #endif
 

@@ -114,7 +114,7 @@ namespace nanos {
       {
          public:
             typedef std::stack<BotLevDOData *>   bot_lev_dos_t;
-            typedef std::set<DependableObject *> DepObjVector; /**< Type vector of successors  */
+            typedef std::set<std::pair< unsigned int, DependableObject * > > DepObjVector; /**< Type vector of successors  */
 
          private:
             bot_lev_dos_t     _blStack;       //! tasks added, pending having their bottom level updated
@@ -245,7 +245,7 @@ namespace nanos {
                    qId = 1;
                    NANOS_INSTRUMENT ( criticality = 1; )
                 }
-                else if( ((_topSuccesors.find( dos )) != (_topSuccesors.end()))
+                else if( ((_topSuccesors.find( std::make_pair( wd.getId(), dos ) )) != (_topSuccesors.end()))
                          && wd.getPriority() >= _currMax-1 ) {
                    //The task is critical
                    {
@@ -354,13 +354,13 @@ namespace nanos {
                BotLevDOData *dodata = new BotLevDOData(++BotLevCfg::taskNumber, 0);
                depObj.setSchedulerData( (DOSchedulerData*) dodata );
 
-               std::set<DependableObject *> predecessors;
+               DepObjVector predecessors;
                { 
                   LockBlock l(depObj.getLock());
                   predecessors = depObj.getPredecessors();
                }
-               for ( std::set<DependableObject *>::iterator it = predecessors.begin(); it != predecessors.end(); it++ ) {
-                  DependableObject *pred = *it;
+               for ( DepObjVector::iterator it = predecessors.begin(); it != predecessors.end(); it++ ) {
+                  DependableObject *pred = it->second;
                   if (pred) {
                      BotLevDOData *predObj = (BotLevDOData *)pred->getSchedulerData();
                      if (predObj) {

@@ -26,7 +26,7 @@
 #include "system.hpp"
 #include "task_reduction.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
@@ -311,5 +311,7 @@ inline void ThreadTeam::removeExpectedThread( BaseThread *thread )
    _expectedThreads.erase( thread );
    _barrier.resize( _expectedThreads.size() );
 }
+
+} // namespace nanos
 
 #endif

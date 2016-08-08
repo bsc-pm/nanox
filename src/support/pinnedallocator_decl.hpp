@@ -81,5 +81,7 @@ namespace nanos {
 
          void printPinnedMemoryMap();
    };
-}
+
+} // namespace nanos
+
 #endif /* _NANOS_PINNEDALLOCATOR */

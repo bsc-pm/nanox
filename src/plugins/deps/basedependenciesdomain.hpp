@@ -21,11 +21,12 @@
 #define _NANOS_BASE_DEPENDENCIES_DOMAIN
 
 #include "basedependenciesdomain_decl.hpp"
-#include "threadteam.hpp"
-#include "task_reduction.hpp"
-#include "debug.hpp"
 #include "schedule_decl.hpp"
+#include "trackableobject_decl.hpp"
 
+#include "debug.hpp"
+#include "task_reduction.hpp"
+#include "threadteam.hpp"
 
 namespace nanos {
 
@@ -38,7 +39,8 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
 
       TaskReduction *tr = myThread->getCurrentWD()->getTaskReduction( (const void *) target.getAddress() );
       if ( tr != NULL ) {
-         if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+    	  if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() )
+				commDO->setTaskReduction( tr );
       }
 
       commDO->resetReferences();
@@ -353,7 +355,7 @@ inline void BaseDependenciesDomain::submitDependableObjectInputNoReadDataAccess 
 }
 
 
-}
+} // namespace nanos
 
 #endif
 

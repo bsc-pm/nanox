@@ -100,6 +100,7 @@ devinclude_HEADERS = \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
+	smartpointer.hpp \
 	memory/memoryaddress.hpp \
 	concurrent_queue.hpp \
 	$(END) 
@@ -195,7 +196,19 @@ support_sources = \
 	memory/memoryaddress.hpp \
 	memory/memoryaddress.cpp \
 	concurrent_queue.hpp \
-	$(END) 
+	dbmanager.hpp \
+	$(END)
+
+if SQLITE3_SUPPORT
+support_sources += \
+	dbmanager_sqlite3.hpp \
+	dbmanager_sqlite3.cpp \
+	$(END)
+else
+	dbmanager_sqlite3_empty.hpp \
+	dbmanager_sqlite3_empty.cpp \
+	$(END)
+endif
 
 debug_sources = \
 	memtracker_fwd.hpp\
@@ -218,40 +231,40 @@ noinst_LTLIBRARIES =
 if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsupport.la
 
-debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@ @cudainc@
+debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@ @cudainc@ @sqlite3inc@
 debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@
-debug_libsupport_la_LIBADD=@dlb_dbg@ @cudalib@ @cudalibs@
+debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
+debug_libsupport_la_LIBADD=@dlb_dbg@ @sqlite3libs@
 endif
 
 if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
-instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @dlbinc@ @cudainc@
+instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @dlbinc@ @cudainc@ @sqlite3inc@
 instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
-instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
-instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @cudalibs@
+instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
+instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @sqlite3libs@
 endif
 
 if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libsupport.la
 
-instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbinc@ @cudainc@
+instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbinc@ @cudainc@ @sqlite3inc@
 instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
-instrumentation_libsupport_la_LIBADD=@dlb_instr@ @cudalibs@
+instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
+instrumentation_libsupport_la_LIBADD=@dlb_instr@ @sqlite3libs@
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libsupport.la
 
-performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@ @cudainc@
+performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@ @cudainc@ @sqlite3inc@
 performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
-performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
-performance_libsupport_la_LIBADD=@dlb@ @cudalibs@
+performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
+performance_libsupport_la_LIBADD=@dlb@ @sqlite3libs@
 endif
 

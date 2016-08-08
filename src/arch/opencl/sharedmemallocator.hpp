@@ -24,7 +24,7 @@
 #include <map>
 #include "openclprocessor_fwd.hpp"
 
-#include "atomic_decl.hpp"
+#include "lock.hpp"
 
 namespace nanos {
     
@@ -62,6 +62,6 @@ namespace nanos {
          }
    };
 
-}
+} // namespace nanos
 #endif	/* SHAREDMEMALLOCATOR_DECL_HPP */
 

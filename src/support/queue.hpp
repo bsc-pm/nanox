@@ -26,7 +26,7 @@
 #include "lock.hpp"
 #include "debug.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 template<typename T>
 void Queue<T>::push ( T data )
@@ -83,6 +83,8 @@ bool Queue<T>::try_pop ( T& result )
 
    return found;
 }
+
+} // namespace nanos
 
 #endif
 

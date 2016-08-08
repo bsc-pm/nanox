@@ -108,7 +108,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // If there is no active device, choose a compatible one
    ProcessingElement *pe = myThread->runningOn();
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceType() ) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceTypes()[0] ) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -143,7 +143,7 @@ void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previo
    ProcessingElement *pe = myThread->runningOn();
 
    // If there is no active device, choose a compatible one
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceTypes()[0]) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -226,13 +226,13 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
    return *_devices[_activeDeviceIdx];
 }
 
-bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * pe) const
+bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device , pe);
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
 
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
-       if (_devices[i]->isCompatible( device , pe)){
+       if (_devices[i]->isCompatible( device )){
             return true;           
        }
    }
@@ -242,15 +242,21 @@ bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * 
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
-   bool result;
+   bool result = false;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
-  // if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
-  // else 
-   result = canRunIn( *pe.getDeviceType(), &pe ) ;
+   std::vector<const Device *> const &pe_archs = pe.getDeviceTypes();
+   if ( pe.getActiveDevice() == pe_archs.size() ) {
+      // all active 
+      for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+            it != pe_archs.end() && !result; it++ ) {
+         result = canRunIn( *(*it) ) ;
+      }
+   } else {
+      result = canRunIn( *pe_archs[pe.getActiveDevice()] );
+   }
 
    return result;   
-   //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
 
 void WorkDescriptor::submit( bool force_queue )
@@ -353,6 +359,12 @@ void WorkDescriptor::done ()
 #endif
       _parent = NULL;
    }
+
+   #ifdef NANOX_TASK_CALLBACK
+   typedef void (* notify_t) ( void * );
+   notify_t notify = (notify_t) _callback;
+   if (notify ) notify(_arguments);
+   #endif
 }
 
 void WorkDescriptor::prepareCopies()
@@ -514,22 +526,26 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         _copies[i].setRemoteHost( false );
     }
 
-   new ( &_mcontrol ) MemController( *this );
+   new ( &_mcontrol ) MemController( this, numCopies );
 }
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _depsDomain->finalizeAllReductions();
    // Ask for more resources once we have finished creating tasks
-   sys.getThreadManager()->returnClaimedCpus();
-   sys.getThreadManager()->acquireResourcesIfNeeded();
-
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->returnClaimedCpus();
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
    }
 
+   removeAllTaskReductions();
+
    _depsDomain->clearDependenciesDomain();
+
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
@@ -541,21 +557,32 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size,
+void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t p_el_size,
       void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) )
 {
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_orig, 0 ) ) break;
+      if ( (*it)->has( p_orig) )
+      {
+    	  return;
+      }
    }
 
    if ( it == _taskReductions.rend() ) {
-      //! We must register p_orig as a new reduction
-       NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       //! We must register p_orig as a new reduction
        _taskReductions.push_back(
-               new TaskReduction( p_orig, p_init, p_reducer,
-                   p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+               new TaskReduction(
+            		   p_orig,
+					   p_init,
+					   p_reducer,
+					   p_size,
+					   p_el_size,
+					   myThread->getTeam()->getFinalSize(),
+					   myThread->getCurrentWD()->getDepth(),
+					   sys._lazyPrivatizationEnabled
+					   )
+       );
    }
 }
 
@@ -565,15 +592,24 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_dep, 0 ) ) break;
+      if ( (*it)->has( p_dep) ) break;
    }
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
-      NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
-      _taskReductions.push_back(
-            new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var,
-               array_descriptor_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+     _taskReductions.push_back(
+            new TaskReduction(
+            		p_orig,
+					p_dep,
+					p_init,
+					p_reducer,
+					p_reducer_orig_var,
+					array_descriptor_size,
+					myThread->getTeam()->getFinalSize(),
+					myThread->getCurrentWD()->getDepth(),
+					sys._lazyPrivatizationEnabled
+					)
+     );
    }
 }
 
@@ -582,30 +618,34 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->have( p_addr, id );
-      if ( ptr != NULL ) return ptr;
+      if((*it)->has( p_addr )) break;
    }
 
-   // If this address is not associated to a reduction, we return NULL
-   return NULL;
-}
-
-bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
-{
-   // Check if we have registered a reduction with this address
-   task_reduction_vector_t::reverse_iterator it;
-   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_dep, 0 ) ) break;
-   }
+   // If 'p_addr' is not registered as a reduction we should return NULL
+   void *storage = NULL;
 
    if ( it != _taskReductions.rend() ) {
-      if ( del ) delete (*it);
-      // Reverse iterators cannot be erased directly, we need to transform them
-      // to common iterators
-      _taskReductions.erase( --(it.base()) );
-      return true;
+      storage = (*it)->get(id);
+
+      if ( storage == NULL )
+         storage = (*it)->allocate(id);
+
+      if ( !(*it)->isInitialized(id) )
+         (*it)->initialize(id);
    }
-   return false;
+   return storage;
+}
+
+void WorkDescriptor::removeAllTaskReductions( void )
+{
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
+      // Am I the owner of this reduction?
+      if (_depth == (*it)->getDepth()) {
+         delete (*it);
+         _taskReductions.erase( --(it.base()) );
+      }
+   }
 }
 
 TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
@@ -613,8 +653,7 @@ TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
    // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->have( p_dep, 0 );
-      if ( ptr != NULL ) return (*it);
+	   if ( (*it)->has( p_dep ) ) return (*it);
    }
    return NULL;
 }
@@ -642,3 +681,69 @@ bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalida
 //   while ( ! _myGraphRepList.cswap( myList, NULL ) );
 //   return myList;
 //}
+
+
+// comm_accesses is a map of access:owner for commutative accesess
+int WorkDescriptor::getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) const
+{
+   int num_wds = 0;
+
+   // Slicer: return from 1 to N
+   if ( _slicer != NULL ) {
+      nanos_loop_info_t *loop_info;
+      loop_info = ( nanos_loop_info_t* ) _data;
+      int _chunk = loop_info->chunk;
+      int _lower = loop_info->lower;
+      int _upper = loop_info->upper;
+      int _step  = loop_info->step;
+      int _niters = (((_upper - _lower) / _step ) + 1 );
+
+      if ( _chunk == 0 ) {
+         num_wds = 1;
+      } else {
+         num_wds = (_niters + _chunk - 1) / _chunk;
+      }
+   }
+
+   // Commutative: return 0 to 1
+   else if ( _commutativeOwners != NULL ) {
+      WorkDescriptorPtrList::const_iterator owner_it;
+      // Check first that all the WD'a accesses can be acquired
+      for ( owner_it = _commutativeOwners->begin();
+            owner_it != _commutativeOwners->end();
+            ++owner_it ) {
+         // WD** that contains the parent's commutative access
+         WD **owner_ptr = *owner_it;
+         // WD* owner of the actual access
+         WD *owner = *owner_ptr;
+
+         // If the access has an owner, update the local structure
+         if ( owner && owner != comm_accesses[owner_ptr] ) {
+            comm_accesses[owner_ptr] = owner;
+         }
+
+         // We stop looking if the access is reserved by other WD
+         if ( comm_accesses[owner_ptr] != NULL && comm_accesses[owner_ptr] != (WD*) this ) {
+            break;
+         }
+      }
+
+      // All the WD's accessed can be acquired, register them into comm_accesses
+      if ( owner_it == _commutativeOwners->end() ) {
+         for ( owner_it = _commutativeOwners->begin();
+               owner_it != _commutativeOwners->end();
+               ++owner_it ) {
+            WD **owner_ptr = *owner_it;
+            comm_accesses[owner_ptr] = (WD*) this;
+         }
+         num_wds = 1;
+      }
+   }
+
+   // Normal non-tied task: return 1
+   else if ( _tiedTo == NULL ) {
+      num_wds = 1;
+   }
+
+   return num_wds;
+}

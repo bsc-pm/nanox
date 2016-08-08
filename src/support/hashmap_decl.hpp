@@ -372,7 +372,7 @@ class HashMap
       }
 };
 
-}
+} // namespace nanos
 
 #endif
 

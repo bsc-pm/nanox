@@ -30,7 +30,8 @@
 #include "libxdma.h"
 
 namespace nanos {
-   namespace ext {
+namespace ext {
+
       class FPGAMemoryTransfer {
          public:
             CopyDescriptor _copyDescriptor;
@@ -107,6 +108,6 @@ namespace nanos {
 
       };
 
-   }
-}
+} // namespace ext
+} // namespace nanos
 #endif

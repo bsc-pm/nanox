@@ -38,7 +38,7 @@ void FPGAThread::runDependent()
    verbose( "fpga run dependent" );
    WD &work = getThreadWD();
    setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
    dd.getWorkFct()( work.getData() );
    ( ( FPGAProcessor * ) myThread->runningOn() )->cleanUp();
 }

@@ -209,12 +209,8 @@ bool ThreadManager::lastActiveThread()
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
    bool last = mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu);
 
-   // If we get here, my_cpu is the last active, but we must support thread oversubscription
-   if ( last ) {
-      // getRunningThreads counts this thread as not running because it's already tagged,
-      // so unless all threads in a PE are tagged, this thread will not be the last one
-      last = thread->runningOn()->getRunningThreads() == 0;
-   }
+   // Watch out if we have oversubscription
+   last &= thread->runningOn()->getRunningThreads() <= 1;
    return last;
 }
 
@@ -288,8 +284,8 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 1 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
@@ -465,8 +461,8 @@ void BusyWaitThreadManager::acquireResourcesIfNeeded ()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 0 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
@@ -501,7 +497,6 @@ void BusyWaitThreadManager::returnClaimedCpus()
 {
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
-   if ( !_isMalleable ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
    LockBlock Lock( _lock );
@@ -660,8 +655,8 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
 
    if ( _isMalleable ) {
       /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
-      if ( ready_tasks > 0 ){
+      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
+      if ( ready_tasks > 0 ) {
 
          NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )

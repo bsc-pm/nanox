@@ -31,28 +31,28 @@
 #include "cachedaccelerator_decl.hpp"
 
 namespace nanos {
-   namespace ext {
+namespace ext {
 
       class ClusterNode : public ProcessingElement
       {
+         public:
+            typedef std::map<unsigned int, const Device *> ClusterSupportedArchMap;
 
          private:
             // config variables
             static Atomic<int>      _deviceSeed; // Number of cluster devices assigned to threads
             unsigned int            _clusterNode; // Assigned cluster device Id
+            unsigned int _executedWorkDesciptors;
+            ClusterSupportedArchMap _supportedArchsById;
 
             // disable copy constructor and assignment operator
             ClusterNode( const ClusterNode &pe );
             const ClusterNode & operator= ( const ClusterNode &pe );
 
-            //SimpleAllocator _memSegment;
-            unsigned int _executedWorkDesciptors;
-
          public:
             // constructors
             ClusterNode( int nodeId, memory_space_id_t memId,
-               const Device **arch, unsigned int numArchs );
-
+               ClusterSupportedArchMap const &archs, const Device **archsArray );
             virtual ~ClusterNode();
 
             virtual WD & getWorkerWD () const;
@@ -63,10 +63,10 @@ namespace nanos {
 
             // capability query functions
             virtual bool supportsUserLevelThreads () const;
-            //virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const;
             virtual unsigned int getMyNodeNumber() const;
 
             unsigned int getClusterNodeNum() const;
+            ClusterSupportedArchMap const &getSupportedArchs() const;
             SimpleAllocator & getAllocator( void );
 
             void incExecutedWDs();
@@ -75,7 +75,8 @@ namespace nanos {
 
             static void clusterWorker();
       };
-   }
-}
+} // namespace ext
+} // namespace nanos
+
 
 #endif /* _CLUSTERNODE_DECL */

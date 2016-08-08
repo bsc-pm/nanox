@@ -35,7 +35,7 @@ extern "C" {
 
 NANOS_API_DECL( void *, nanos_fpga_factory, ( void *args ) );
 NANOS_API_DECL( void *, nanos_fpga_alloc_dma_mem, ( size_t len) );
-NANOS_API_DECL( void, nanos_fpga_free_dma_mem, ( ) );
+NANOS_API_DECL( void, nanos_fpga_free_dma_mem, ( void * address ) );
 
 #ifdef __cplusplus
 }

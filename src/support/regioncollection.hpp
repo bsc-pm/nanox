@@ -27,7 +27,7 @@
 #include "containeradapter.hpp"
 #include "regionpart.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 template<class container_t>
 inline void RegionCollection<container_t>::addPart(RegionPart const &part)
@@ -204,7 +204,7 @@ inline void RegionCollection<container_t>::defragment()
 }
    
 template <class container_t>
-std::ostream& nanos::operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
+std::ostream& operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
 {
    container_t const &contents = regionCollection.getRegionCollectionReference();
    for (typename container_t::const_iterator it = contents.begin(); it != contents.end(); it++) {
@@ -215,5 +215,7 @@ std::ostream& nanos::operator<< (std::ostream& o, RegionCollection<container_t> 
    
    return o;
 }
+
+} // namespace nanos
 
 #endif // _NANOS_REGION_COLLECTION

@@ -19,9 +19,13 @@
 
 #ifndef MEMORYOPS_FWD_H
 #define MEMORYOPS_FWD_H
+
 namespace nanos {
+
    class BaseAddressSpaceInOps;
    class SeparateAddressSpaceInOps;
    class SeparateAddressSpaceOutOps;
-}
+
+} // namespace nanos
+
 #endif /* MEMORYOPS_FWD_H */

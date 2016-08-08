@@ -46,8 +46,7 @@
 #include "simpleallocator_decl.hpp"
 #include "schedule_fwd.hpp"   // ScheduleWDData
 
-namespace nanos
-{
+namespace nanos {
 
 typedef std::set<const Device *>  DeviceList;
 
@@ -58,16 +57,17 @@ typedef std::set<const Device *>  DeviceList;
       private:
 
          const char *_name; /**< Identifies device type */
+         Atomic<unsigned int> _numOps;
 
       public:
 
          /*! \brief Device constructor
           */
-         Device ( const char *n ) : _name ( n ) {}
+         Device ( const char *n ) : _name ( n ), _numOps(0) {}
 
          /*! \brief Device copy constructor
           */
-         Device ( const Device &arch ) : _name ( arch._name ) {}
+         Device ( const Device &arch ) : _name ( arch._name ), _numOps( arch._numOps ) {}
 
          /*! \brief Device destructor
           */
@@ -75,7 +75,7 @@ typedef std::set<const Device *>  DeviceList;
 
          /*! \brief Device assignment operator
           */
-         const Device & operator= ( const Device &arch ) { _name = arch._name; return *this; }
+         const Device & operator= ( const Device &arch ) { _name = arch._name; _numOps = arch._numOps; return *this; }
 
          /*! \brief Device equals operator
           */
@@ -85,18 +85,19 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief Get device name
           */
          const char * getName ( void ) const { return _name; }
+         unsigned int increaseNumOps() { return _numOps++; }
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) = 0;
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const *wd, unsigned int copyIdx) = 0;
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) = 0;
          virtual void _canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) = 0;
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) = 0;
 
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) = 0;
    };
 
@@ -113,14 +114,6 @@ typedef std::set<const Device *>  DeviceList;
       private:
          work_fct       _work;
          
-         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
-          * **REQUERIMENT** If pe == NULL, this function must return true
-          *
-          *  \param[pe] pe is the ProcessingElement which we have to compare to.
-          *  \return a boolean indicating if both elements (DeviceData and PE) are compatible.
-          */
-         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
-
       public:
 
          /*! \brief DeviceData constructor
@@ -159,7 +152,7 @@ typedef std::set<const Device *>  DeviceList;
           *  \param[in] arch is the Device which we have to compare to.
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
-         bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
+         bool isCompatible ( const Device &arch ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -278,7 +271,9 @@ typedef std::set<const Device *>  DeviceList;
          //bool _listed;
          void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
          BaseThread const             *_notifyThread;
-         void                         *_remoteAddr;
+         void const                   *_remoteAddr;
+         void                         *_callback;
+         void                         *_arguments;
       public:
          MemController                 _mcontrol;
       private: /* private methods */
@@ -422,7 +417,7 @@ typedef std::set<const Device *>  DeviceList;
          unsigned getDepth() const;
 
          /* device related methods */
-         bool canRunIn ( const Device &device , const ProcessingElement * pe = NULL) const;
+         bool canRunIn ( const Device &device ) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
          DeviceData & activateDevice ( unsigned int deviceIdx );
@@ -709,7 +704,7 @@ typedef std::set<const Device *>  DeviceList;
 
          //! \brief This function registers a new task reduction over a
          //variable if it is not already registered.
-         void registerTaskReduction( void *p_orig, size_t p_size,
+         void registerTaskReduction( void *p_orig, size_t p_size, size_t elem_size,
                  void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) );
 
          //! \brief This function registers a new fortran task reduction over an
@@ -718,7 +713,7 @@ typedef std::set<const Device *>  DeviceList;
                  size_t array_descriptor_size, void (*p_init)( void *, void * ),
                  void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) );
 
-         bool removeTaskReduction( void *p_dep, bool del = false );
+         void removeAllTaskReductions ( void );
 
          void * getTaskReductionThreadStorage( void *p_addr, size_t id );
 
@@ -730,9 +725,9 @@ typedef std::set<const Device *>  DeviceList;
 
          void setId( unsigned int id );
 
-         void setRemoteAddr( void *addr );
-         void *getRemoteAddr() const;
-         
+         void setRemoteAddr( void const *addr );
+         void const *getRemoteAddr() const;
+
          /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
              If invalid (flag = true) it propagates upwards to the ancestors until
              no more ancestors exist or a recoverable task is found.
@@ -752,13 +747,20 @@ typedef std::set<const Device *>  DeviceList;
 
          void setCriticality ( int cr );
          int getCriticality ( void ) const;
+
+         void setCallback ( void *cb );
+         void setArguments ( void *a );
+
+         //! \brief Returns the concurrency level of the WD considering
+         //         the commutative access map that the caller provides.
+         int getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) const;
    };
 
    typedef class WorkDescriptor WD;
 
    typedef class DeviceData DD;
 
-};
+} // namespace nanos
 
 #endif
 

@@ -22,6 +22,8 @@
 #include "basethread.hpp"
 #include "fpgadd.hpp"
 #include "debug.hpp"
+#include "fpgaprocessor.hpp"
+#include "fpgapinnedallocator.hpp"
 
 #include "libxdma.h"
 
@@ -33,24 +35,12 @@ NANOS_API_DEF( void *, nanos_fpga_factory, ( void *args ) )
    return ( void * ) NEW ext::FPGADD( fpga->outline, fpga->acc_num );
 }
 
-NANOS_API_DEF( void *, nanos_fpga_alloc_dma_mem, ( size_t len) )
+NANOS_API_DEF( void *, nanos_fpga_alloc_dma_mem, ( size_t len ) )
 {
-    void *buffer;
-    xdma_status status;
-    status = xdmaAllocateKernelBuffer( &buffer, len );
-    if ( status != XDMA_SUCCESS ) {
-        warning( "Could not allocate memory in kernel space" );
-        buffer = NULL;
-    }
-
-    return buffer;
+    return nanos::ext::FPGAProcessor::getPinnedAllocator().allocate( len );
 }
 
-NANOS_API_DEF( void, nanos_fpga_free_dma_mem, ( ) )
+NANOS_API_DEF( void, nanos_fpga_free_dma_mem, ( void * buffer ) )
 {
-    xdma_status status;
-    status = xdmaFreeKernelBuffers();
-    if ( status != XDMA_SUCCESS ) {
-        warning( "Could not free kernel memory" );
-    }
+    nanos::ext::FPGAProcessor::getPinnedAllocator().free( buffer );
 }

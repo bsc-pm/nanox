@@ -20,9 +20,10 @@
 #ifndef _NANOS_SLICER_FWD_H
 #define _NANOS_SLICER_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class Slicer;
-};
+
+} // namespace nanos
 
 #endif

@@ -20,9 +20,10 @@
 #ifndef _NANOS_THREAD_TEAM_FWD_H
 #define _NANOS_THREAD_TEAM_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class ThreadTeam;
-};
+
+} // namespace nanos
 
 #endif

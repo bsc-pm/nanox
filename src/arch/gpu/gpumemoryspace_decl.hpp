@@ -45,7 +45,7 @@ namespace ext {
       void * allocateInputPinnedMemory ( std::size_t size );
       GPUProcessor * getGPU() const;
    };
-}
-}
+} // namespace ext
+} // namespace nanos
 
 #endif /* GPUMEMORYSPACE_DECL_H */

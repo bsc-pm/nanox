@@ -21,7 +21,8 @@
 #define CACHEDREGIONSTATUS_HPP
 #include "cachedregionstatus_decl.hpp"
 #include "version.hpp"
-using namespace nanos; 
+
+namespace nanos {
 
 inline CachedRegionStatus::CachedRegionStatus() : Version(), _ops(), _dirty( false ) {
 }
@@ -57,4 +58,7 @@ inline void CachedRegionStatus::setDirty() {
 inline void CachedRegionStatus::clearDirty() {
    _dirty = false;
 }
+
+} // namespace nanos
+
 #endif /* CACHEDREGIONSTATUS_HPP */

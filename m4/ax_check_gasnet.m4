@@ -97,13 +97,12 @@ AS_IF([test "x$gasnet" = xyes],[
   AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS -DGASNET_PAR])
   AX_VAR_PUSHVALUE([CXXFLAGS],[$CXXFLAGS $PTHREAD_CFLAGS])
   AX_VAR_PUSHVALUE([LIBS],[])
-  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
 
   # Do not print conduit check results in standard output
-  AX_SILENT_MODE(on)
+  #AX_SILENT_MODE(on)
 
   # Check available GASNet conduits that are supported.
-  # Supported conduits: smp, udp, mpi, ibv
+  # Supported conduits: smp, udp, mpi, ibv, mxm, aries
 
   # Special requirements for supported conduits
   # SMP: no special requirements
@@ -117,11 +116,19 @@ AS_IF([test "x$gasnet" = xyes],[
   gasnet_available_conduits=
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
+
+  # set the appropiate LDFLAGS for conduits that require MPI
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
+
   _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
   _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
+  _AX_CHECK_GASNET_CONDUIT(mxm,$MPICXX,-lmxm -L/opt/mellanox/mxm/lib $mpilibs)
+
+  AX_VAR_POPVALUE([LDFLAGS])
 
   # Checks done. Disable silent mode again.
-  AX_SILENT_MODE(off)
+  #AX_SILENT_MODE(off)
 
   AS_IF([test "x$gasnet_available_conduits" = x],
     [
@@ -152,7 +159,6 @@ GASNet is linked with.
   AX_VAR_POPVALUE([CPPFLAGS])
   AX_VAR_POPVALUE([CXXFLAGS])
   AX_VAR_POPVALUE([LIBS])
-  AX_VAR_POPVALUE([LDFLAGS])
 
   AC_LANG_POP([C++])
 
@@ -162,7 +168,7 @@ GASNet is linked with.
 
 ])dnl if gasnet
 
-m4_foreach_w([conduit_name],[smp udp mpi ibv],[
+m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
   _AX_CONDUIT_SUBST(conduit_name)
 ])
 
@@ -171,7 +177,7 @@ m4_foreach_w([conduit_name],[smp udp mpi ibv],[
 # _AX_CHECK_GASNET_CONDUIT(name [, compiler [, libraries [, preprocessor flags ]]])
 # Helper function that checks for the availability of a single GASNet conduit
 # Parameters:
-# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv}
+# $1 - Conduit name. Expected values: {smp, udp, mpi, ibv, aries}
 # $2 - Required compiler. Some conduits must be compiled differently (e.g.: mpi must be compiled with MPI compiler)
 # $3 - Library requirements (optional). Special library requirements to link with this conduit.
 # $4 - Additional preprocessor flags (optional).
@@ -181,7 +187,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
-  conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
+  conduit_prereq_libs="$PTHREAD_LIBS -lrt $3"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
   AX_VAR_PUSHVALUE([CXX],[$2])
@@ -210,10 +216,11 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
                   [$conduit_prereq_libs])
     ])
   ])
-    
+
+  
   AS_IF([test "$conduit_available" = yes],[
     AS_VAR_APPEND([gasnet_available_conduits],[" $1"])
-    AS_VAR_SET([conduit_libs],["$conduit_prereq_libs $LIBS"])
+    AS_VAR_SET([conduit_libs],["$LIBS $conduit_prereq_libs"])
   ])
 
   AX_VAR_POPVALUE([CXX])
@@ -234,7 +241,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 #   1) conduit name
 AC_DEFUN([_AX_CONDUIT_SUBST],[
 
-  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1])dnl
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])dnl
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])dnl
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])dnl
 

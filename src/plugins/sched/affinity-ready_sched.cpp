@@ -728,7 +728,7 @@ namespace nanos {
                DependableObject::DependableObjectVector & predecessors = successor.getPredecessors();
                for ( DependableObject::DependableObjectVector::iterator it = predecessors.begin();
                      it != predecessors.end(); it++ ) {
-                  DependableObject * obj = *it;
+                  DependableObject * obj = it->second;
                   WD * pred = ( WD * ) obj->getRelatedObject();
                   if ( pred == NULL ) continue;
 

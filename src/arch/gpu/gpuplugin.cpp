@@ -267,8 +267,13 @@ class GPUPlugin : public ArchPlugin
 
       virtual void addDevices( DeviceList &devices ) const
       {
-         if ( !_gpus->empty() )
-            devices.insert( ( *_gpus->begin() )->getDeviceType() );
+         if ( !_gpus->empty() ) {
+            std::vector<const Device *> const &pe_archs = ( *_gpus->begin() )->getDeviceTypes();
+            for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+                  it != pe_archs.end(); it++ ) {
+               devices.insert( *it );
+            }
+         }
       }
 
       virtual void startSupportThreads() {

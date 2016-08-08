@@ -28,8 +28,7 @@
 #include <ostream>
 #include "compatibility.hpp"
 
-namespace nanos
-{
+namespace nanos {
 class CpuSet
 {
    private:
@@ -208,6 +207,6 @@ inline std::ostream& operator<<(std::ostream& os, const CpuSet& cpu_set)
    return os;
 }
 
-} // namespace
+} // namespace nanos
 
 #endif /* CPUSET_HPP */

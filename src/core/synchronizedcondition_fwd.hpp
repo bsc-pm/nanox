@@ -20,8 +20,8 @@
 #ifndef _NANOS_SYNCHRONIZED_CONDITION_FWD_H
 #define _NANOS_SYNCHRONIZED_CONDITION_FWD_H
 
-namespace nanos
-{
+namespace nanos {
+
    class ConditionChecker;
    class GenericSyncCond;
 
@@ -34,6 +34,6 @@ namespace nanos
    class MultipleSyncCond;
 #endif
 
-};
+} // namespace nanos
 
 #endif

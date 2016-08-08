@@ -21,10 +21,6 @@
  *  \brief
  */
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"
