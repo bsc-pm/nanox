@@ -666,7 +666,7 @@ namespace nanos {
             registerEventValue("in-xdma", "NANOS_FPGA_SUBMIT_OUT_DMA_EVENT", "xdma submit out");    /* 5 */
             registerEventValue("in-xdma", "NANOS_FPGA_WAIT_INPUT_DMA_EVENT", "xdma wait in");                /* 6 */
             registerEventValue("in-xdma", "NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT", "xdma wait out");                /* 7 */
-            /* 68 */ registerEventKey("accelerator#", "Accelerator on which task is being executed", EVENT_ADVANCED);
+            /* 68 */ registerEventKey("accelerator#", "Accelerator on which task is being executed", true, EVENT_ADVANCED);
 
             /* 69 */ registerEventKey("reduction", "Reduction support", true, EVENT_DEVELOPER);
             registerEventValue("reduction", "RED_REQUEST_NEW_STORAGE", "Allocating private storage" ); /* 1 */
