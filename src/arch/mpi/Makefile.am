@@ -60,7 +60,6 @@ offload_sources= \
  mpithread_fwd.hpp \
  mpithread.hpp \
  mpithread.cpp \
- mpiicpc_syms.cpp \
  hostinfo.hpp \
  hostinfo.cpp \
  info.hpp \
