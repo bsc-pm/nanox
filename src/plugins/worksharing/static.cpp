@@ -28,10 +28,8 @@ namespace ext {
 
 class WorkSharingStaticFor : public WorkSharing {
 
-     /*! \brief create a loop descriptor
-      *  
-      *  \return only one thread per loop will get 'true' (single like behaviour)
-      */
+      //! \brief create a loop descriptor
+      //! \return only one thread per loop will get 'true' (single like behaviour)
       bool create( nanos_ws_desc_t **wsd, nanos_ws_info_t *info )
       {
          nanos_ws_info_loop_t *loop_info = (nanos_ws_info_loop_t *) info;
@@ -39,6 +37,7 @@ class WorkSharingStaticFor : public WorkSharing {
          *wsd = myThread->getLocalWorkSharingDescriptor();
 
          (*wsd)->data = NEW WorkSharingLoopInfo();
+
          ((WorkSharingLoopInfo *)(*wsd)->data)->lowerBound = loop_info->lower_bound;
          ((WorkSharingLoopInfo *)(*wsd)->data)->upperBound = loop_info->upper_bound;
          ((WorkSharingLoopInfo *)(*wsd)->data)->loopStep   = loop_info->loop_step;
@@ -51,14 +50,13 @@ class WorkSharingStaticFor : public WorkSharing {
          return myThread->singleGuard();
       }
 
-     /*! \brief Duplicate related data
-      *
-      */
+      //! \brief Duplicate related data
       void duplicateWS ( nanos_ws_desc_t *orig, nanos_ws_desc_t **copy)
       {
          *copy = NEW nanos_ws_desc_t;
 
          (*copy)->data = NEW WorkSharingLoopInfo();
+
          ((WorkSharingLoopInfo *)(*copy)->data)->lowerBound = ((WorkSharingLoopInfo *)orig->data)->lowerBound;
          ((WorkSharingLoopInfo *)(*copy)->data)->upperBound = ((WorkSharingLoopInfo *)orig->data)->upperBound;
          ((WorkSharingLoopInfo *)(*copy)->data)->loopStep   = ((WorkSharingLoopInfo *)orig->data)->loopStep;
@@ -67,9 +65,7 @@ class WorkSharingStaticFor : public WorkSharing {
          (*copy)->ws = orig->ws;
       }
 
-     /*! \brief Get next chunk of iterations
-      *
-      */
+      //! \brief Get next chunk of iterations
       void nextItem( nanos_ws_desc_t *wsd, nanos_ws_item_t *item )
       {
          nanos_ws_item_loop_t *loop_item = ( nanos_ws_item_loop_t *) item;
@@ -83,11 +79,13 @@ class WorkSharingStaticFor : public WorkSharing {
          }
 
          ThreadTeam *team = myThread->getTeam();
+
          int num_threads = team->getFinalSize();
          int thid = myThread->getTeamId();
-         int niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
-         int adjust = niters % num_threads;
-         int schunk  = ((niters / num_threads) -1 ) * loop_data->loopStep;
+
+         int64_t niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
+         int64_t adjust = niters % num_threads;
+         int64_t schunk  = ((niters / num_threads) -1 ) * loop_data->loopStep;
 
          if ( loop_data->chunkSize == 0){
             // static distribution
@@ -118,7 +116,7 @@ class WorkSharingStaticFor : public WorkSharing {
 class WorkSharingStaticForPlugin : public Plugin {
    public:
       WorkSharingStaticForPlugin () : Plugin("Worksharing plugin for loops using a static policy",1) {}
-      ~WorkSharingStaticForPlugin () {}
+     ~WorkSharingStaticForPlugin () {}
 
       virtual void config( Config& cfg ) {}
 

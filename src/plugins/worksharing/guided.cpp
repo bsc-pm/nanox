@@ -29,37 +29,43 @@ namespace ext {
 
 class WorkSharingGuidedFor : public WorkSharing {
 
-     /*! \brief create a loop descriptor
-      *  
-      *  \return only one thread per loop will get 'true' (single like behaviour)
-      */
+      //! \brief create a loop descriptor
+      //! \return only one thread per loop will get 'true' (single like behaviour)
       bool create ( nanos_ws_desc_t **wsd, nanos_ws_info_t *info )
-{
+      {
          nanos_ws_info_loop_t *loop_info = (nanos_ws_info_loop_t *) info;
          bool single = false;
 
          *wsd = myThread->getTeamWorkSharingDescriptor( &single );
          if ( single ) {
+
             (*wsd)->data = NEW WorkSharingLoopInfo();
-             int num_threads = myThread->getTeam()->getFinalSize();
+
+            int64_t num_threads = myThread->getTeam()->getFinalSize();
+
             ((WorkSharingLoopInfo *)(*wsd)->data)->lowerBound = loop_info->lower_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->upperBound = loop_info->upper_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->loopStep   = loop_info->loop_step;
-            int chunk_size = std::max(1,loop_info->chunk_size);
+
+            int64_t chunk_size = (1 < loop_info->chunk_size) ? loop_info->chunk_size : 1;
             ((WorkSharingLoopInfo *)(*wsd)->data)->chunkSize  = chunk_size;
-            int niters = (((loop_info->upper_bound - loop_info->lower_bound) / loop_info->loop_step ) + 1 );
-            int chunks = niters / chunk_size;
+
+            int64_t niters = (((loop_info->upper_bound - loop_info->lower_bound) / loop_info->loop_step ) + 1 );
+            int64_t chunks = niters / chunk_size;
             if ( niters % chunk_size != 0 ) chunks++;
             ((WorkSharingLoopInfo *)(*wsd)->data)->numOfChunks = 0;
+
             while ( niters > 0 ) {
-               niters = niters - std::max( niters/(2*num_threads), chunk_size);
+               niters = niters - ((niters/(2*num_threads) < chunk_size) ? chunk_size : niters/(2*num_threads));
                ((WorkSharingLoopInfo *)(*wsd)->data)->numOfChunks++;
             }
+
             ((WorkSharingLoopInfo *)(*wsd)->data)->currentChunk  = 0;
 
-            memoryFence();
+            memoryFence();     // Split initialization phase (before) from make it visible (after)
 
             (*wsd)->ws = this; // Once 'ws' field has a value, any other thread can use the structure
+
          }
 
          // wait until worksharing descriptor is initialized
@@ -68,30 +74,29 @@ class WorkSharingGuidedFor : public WorkSharing {
          return single;
       }
 
-     /*! \brief Get next chunk of iterations
-      *
-      */
+      //! \brief Get next chunk of iterations
       void nextItem( nanos_ws_desc_t *wsd, nanos_ws_item_t *item )
       {
          nanos_ws_item_loop_t *loop_item = ( nanos_ws_item_loop_t *) item;
          WorkSharingLoopInfo  *loop_data = ( WorkSharingLoopInfo  *) wsd->data;
 
-         int mychunk = loop_data->currentChunk++;
+         int64_t mychunk = loop_data->currentChunk++;
          if ( mychunk > loop_data->numOfChunks)
          {
             loop_item->execute = false;
             return;
          }
 
-         int num_threads = myThread->getTeam()->getFinalSize();
+         int64_t num_threads = myThread->getTeam()->getFinalSize();
          int sign = (( loop_data->loopStep < 0 ) ? -1 : +1);
 
          loop_item->lower = loop_data->lowerBound;
-         int i = 0, niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
+         int64_t i = 0;
+         int64_t niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
 
-         int current;
+         int64_t current;
          while ( i < mychunk ) {
-            current = std::max( niters/(2*num_threads), loop_data->chunkSize);
+            current = (niters/(2*num_threads) < loop_data->chunkSize) ? loop_data->chunkSize : niters/(2*num_threads);
             niters -= current;
             loop_item->lower += (current * loop_data->loopStep);
             i++;
@@ -113,7 +118,7 @@ class WorkSharingGuidedFor : public WorkSharing {
 class WorkSharingGuidedForPlugin : public Plugin {
    public:
       WorkSharingGuidedForPlugin () : Plugin("Worksharing plugin for loops using a guided policy",1) {}
-      ~WorkSharingGuidedForPlugin () {}
+     ~WorkSharingGuidedForPlugin () {}
 
       virtual void config( Config& cfg ) {}
 
