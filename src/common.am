@@ -28,10 +28,10 @@ AM_CXXFLAGS=@PTHREAD_CFLAGS@ @cc_dep_CXXFLAGS@
 AM_LDFLAGS=@hwloclib@ @cudalib@ @xdmalib@
 LIBS+=@hwloclibs@ @cudalibs@ @xdmalibs@
 
-common_performance_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @performance_CPPFLAGS@
-common_debug_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @debug_CPPFLAGS@
-common_instrumentation_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @instrumentation_CPPFLAGS@
-common_instrumentation_debug_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @instrumentation_debug_CPPFLAGS@
+common_performance_CPPFLAGS= $(AM_CPPFLAGS) @performance_CPPFLAGS@
+common_debug_CPPFLAGS= $(AM_CPPFLAGS) @debug_CPPFLAGS@
+common_instrumentation_CPPFLAGS= $(AM_CPPFLAGS) @instrumentation_CPPFLAGS@
+common_instrumentation_debug_CPPFLAGS= $(AM_CPPFLAGS) @instrumentation_debug_CPPFLAGS@
 
 common_performance_CXXFLAGS= $(AM_CXXFLAGS) @performance_CXXFLAGS@
 common_debug_CXXFLAGS= $(AM_CXXFLAGS) @debug_CXXFLAGS@

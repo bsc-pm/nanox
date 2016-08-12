@@ -20,180 +20,137 @@
 #ifndef _NANOS_MPI_PROCESSOR
 #define _NANOS_MPI_PROCESSOR
 
-#include "mpi.h"
-#include "atomic_decl.hpp"
 #include "mpiprocessor_decl.hpp"
-#include "config.hpp"
-#include "mpidevice.hpp"
-#include "mpithread.hpp"
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
-#include "processingelement.hpp"
-#include <fcntl.h>
-#include <unistd.h>
 
 namespace nanos {
 namespace ext {
 
-System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
-size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
-size_t MPIProcessor::_alignThreshold = 128;
-size_t MPIProcessor::_alignment = 4096;
-size_t MPIProcessor::_maxWorkers = 1;
-std::string MPIProcessor::_mpiExecFile;
-std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
-std::string MPIProcessor::_mpiHosts;
-std::string MPIProcessor::_mpiHostsFile;
-std::string MPIProcessor::_mpiControlFile;
-int MPIProcessor::_numPrevPEs=-1;
-int MPIProcessor::_numFreeCores;
-int MPIProcessor::_currPE;
-bool MPIProcessor::_useMultiThread=false;
-bool MPIProcessor::_allocWide=false;
-#ifndef OPEN_MPI
-bool MPIProcessor::_disableSpawnLock=false;
-
-bool MPIProcessor::isDisableSpawnLock() {
-    return _disableSpawnLock;
-}
-#endif
-
-size_t MPIProcessor::getCacheDefaultSize() {
+inline size_t MPIProcessor::getCacheDefaultSize() {
     return _cacheDefaultSize;
 }
 
-System::CachePolicyType MPIProcessor::getCachePolicy() {
+inline System::CachePolicyType MPIProcessor::getCachePolicy() {
     return _cachePolicy;
 }
 
-std::string MPIProcessor::getMpiHosts() {
+inline std::string MPIProcessor::getMpiHosts() {
     return _mpiHosts;
 }
 
-std::string MPIProcessor::getMpiHostsFile() {
+inline std::string MPIProcessor::getMpiHostsFile() {
     return _mpiHostsFile;
 }
 
-std::string MPIProcessor::getMpiExecFile() {
+inline std::string MPIProcessor::getMpiExecFile() {
     return _mpiExecFile;
 }
 
-std::string MPIProcessor::getMpiControlFile() {
+inline std::string MPIProcessor::getMpiControlFile() {
     return _mpiControlFile;
 }
 
-bool MPIProcessor::getAllocWide() {
+inline bool MPIProcessor::getAllocWide() {
     return _allocWide;
 }
 
-size_t MPIProcessor::getMaxWorkers() {
+inline size_t MPIProcessor::getMaxWorkers() {
     return _maxWorkers;
 }
 
-bool MPIProcessor::isUseMultiThread() {
+inline bool MPIProcessor::isUseMultiThread() {
     return _useMultiThread;
 }
 
-std::string MPIProcessor::getMpiLauncherFile() {
+inline std::string MPIProcessor::getMpiLauncherFile() {
     return _mpiLauncherFile;
 }
 
-size_t MPIProcessor::getAlignment() {
+inline size_t MPIProcessor::getAlignment() {
     return _alignment;
 }
 
-size_t MPIProcessor::getAlignThreshold() {
+inline size_t MPIProcessor::getAlignThreshold() {
     return _alignThreshold;
 }
 
-MPI_Comm MPIProcessor::getCommunicator() const {
+inline MPI_Comm MPIProcessor::getCommunicator() const {
     return _communicator;
 }
 
-MPI_Comm MPIProcessor::getCommOfParents() const {
+inline void MPIProcessor::setCommunicator( MPI_Comm comm ) {
+    _communicator = comm;
+}
+
+inline MPI_Comm MPIProcessor::getCommOfParents() const {
     return _commOfParents;
 }
 
-int MPIProcessor::getRank() const {
+inline int MPIProcessor::getRank() const {
     return _rank;
 }
 
-bool MPIProcessor::getOwner() const {
+inline bool MPIProcessor::isOwner() const {
     return _owner;
 }
 
-void MPIProcessor::setOwner(bool owner) {
-    _owner=owner;
-}
-
-bool MPIProcessor::getHasWorkerThread() const {
+inline bool MPIProcessor::getHasWorkerThread() const {
     return _hasWorkerThread;
 }
 
-void MPIProcessor::setHasWorkerThread(bool hwt) {
+inline void MPIProcessor::setHasWorkerThread(bool hwt) {
     _hasWorkerThread=hwt;
 }
 
-bool MPIProcessor::getShared() const {
-    return _shared;
-}     
-
-WD* MPIProcessor::getCurrExecutingWd() const {
+inline WD* MPIProcessor::getCurrExecutingWd() const {
     return _currExecutingWd;
 }
 
-void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
+inline void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
     this->_currExecutingWd = currExecutingWd;
 }
 
-bool MPIProcessor::isBusy() const {
-    return _busy.value();
+inline bool MPIProcessor::isBusy() {
+    return _busy.load();
 }
 
-void MPIProcessor::setBusy(bool busy) {
-    _busy = busy;
-}       
-
-            
-void MPIProcessor::setPphList(int* list){
+inline void MPIProcessor::setPphList(int* list){
     _pphList=list;
 }
 
-int* MPIProcessor::getPphList() {
+inline int* MPIProcessor::getPphList() {
     return _pphList;
+}
+
+inline mpi::persistent_request& MPIProcessor::getTaskEndRequest() {
+    return _taskEndRequest;
 }
 
 //Try to reserve this PE, if the one who reserves it is the same
 //which already has the PE, return true
-bool MPIProcessor::testAndSetBusy(int dduid, bool multithreadedAccess) {
-    if (dduid==_currExecutingDD) return true;
-    bool ret=false;
-    if (multithreadedAccess) {
-        Atomic<bool> expected = false;
-        Atomic<bool> value = true;
-        ret= _busy.cswap( expected, value );
-        if (ret){                    
-          _currExecutingDD=dduid;
-        }
-    } else {
-        if (!_busy.value()) {
-            _currExecutingDD=dduid;
-            _busy=true;
-            ret=true;
-        }        
-    }
-    return ret;
-}     
+inline bool MPIProcessor::acquire( int dduid ) {
+    if( _busy.load() && dduid == _currExecutingDD )
+        return true;
 
-int MPIProcessor::getCurrExecutingDD() const {
+    bool idle = !_busy.test_and_set();
+    if( idle )
+        _currExecutingDD = dduid;
+
+    return idle;
+}
+
+inline void MPIProcessor::release() {
+   _busy.clear();
+}
+
+inline int MPIProcessor::getCurrExecutingDD() const {
     return _currExecutingDD;
 }
 
-void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
+inline void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
     this->_currExecutingDD = currExecutingDD;
 }
 
-void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
+inline void MPIProcessor::appendToPendingRequests( mpi::request const& req ) {
     _pendingReqs.push_back(req);
 }
 

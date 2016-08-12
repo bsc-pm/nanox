@@ -34,7 +34,6 @@
 #endif
 */
 
-
 namespace nanos {
 
 template<typename T>

@@ -23,8 +23,6 @@
 
 #include "atomic.hpp"
 #include "debug.hpp"
-// #include "smpbaseplugin_decl.hpp"
-// #include "plugin.hpp"
 #include "smpprocessor.hpp"
 #include "os.hpp"
 #include "osallocator_decl.hpp"
@@ -367,7 +365,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
    }
 
-   void SMPPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const
+   void SMPPlugin::addPEs( PEList &pes ) const
    {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             pes.insert( std::make_pair( (*it)->getId(), *it ) );

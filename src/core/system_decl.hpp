@@ -43,7 +43,6 @@
 #include "hwloc_decl.hpp"
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
-#include "clustermpiplugin_fwd.hpp"
 
 #include "newregiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
@@ -55,6 +54,16 @@
 
 #ifdef OpenCL_DEV
 #include "openclprocessor_fwd.hpp"
+#endif
+
+#ifdef CLUSTER_DEV
+#include "clustermpiplugin_fwd.hpp"
+#else
+namespace nanos {
+namespace ext {
+class ClusterMPIPlugin;
+}
+}
 #endif
 
 namespace nanos {
@@ -78,7 +87,6 @@ namespace nanos {
 
       private:
          // types
-         typedef std::map<unsigned int, PE *>         PEList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
@@ -308,10 +316,10 @@ namespace nanos {
          */
          void setupWD( WD &work, WD *parent );
 
-        /*!                                                                     
-         * \brief Method to get the device types of all the architectures running
-         */                                                                     
-        DeviceList & getSupportedDevices();
+         /*!
+          * \brief Method to get the device types of all the architectures running
+          */
+         DeviceList & getSupportedDevices();
 
          void setDeviceStackSize ( size_t stackSize );
 
@@ -594,6 +602,8 @@ namespace nanos {
          NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
+         PEList& getPEList();
+         
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
 
          /*! \brief Registers a plugin option. Depending on whether nanox --help

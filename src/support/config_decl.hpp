@@ -193,6 +193,11 @@ namespace nanos {
                VarOption( T &ref ) :
                      ActionOption<T,helpFormat,checkT>(), _var( ref ) {}
 
+               VarOption( T &ref, T const& default_value ) :
+                     ActionOption<T,helpFormat,checkT>(), _var( ref ) {
+                  setValue( default_value );
+               }
+
                // copy constructor
                VarOption( const VarOption &opt ) :
                      ActionOption<T,helpFormat,checkT>( opt ),_var( opt._var ) {}

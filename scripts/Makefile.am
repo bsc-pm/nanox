@@ -37,9 +37,10 @@ dist_bin_SCRIPTS=\
 	offload_slave_launch.sh \
 	offload_instrumentation.sh \
 	nanox\
-   track_deps.sh\
-   task_numbers_in_path_to_selected_tasks.REF.cfg\
-   tasks_in_path_to_selected.REF.cfg\
+	track_deps.sh\
+	task_numbers_in_path_to_selected_tasks.REF.cfg\
+	tasks_in_path_to_selected.REF.cfg\
+	create_mic_nx_hostlist\
 	$(END)
 
 rpm:

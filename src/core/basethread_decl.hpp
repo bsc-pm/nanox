@@ -257,6 +257,9 @@ namespace nanos {
           */ 
          void joined ( void ); 
          virtual void join() = 0;
+
+         bool hasJoined() const;
+
          virtual void bind() {};
          virtual void outlineWorkDependent (WD &work) = 0;
          virtual void preOutlineWorkDependent (WD &work) = 0;

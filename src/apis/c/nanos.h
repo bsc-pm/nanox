@@ -134,6 +134,7 @@
  */
 
 #include <stddef.h>
+#include <pthread.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
@@ -319,6 +320,7 @@ NANOS_API_DECL(const char *, nanos_get_runtime_version, () );
 NANOS_API_DECL(const char *, nanos_get_default_architecture, ());
 NANOS_API_DECL(const char *, nanos_get_pm, ());
 NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
+NANOS_API_DECL(nanos_err_t, nanos_get_binding, ( cpu_set_t * ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_start, ());

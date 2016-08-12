@@ -136,7 +136,7 @@ class FPGAPlugin : public ArchPlugin
          return FPGAConfig::getNumFPGAThreads();
       }
 
-      virtual void addPEs( std::map< unsigned int,  ProcessingElement*> &pes  ) const {
+      virtual void addPEs( PEList &pes  ) const {
           for ( std::vector<FPGAProcessor*>::const_iterator it = _fpgas->begin();
                   it != _fpgas->end(); it++ )
           {

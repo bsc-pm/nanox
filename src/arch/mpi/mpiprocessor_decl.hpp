@@ -20,24 +20,28 @@
 #ifndef _NANOS_MPI_PROCESSOR_DECL
 #define _NANOS_MPI_PROCESSOR_DECL
 
-#include "mpi.h"
-#include "atomic_decl.hpp"
-#include "config.hpp"
-#include "mpidevice.hpp"
-#include "mpithread.hpp"
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
+#include "atomic_flag.hpp"
+#include "hostinfo.hpp"
 #include "processingelement.hpp"
-#include "mpiremotenode_decl.hpp"
+#include "request.hpp"
+#include "system_decl.hpp"
+
+#include "mpithread_fwd.hpp"
+
+#include <mpi.h>
 
 namespace nanos {
 namespace ext {
 
         class MPIProcessor : public ProcessingElement {
         private:
+            friend class nanos::mpi::HostInfo;
+
             // config variables
             static bool _useUserThreads;
             static size_t _threadsStackSize;
+            static std::string _mpiNodeType;
+            static size_t _workers_per_process;
             
             //MPI Node data
             static size_t _cacheDefaultSize;
@@ -50,9 +54,6 @@ namespace ext {
             static std::string _mpiControlFile;   
             static bool _useMultiThread;
             static bool _allocWide;
-            #ifndef OPEN_MPI
-            static bool _disableSpawnLock;  
-            #endif
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
@@ -63,14 +64,18 @@ namespace ext {
             MPI_Comm _communicator;
             int _rank;
             bool _owner; //if we are the owner (process in charge of freeing the remote process)
-            bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
             int* _pphList; //saves which hosts in list/hostfile were ocuppied by this spawn
 
-            Atomic<bool> _busy;
+            atomic_flag _busy;
+
             WorkDescriptor* _currExecutingWd;
+            int _currExecutingFunctionId;
             int _currExecutingDD;
-            std::list<MPI_Request> _pendingReqs;
+
+            std::list<mpi::request> _pendingReqs;
+            mpi::persistent_request _taskEndRequest;
+
             MPI_Comm _commOfParents;
 
             SMPProcessor* _core;
@@ -85,10 +90,9 @@ namespace ext {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor( void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
+            MPIProcessor( MPI_Comm communicator, int rank, bool owned, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
 
-            ~MPIProcessor() {                
-            }            
+            virtual ~MPIProcessor();
 
             /* Nanox NX_OFFL  Configuration options*/
             static size_t getCacheDefaultSize();
@@ -108,11 +112,6 @@ namespace ext {
             
             static size_t getAlignThreshold();            
 
-
-            #ifndef OPEN_MPI
-            static bool isDisableSpawnLock();
-            #endif
-                        
             static bool getAllocWide();
 
             static size_t getMaxWorkers();
@@ -120,15 +119,15 @@ namespace ext {
             static bool isUseMultiThread();
             /* End config options*/           
             
-            
-
             MPI_Comm getCommunicator() const;
+
+            void setCommunicator( MPI_Comm comm );
             
-            MPI_Comm getCommOfParents() const;     
+            MPI_Comm getCommOfParents() const;
  
             int getRank() const;
             
-            bool getOwner() const;
+            bool isOwner() const;
             
             void setOwner(bool owner);
             
@@ -142,9 +141,9 @@ namespace ext {
 
             void setCurrExecutingWd(WD* currExecutingWd);
 
-            bool isBusy() const;
+            WD* freeCurrExecutingWd();
 
-            void setBusy(bool busy);
+            bool isBusy();
             
             void setPphList(int* list);
             
@@ -153,29 +152,48 @@ namespace ext {
             /**
              * Try to reserve this PE, if the one who reserves it is the same
             */
-            bool testAndSetBusy(int dduid, bool multithreadedAccess);
+            bool acquire(int dduid);
+
+            void release();
             
             int getCurrExecutingDD() const;
 
             void setCurrExecutingDD(int currExecutingDD);
             
-            void appendToPendingRequests(MPI_Request& req);
-            
+            void appendToPendingRequests( mpi::request const& req );
+
             /**
-             * Waits or clears all Pending Requests
-             * Non thread-safe function
+             * Waits for all requests to be completed.
+             * Then, it frees them all.
+             * Thread-unsafe function
+             */
+            void waitAndClearRequests();
+
+            /**
+             * Frees and erases all requests.
+             * Thread-unsafe function
              */
             void clearAllRequests();
+
+            /**
+             * Waits for all pending Requests
+             * Thread-safe function
+             */
+            void waitAllRequests();
+
             /**
              * Tests all pending requests
              * Thread-safe function
              */
             bool testAllRequests();
 
-            BaseThread& startMPIThread(WD* work);
+            mpi::persistent_request& getTaskEndRequest();
+
+            MPIThread& startMPIThread(WD* work);
             
             WD & getWorkerWD() const;
             WD & getMasterWD() const;
+
             static void prepareConfig(Config &config);
 
             // capability query functions
@@ -192,7 +210,7 @@ namespace ext {
 
             bool supportsUserLevelThreads() const {
                 return false;
-            }       
+            }
         };   
 
         // Macros to instrument the code and make it cleaner

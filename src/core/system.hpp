@@ -472,6 +472,8 @@ inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id )
    return *target;
 }
 
+inline PEList& System::getPEList() { return _pes; }
+
 inline void System::setValidPlugin ( const std::string &module,  const std::string &plugin )
 {
    _validPlugins.insert( make_pair( module, plugin ) );
@@ -667,7 +669,7 @@ inline std::set<memory_space_id_t> const &System::getActiveMemorySpaces() const 
    return _activeMemorySpaces;
 }
 
-inline std::map<unsigned int, PE *> const &System::getPEs() const {
+inline PEList const &System::getPEs() const {
    return _pes;
 }
 

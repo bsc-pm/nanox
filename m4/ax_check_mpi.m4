@@ -179,7 +179,9 @@ AS_IF([test $mpi = yes],[
   ])dnl
   
   # If one of the previous tests were not satisfied, exit with an error message.
-  AS_IF([test x$mpi != xyes],[
+  AS_IF([test x$mpi = xyes],[
+    ARCHITECTURES="$ARCHITECTURES mpi"
+  ],[
       AC_MSG_ERROR([
 ------------------------------
 MPI path was not correctly specified. 
@@ -286,14 +288,13 @@ Maximun multithread level supported: $ac_cv_mpi_mt
     [*"-lmpicxx "*"-lmpi"*],     [mpi_implementation=openmpi],
     [mpi_implementation=none]
   )
+  AC_DEFINE([MPICH_IGNORE_CXX_SEEK],[],[Ignore cxx seek errors when including mpi.h in C++])
   AC_DEFINE_UNQUOTED([MPI_IMPLEMENTATION],[$mpi_implementation],
     [Identifies which MPI implementation is being used. Supported values: intel, mpich, openmpi])
 
   MPICXX="$CXX"
   mpilib="$LDFLAGS"
   mpilibs="$LIBS"
-
-  ARCHITECTURES="$ARCHITECTURES mpi"
 
   # Restore variables to its original state
   AX_VAR_POPVALUE([CPPFLAGS])

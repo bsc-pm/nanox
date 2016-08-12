@@ -18,11 +18,13 @@
 /*************************************************************************************/
 
 #include "mpiprocessor_decl.hpp"
+#include "mpithread.hpp"
+#include "mpidd.hpp"
+
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
-#include "mpidd.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -30,13 +32,11 @@ using namespace nanos::ext;
 MPIDevice nanos::ext::MPI("MPI");
 Atomic<int> MPIDD::uidGen=1;
 bool MPIDD::_spawnDone=false;
-//MPI_Comm OFFL_COMM_ANY=MPI_COMM_SELF;
 
 MPIDD * MPIDD::copyTo(void *toAddr) {
     MPIDD *dd = new (toAddr) MPIDD(*this);
     return dd;
 }
-
 
 void MPIDD::setSpawnDone(bool spawnDone) {
    _spawnDone = spawnDone;
@@ -46,38 +46,42 @@ bool MPIDD::getSpawnDone() {
    return _spawnDone;
 }
 
-bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {    
+bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     //PE is null when device gets activated
-    if (pe==NULL) return true;
-    int res=MPI_UNEQUAL;
+    if( pe == NULL )
+        return true;
+
     //Only MPI threads will enter this function
-    nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
-    nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
-    if ((uintptr_t)_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
-        
-    //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
-    //if has both rank and comm, only execute on his PE    
-    bool resul = (((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) 
-            || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
-            || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
-    
-    //If compatible, set the device as busy (if possible) and reserve it for this DD
-    resul = resul && myPE->testAndSetBusy(uid, mpiThread->getGroupThreadList()->size() > 1);
-    
-    //If our current PE is not the right one for the task, check if the right one is free
-    if ( !resul && myPE->getRank()!=_assignedRank && ( res == MPI_IDENT || 
-            ((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) ){  
-       if (_assignedRank==UNKOWN_RANKSRCDST) {
-         resul=mpiThread->switchToNextFreePE(uid);      
-       } else {
-         resul=mpiThread->switchToPE(_assignedRank,uid); 
-       }
-    } 
-    //After we reserve a PE, bind this DD to that PE
-    if (resul) {
-        _assignedRank= ((MPIProcessor*) mpiThread->runningOn())->getRank();
-        _assignedComm= ((MPIProcessor*) mpiThread->runningOn())->getCommunicator();
+    MPIThread* thread = (MPIThread*) myThread;
+    MPIProcessor* remote = (MPIProcessor*) pe;
+
+    bool isCompatible = true;
+    if( static_cast<int>(_assignedComm) != 0 ) {
+        int res = MPI_UNEQUAL;
+        MPI_Comm_compare( remote->getCommunicator(),_assignedComm, &res );
+        isCompatible &= res == MPI_IDENT;
     }
-    return resul;
+    isCompatible &= _assignedRank == UNKNOWN_RANK || _assignedRank == remote->getRank();
+
+    //If compatible, set the device as busy (if possible) and reserve it for this DD
+    bool reserved = false;
+    if( isCompatible )
+        reserved = remote->acquire(uid);
+
+    //If our current PE is not the right one for the task, check if the right one is free
+    if( !reserved ) {
+       if( _assignedRank == UNKNOWN_RANK ) {
+         reserved = thread->switchToNextFreePE( uid );
+       } else {
+         reserved = thread->switchToPE( _assignedRank, uid );
+       }
+    }
+    //After we reserve a PE, bind this DD to that PE
+    if( reserved ) {
+	remote = static_cast<MPIProcessor*>(thread->runningOn());
+        _assignedRank = remote->getRank();
+        _assignedComm = remote->getCommunicator();
+    }
+    return reserved;
 }
 

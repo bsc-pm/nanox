@@ -21,11 +21,11 @@
 #define _NANOS_LIB_DEBUG
 
 #include <stdexcept>
-#include <iostream>
 //Having system.hpp here generate too many circular dependences
 //but it's not really needed so we can delay it most times until the actual usage
 //#include "system.hpp"
 #include "xstring.hpp"
+#include <iostream>
 
 namespace nanos {
 
@@ -59,8 +59,8 @@ namespace nanos {
 
 #define _nanos_ostream ( /* myThread ? *(myThread->_file) : */ std::cerr )
 
-#define fatal(msg) { std::stringstream sts; sts<<msg ; throw ::nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
-#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw ::nanos::FatalError(sts.str()); }
+#define fatal(msg) { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
+#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str()); }
 #define fatal_cond(cond,msg) if ( cond ) fatal(msg);
 #define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 
@@ -78,8 +78,8 @@ namespace nanos {
    do { if (sys.getNetwork()->getNodeNum() == 0) { _nanos_ostream << "MSG: m:[?] " << msg << std::endl; } } while (0)
 
 #ifdef NANOS_DEBUG_ENABLED
-#define ensure(cond,msg)  do { if ( !(cond) ) { printBt(_nanos_ostream); throw ::nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId()); } } while (0)
-#define ensure0(cond,msg) do { if ( !(cond) ) { printBt(_nanos_ostream); throw ::nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg ); } } while (0)
+#define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());
+#define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
 #define verbose(msg) \
    if (sys.getVerbose()) _nanos_ostream << "[" << std::dec << getMyThreadSafe()->getId() << "]" << msg << std::endl;

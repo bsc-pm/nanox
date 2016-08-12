@@ -30,39 +30,76 @@ devinclude_HEADERS = \
 	mpiremotenode_fwd.hpp \
 	mpiremotenode_decl.hpp \
 	mpiremotenode.hpp \
-	mpidevice_decl.hpp \
 	mpidevice.hpp \
 	mpidd.hpp \
+	mpithread_fwd.hpp \
 	mpithread.hpp \
+	hostinfo.hpp \
+	info.hpp \
+	request.hpp \
+	status.hpp \
 	$(END)
+
+
+offload_sources= \
+ nanos-mpi.h \
+ mpiall.cpp \
+ mpi-api.cpp \
+ mpiprocessor_fwd.hpp \
+ mpiprocessor_decl.hpp \
+ mpiprocessor.hpp \
+ mpiprocessor.cpp \
+ mpiremotenode_fwd.hpp \
+ mpiremotenode_decl.hpp \
+ mpiremotenode.hpp \
+ mpiremotenode.cpp \
+ mpidevice.hpp \
+ mpidevice.cpp \
+ mpidd.hpp \
+ mpidd.cpp \
+ mpithread_fwd.hpp \
+ mpithread.hpp \
+ mpithread.cpp \
+ hostinfo.hpp \
+ hostinfo.cpp \
+ info.hpp \
+ request.hpp \
+ status.hpp \
+ pagealignedallocator_decl.hpp \
+ pagealignedallocator.hpp \
+ mpiworker.hpp \
+ mpispawn_fwd.hpp \
+ mpispawn.hpp \
+ rmi/allocate.hpp \
+ rmi/cachecommand.cpp \
+ rmi/cachecommand.hpp \
+ rmi/cachepayload.hpp \
+ rmi/command.cpp \
+ rmi/command.hpp \
+ rmi/commandid.hpp \
+ rmi/commandpayload.hpp \
+ rmi/commanddispatcher_decl.hpp \
+ rmi/commanddispatcher.hpp \
+ rmi/commandchannel.hpp \
+ rmi/commandrequestor.hpp \
+ rmi/commandservant.hpp \
+ rmi/copydevtodev.hpp \
+ rmi/copyin.hpp \
+ rmi/copyout.hpp \
+ rmi/createauxthread.hpp \
+ rmi/finish.hpp \
+ rmi/free.hpp \
+ rmi/init.hpp \
+ rmi/realloc.hpp \
+ $(END)
 
 pe_mpi_sources = \
-	mpiplugin.cpp \
-	$(END)
+ mpiplugin.hpp \
+ mpiplugin.cpp \
+ $(END)
 
-mpiinclude_HEADERS = \
-	nanos-mpi.h \
-	mpi-api.cpp \
-	mpiall.cpp \
-	mpiplugin.cpp \
-	mpiprocessor_fwd.hpp \
-	mpiprocessor_decl.hpp \
-	mpiprocessor.hpp \
-	mpiprocessor.cpp \
-	mpiremotenode_fwd.hpp \
-	mpiremotenode_decl.hpp \
-	mpiremotenode.hpp \
-	mpiremotenode.cpp \
-	mpidevice_decl.hpp \
-	mpidevice.hpp \
-	mpidevice.cpp \
-	mpidd.hpp \
-	mpidd.cpp \
-	mpithread.hpp \
-	mpithread.cpp \
-	$(END)
+EXTRA_DIST=$(offload_sources) $(pe_mpi_sources)
 
-mpiincludedir = $(prefix)/src/arch/mpi
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
@@ -70,35 +107,59 @@ instrumentation_LTLIBRARIES =
 instrumentation_debug_LTLIBRARIES =
 performance_LTLIBRARIES =
 
+mpioffloaddir = $(prefix)/src/arch/mpi
+
+mpioffload_DATA=\
+ $(offload_sources)\
+ $(pe_mpi_sources)\
+ nanos-config.h \
+ nanox_compiler \
+ test_flags \
+ $(END)
+
+if is_debug_enabled
+mpioffload_DATA+= debug_flags
+endif
+if is_instrumentation_enabled
+mpioffload_DATA+= instrumentation_flags
+endif
+if is_instrumentation_debug_enabled
+mpioffload_DATA+= instrumentation_debug_flags
+endif
+if is_performance_enabled
+mpioffload_DATA+= performance_flags
+endif
 
 test_cxxflags = $(common_includes) $(bin_cxxflags)
 
-install-data-hook:
-	echo -n "${test_cxxflags}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
-	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/test_flags
-	echo $(CXX) > $(DESTDIR)$(mpiincludedir)/nanox_compiler
-if is_debug_enabled
-	echo -n "${common_debug_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g" > $(DESTDIR)$(mpiincludedir)/debug_flags
-	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/debug_flags
-endif
-if is_instrumentation_enabled
-	echo -n "${common_instrumentation_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
-	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_flags
-endif
-if is_instrumentation_debug_enabled
-	echo -n "${common_instrumentation_debug_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
-	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
-endif
-if is_performance_enabled
-	echo -n "${common_performance_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g" > $(DESTDIR)$(mpiincludedir)/performance_flags
-	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/performance_flags
-endif
+.PHONY: test_flags debug_flags instrumentation_flags instrumentation_debug_flags performance_flags nanos-config.h
 
+clean-local:
+	rm -f test_flags debug_flags instrumentation_flags instrumentation_debug_flags performance_flags nanos-config.h
 
-uninstall-hook:
-	rm -f $(DESTDIR)$(mpiincludedir)/test_flags
-	rm -f $(DESTDIR)$(mpiincludedir)/nanox_compiler
-	rm -f $(DESTDIR)$(mpiincludedir)/debug_flags
-	rm -f $(DESTDIR)$(mpiincludedir)/instrumentation_flags
-	rm -f $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
-	rm -f $(DESTDIR)$(mpiincludedir)/performance_flags
+test_flags:
+	echo -n "$(test_cxxflags) -I$(devincludedir)" | sed "s@$(top_srcdir)@$(abs_top_srcdir)@g" > $@
+
+debug_flags:
+	echo -n "$(common_debug_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_debug_CXXFLAGS)" > $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+
+instrumentation_flags:
+	echo -n "$(common_instrumentation_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_instrumentation_CXXFLAGS)" > $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+
+instrumentation_debug_flags:
+	echo -n "$(common_instrumentation_debug_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_instrumentation_debug_CXXFLAGS)" > $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+
+performance_flags:
+	echo -n "$(common_performance_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_performance_CXXFLAGS)" > $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+
+nanos-config.h: $(abs_top_builddir)/config.h
+	cp $(abs_top_builddir)/config.h $@
+

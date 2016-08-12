@@ -319,7 +319,9 @@ AC_CONFIG_FILES([
                  src/arch/gpu/Makefile
                  src/arch/opencl/Makefile
                  src/arch/mpi/Makefile
+                 src/arch/mpi/nanox_compiler
                  src/utils/Makefile
+                 scripts/offload_slave_launch.sh
                  tests/Makefile
                  tests/gens/Makefile
                  tests/gens/api-generator
