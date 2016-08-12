@@ -786,7 +786,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    if ( done ) {
       wd->finish();
       finishWork( wd, schedule );
-      // Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters
+
+      // As finishWork potentially may cause a context switch (due to waitCompletion) we need to
+      // refresh current thread pointer.
+      thread = getMyThreadSafe();
+
+      // Instrumenting context switch: wd leaves cpu and will not come back (last = true)
+      // and new_wd enters
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
 
