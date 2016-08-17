@@ -78,7 +78,7 @@ void MemController::preInit( ) {
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( myThread != NULL ) {
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 131 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99131 );)
    }
    // std::set<reg_key_t> dicts;
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
@@ -87,7 +87,7 @@ void MemController::preInit( ) {
    }
    if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 132 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99132 );)
    }
              for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
                 _memCacheCopies[ index ]._reg.id = _memCacheCopies[ index ]._reg.key->obtainRegionId( _wd->getCopies()[index], *_wd, index );
@@ -99,7 +99,7 @@ void MemController::preInit( ) {
              }
    if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 133 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99133 );)
    }
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
       uint64_t host_copy_addr = 0;
@@ -115,7 +115,7 @@ void MemController::preInit( ) {
    if ( myThread != NULL ) {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 134 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99134 );)
    }
    //std::ostream &o = (*myThread->_file);
    //o << "### preInit wd " << _wd->getId() << std::endl;
@@ -129,16 +129,20 @@ void MemController::preInit( ) {
       // o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd->getCopies()[index] << std::endl; 
 
       if ( sys.usePredecessorCopyInfo() ) {
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99136 );)
          unsigned int predecessorsVersion;
          if ( _providedRegions.hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) ) {
             _memCacheCopies[ index ].setVersion( predecessorsVersion );
          }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       }
       if ( _memCacheCopies[ index ].getVersion() != 0 ) {
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd->getId() << " " <<(_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a") << " copy "<< index <<" got location info from predecessor, reg [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<< _memCacheCopies[ index ]._reg.id << " ] got version " << _memCacheCopies[ index ].getVersion()<< " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99137 );)
          _memCacheCopies[ index ].getVersionInfo();
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd->getId() << " " <<(_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a") << " copy "<< index <<" got requesting location info to global directory for region [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<<  _memCacheCopies[ index ]._reg.id << " ] "; }
       }
       if ( _VERBOSE_CACHE ) { 
@@ -178,7 +182,7 @@ void MemController::preInit( ) {
    //     }
    //  }
    if ( myThread != NULL ) {
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 135 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99135 );)
    }
 
       for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
@@ -245,19 +249,34 @@ void MemController::initialize( ProcessingElement &pe ) {
 
          if ( sys._newAlloc ) {
          //Pre allocation stuff
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 557 );)
+            bool missing_chunks = false;
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99557 );)
+         sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_READ_lock();
+         for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
+            MemCacheCopy &mcopy = _memCacheCopies[ idx ];
+            mcopy._chunk = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().getChunkNoCreate( mcopy._reg, *_wd, idx );
+            missing_chunks = missing_chunks || (mcopy._chunk == NULL);
+         }
+         sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_unlock();
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+
+         if ( missing_chunks ) {
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99558 );)
          sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_WRITE_lock();
          for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
             MemCacheCopy &mcopy = _memCacheCopies[ idx ];
-            AllocatedChunk *chunk = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().getChunk( mcopy._reg, *_wd, idx );
-            if ( chunk == NULL ) {
-               fatal("Unable to get an allocatedChunk.");
+            if ( mcopy._chunk == NULL ) {
+               AllocatedChunk *chunk = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().getChunk( mcopy._reg, *_wd, idx );
+               if ( chunk == NULL ) {
+                  fatal("Unable to get an allocatedChunk.");
+               }
+               mcopy._chunk = chunk;
             }
-            mcopy._chunk = chunk;
          }
          sys.getSeparateMemory( _pe->getMemorySpaceId() ).getCache().RWLOCK_unlock();
-         // TODO: check for capacity.
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+         }
+         // TODO: check for capacity.
          }
       }
       _initialized = true;
@@ -270,8 +289,6 @@ bool MemController::allocateTaskMemory2() {
    bool result = true;
    ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
-             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
    if ( _pe->getMemorySpaceId() != 0 ) {
       //reserve the chunks
       for ( unsigned int idx = 0; idx < _wd->getNumCopies(); idx += 1 ) {
@@ -308,7 +325,6 @@ bool MemController::allocateTaskMemory2() {
       }
       //*(myThread->_file)  << std::endl;
    }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    return result;
 }
 
@@ -321,7 +337,7 @@ bool MemController::allocateTaskMemory() {
    }
    //std::ostream &o = (*myThread->_file);
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 555 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99555 );)
    if ( _pe->getMemorySpaceId() != 0 ) {
       bool pending_invalidation = false;
       bool initially_allocated = _memoryAllocated;
@@ -438,7 +454,7 @@ void MemController::copyDataIn() {
    
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 333 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99333 );)
 // FIXME: I believe this is needed, but crushes performance
 // FIXME             sys.allocLock();
 // FIXME             
@@ -451,7 +467,7 @@ void MemController::copyDataIn() {
 // FIXME
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99334 );)
    _inOps->issue( _wd );
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
@@ -475,7 +491,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
 
              NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 444 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99444 );)
 
    for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
       if ( _wd->getCopies()[index].isOutput() ) {
@@ -552,10 +568,10 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
             // if the predecessor's children produced new data, then the father can not
             // guarantee that the version is correct (the children may have produced a subchunk
             // of the region). The version is not added here and then the global directory is checked.
-            //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd->getId() << " : "<< _wd->getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd->getId() << " : " << predecessorController._wd->getDescription() << " : " << index << " copy version " << version << std::endl;
+            //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd->getId() << " : "<< _wd->getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " id " << predecessorController._memCacheCopies[ index ]._reg.id << " ] adding version " << version << " from wd " << predecessorController._wd->getId() << " : " << predecessorController._wd->getDescription() << " : " << index << " copy version " << version << std::endl;
             _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
          } else {
-            //(*myThread->_file) << _preinitialized << " " << _initialized <<" SKIP getInfoFromPredecessor[ " << _wd->getId() << " : "<< _wd->getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd->getId() << " : " << predecessorController._wd->getDescription() << " : " << index << " copy CP version " << version << " predec Produced version " << predecessorProducedVersion << std::endl;
+            //(*myThread->_file) << _preinitialized << " " << _initialized <<" SKIP getInfoFromPredecessor[ " << _wd->getId() << " : "<< _wd->getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " id " << predecessorController._memCacheCopies[ index ]._reg.id << " ] adding version " << version << " from wd " << predecessorController._wd->getId() << " : " << predecessorController._wd->getDescription() << " : " << index << " copy CP version " << version << " predec Produced version " << predecessorProducedVersion << std::endl;
          }
       }
    }

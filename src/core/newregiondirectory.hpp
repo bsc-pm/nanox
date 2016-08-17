@@ -313,9 +313,15 @@ inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegio
 
 inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
-   dict->lockObject();
-   dict->registerRegion( reg, missingParts, version );
-   dict->unlockObject();
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, reg );
+   if ( regEntry->getVersion() == dict->getVersion() ) {
+      version = dict->getVersion();
+      missingParts.push_back( std::make_pair(reg, reg) );
+   } else {
+      dict->lockObject();
+      dict->registerRegion( reg, missingParts, version );
+      dict->unlockObject();
+   }
 }
 
 } // namespace nanos

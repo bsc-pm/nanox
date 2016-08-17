@@ -216,7 +216,7 @@ namespace nanos {
          // void unlock();
          // bool tryLock();
 
-         //void RWLOCK_READ_lock();
+         void RWLOCK_READ_lock();
          void RWLOCK_WRITE_lock();
          void RWLOCK_unlock();
 
@@ -269,6 +269,7 @@ namespace nanos {
          bool hasFreeMem() const;
          std::size_t getUnallocatedBytes() const;
          AllocatedChunk *getChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+         AllocatedChunk *getChunkNoCreate( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;
          bool allocateChunk( AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *__selectChunkToInvalidate( std::size_t allocSize, WD const &wd );
          bool invalidate( AllocatedChunk &target_chunk, std::size_t size, WD const &wd );

@@ -499,7 +499,8 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
    //    o << "Region: " << it->first << " "; _newRegions->printRegion( o, it->first ); o << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
    // }
 
-   _allocatedRegion.key->registerRegion( _allocatedRegion.id, missing, ver );
+   //_allocatedRegion.key->registerRegion( _allocatedRegion.id, missing, ver );
+   NewNewRegionDirectory::__getLocation( _allocatedRegion.key, _allocatedRegion.id, missing, ver, wd );
 
    //std::set<DeviceOps *> ops;
    //ops.insert( _allocatedRegion.getDeviceOps() );
@@ -755,7 +756,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
 
 AllocatedChunk *RegionCache::__selectChunkToInvalidate( std::size_t allocSize, WD const &wd ) {
 
-   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   //NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    AllocatedChunk *selected_chunk = NULL;
    MemoryMap<AllocatedChunk>::iterator it;
    bool done = false;
@@ -799,16 +800,24 @@ AllocatedChunk *RegionCache::__selectChunkToInvalidate( std::size_t allocSize, W
             && chunk.getDeviceAllocatedSize() >= allocSize ) {
          if ( !chunk.isDirty() ) {
             if ( chunk.getAllocatedRegion().accessedBy(myThread->runningOn()) ) {
-               chunkToReuse = it->second;
-               done = true;
+               if ( chunk.trylock_AllocatedChunk() ) {
+                  chunkToReuse = it->second;
+                  done = true;
+               }
             } else if ( chunkToReuseNotMine == NULL ) {
-               chunkToReuseNotMine = it->second;
+               if ( chunk.trylock_AllocatedChunk() ) {
+                  chunkToReuseNotMine = it->second;
+               }
             }
          } else {
             if ( chunkToReuseDirty == NULL && chunk.getAllocatedRegion().accessedBy(myThread->runningOn()) ) {
-               chunkToReuseDirty = it->second;
+               if ( chunk.trylock_AllocatedChunk() ) {
+                  chunkToReuseDirty = it->second;
+               }
             } else if ( chunkToReuseDirtyNotMine == NULL ) {
-               chunkToReuseDirtyNotMine = it->second;
+               if ( chunk.trylock_AllocatedChunk() ) {
+                  chunkToReuseDirtyNotMine = it->second;
+               }
             }
          }
       }
@@ -816,23 +825,32 @@ AllocatedChunk *RegionCache::__selectChunkToInvalidate( std::size_t allocSize, W
    }
    if ( chunkToReuse == NULL ) {
       if ( chunkToReuseNotMine != NULL ) {
-         chunkToReuse = chunkToReuseNotMine;
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9991 );)
+         selected_chunk = chunkToReuseNotMine;
+ //  NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9991 );)
          done = true;
       } else if ( chunkToReuseDirty != NULL ) {
-         chunkToReuse = chunkToReuseDirty;
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9992 );)
+         selected_chunk = chunkToReuseDirty;
+   //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9992 );)
          done = true;
       } else if ( chunkToReuseDirtyNotMine != NULL ) {
-         chunkToReuse = chunkToReuseDirtyNotMine;
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9993 );)
+         selected_chunk = chunkToReuseDirtyNotMine;
+   //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9993 );)
          done = true;
       }
    } else {
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9990 );)
+   //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9990 );)
+      selected_chunk = chunkToReuse;
    }
    if ( done ) {
-      selected_chunk = chunkToReuse;
+      if ( chunkToReuseNotMine != NULL && selected_chunk != chunkToReuseNotMine ) {
+         chunkToReuseNotMine->unlock_AllocatedChunk();
+      }
+      if ( chunkToReuseDirty != NULL && selected_chunk != chunkToReuseDirty ) {
+         chunkToReuseDirty->unlock_AllocatedChunk();
+      }
+      if ( chunkToReuseDirtyNotMine != NULL && selected_chunk != chunkToReuseDirtyNotMine ) {
+         chunkToReuseDirtyNotMine->unlock_AllocatedChunk();
+      }
       // if ( selected_chunk->trylock() ) {
       //    if ( selected_chunk->addReference( wd, 1111 ) == 0 ) {
       //       selected_chunk->setInvalidating();
@@ -853,22 +871,24 @@ AllocatedChunk *RegionCache::__selectChunkToInvalidate( std::size_t allocSize, W
       // }
       //fatal("IVE _not_ FOUND A CHUNK TO FREE");
       selected_chunk = NULL;
-      // fprintf(stderr, "Ive not found a chunk\n");
-      // for ( it = _chunks.begin(); it != _chunks.end(); it++ ) {
-      //    if ( it->second->allocated() ) {
-      //       global_reg_t reg = it->second->getAllocatedRegion();
-      //       *myThread->_file << "["<< count << "] allocated chunk: " <<  it->second << " addr " << (void *)it->second->getAddress() << " inv?: " << it->second->isInvalidating() << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getDeviceAllocatedSize() << " vs " << allocSize << " ";
-      //       reg.key->printRegion( *myThread->_file, reg.id );
-      //       *myThread->_file << std::endl;
-      //    } else {
-      //       global_reg_t reg = it->second->getAllocatedRegion();
-      //       *myThread->_file << "["<< count << "] unallocated chunk: " << it->second << " addr " << (void *)it->second->getAddress() << " inv?: " << it->second->isInvalidating() << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getDeviceAllocatedSize() << " vs " << allocSize << " ";
-      //       reg.key->printRegion( *myThread->_file, reg.id );
-      //       *myThread->_file << std::endl;
-      //    }
-      // }
+       *myThread->_file << "#####################################################" << std::endl;
+       *myThread->_file << "Ive not found a chunk, need " << allocSize << " bytes" << std::endl;
+       for ( it = _chunks.begin(); it != _chunks.end(); it++ ) {
+          if ( it->second->allocated() ) {
+             //global_reg_t reg = it->second->getAllocatedRegion();
+             *myThread->_file << "["<< count << "] allocated chunk: " <<  it->second << " addr " << (void *)it->second->getAddress() << " inv?: " << it->second->isInvalidating() << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getDeviceAllocatedSize() << " vs " << allocSize << " ";
+             // reg.key->printRegion( *myThread->_file, reg.id );
+             *myThread->_file << std::endl;
+          } else {
+           //  global_reg_t reg = it->second->getAllocatedRegion();
+           //  *myThread->_file << "["<< count << "] unallocated chunk: " << it->second << " addr " << (void *)it->second->getAddress() << " inv?: " << it->second->isInvalidating() << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getDeviceAllocatedSize() << " vs " << allocSize << " ";
+           //  // reg.key->printRegion( *myThread->_file, reg.id );
+           //  *myThread->_file << std::endl;
+          }
+       }
+       *myThread->_file << "#####################################################" << std::endl;
    }
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+   //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    return selected_chunk;
 }
 
@@ -2216,6 +2236,28 @@ AllocatedChunk *RegionCache::getChunk( global_reg_t const &reg, WD const &wd, un
    return allocChunkPtr;
 }
 
+AllocatedChunk *RegionCache::getChunkNoCreate( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const {
+   ConstChunkList results;
+   AllocatedChunk *allocChunkPtr = NULL;
+
+   global_reg_t allocatedRegion;
+   getAllocatableRegion( reg, allocatedRegion );
+   _chunks.getChunk( allocatedRegion.getRealFirstAddress(), allocatedRegion.getBreadth(), results );
+   if ( results.size() == 1 ) {
+      if ( results.front().second != NULL ) {
+         allocChunkPtr = results.front().second;
+      }
+   } else if ( results.size() > 1 ) {
+         *(myThread->_file) <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
+      message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
+      for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
+         *myThread->_file << " addr: " << (void *) it->first.getAddress() << " size " << it->first.getLength() << std::endl; 
+      *(myThread->_file) << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
+      fatal("Can not continue.");
+   }
+   return allocChunkPtr;
+}
+
 bool RegionCache::allocateChunk( AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
    global_reg_t const &allocatedRegion = chunk->getAllocatedRegion();
    ensure( allocatedRegion.getBreadth() == allocatedRegion.getDataSize(), "This should be a contiguous region");
@@ -2247,6 +2289,9 @@ bool RegionCache::allocateChunk( AllocatedChunk *chunk, WD const &wd, unsigned i
    }
 }
 
+void RegionCache::RWLOCK_READ_lock() {
+   pthread_rwlock_rdlock( &_rwlock );
+}
 void RegionCache::RWLOCK_WRITE_lock() {
    pthread_rwlock_wrlock( &_rwlock );
 }
@@ -2255,28 +2300,32 @@ void RegionCache::RWLOCK_unlock() {
 }
 bool RegionCache::invalidate( AllocatedChunk &target_chunk, std::size_t size, WD const &wd ) {
    AllocatedChunk *chunk_ptr = NULL;
+   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 77111 );)
    pthread_rwlock_rdlock( &_rwlock );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 66111 );)
       bool retry;
       do {
       retry = false;
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 66222 );)
       chunk_ptr = __selectChunkToInvalidate( size, wd );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       if ( chunk_ptr != NULL ) {
-         if ( chunk_ptr->trylock_AllocatedChunk() ) {
-            if ( chunk_ptr->allocated() && chunk_ptr->addReference( wd, 1111 ) == 0 ) {
-               chunk_ptr->setInvalidating();
-            } else {
-               chunk_ptr->unlock_AllocatedChunk();
-               retry = true;
-            }
+         if ( chunk_ptr->allocated() && chunk_ptr->addReference( wd, 1111 ) == 0 ) {
+            chunk_ptr->setInvalidating();
          } else {
             retry = true;
          }
+         chunk_ptr->unlock_AllocatedChunk();
       } else {
          // fatal("unable to get a chunk");
          // just return and let the caller retry
       }
+      
       } while (retry);
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    pthread_rwlock_unlock( &_rwlock );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
    if ( chunk_ptr != NULL ) {
       // *myThread->_file << "invalidate on chunk " << chunk_ptr << " w/refs " << chunk_ptr->getReferenceCount() << std::endl;
@@ -2307,8 +2356,10 @@ bool RegionCache::invalidate( AllocatedChunk &target_chunk, std::size_t size, WD
 
       chunk_ptr->getAllocatedRegion().key->unlockObject();
 
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 77113 );)
       invalOps->issue( &wd );
 
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       // alloc map update
 
 
@@ -2329,7 +2380,7 @@ bool RegionCache::invalidate( AllocatedChunk &target_chunk, std::size_t size, WD
       }
 
       chunk_ptr->deallocate( wd );
-      chunk_ptr->unlock_AllocatedChunk();
+      //chunk_ptr->unlock_AllocatedChunk();
    }
 
    return chunk_ptr != NULL;

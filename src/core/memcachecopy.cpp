@@ -31,7 +31,7 @@ using namespace nanos;
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
-   _reg.key->lockObject();
+   _reg.key->lockObject(); //FIXME: should this be a red/write lock (in read mode)?
    if ( input && output ) {
       //re read version, in case of this being a commutative or concurrent access
       if ( _reg.getVersion() > _version ) {
@@ -60,7 +60,8 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
       }
    }
    //NANOS_INSTRUMENT( inst4.close(); );
-   _reg.key->unlockObject();
+   _reg.key->unlockObject(); //FIXME: should this be a red/write lock (in read mode)?
+
 }
 
 void MemCacheCopy::release( memory_space_id_t loc, WD const &wd, unsigned int copyIdx ) {
@@ -79,23 +80,30 @@ bool MemCacheCopy::allocate( memory_space_id_t loc, WD const &wd, unsigned int c
    //addReference here? A: NO!! it should be added when we ask for the chunk (getChunk)
    // update, is better to addReference here, if we fail to allocate it may be worth to release the chunks, otherwise we may deadlock
    //update2, we can not addReference here. This function may be called multiple times for the same chunk, which will add many references.
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 99556 );)
    _chunk->lock_AllocatedChunk();
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 88556 );)
    if ( !_chunk->allocated() ) {
       if ( _chunk->isInvalidating() ) {
          result = false;
          *myThread->_file << "wait, invalidating" << std::endl;
       } else {
-         NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+ //        NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
          NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 777 );)
          result = sys.getSeparateMemory( loc ).getCache().allocateChunk( _chunk, wd, copyIdx );
          NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
          if ( result == false ) {
+         NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 888 );)
             result = sys.getSeparateMemory( loc ).getCache().invalidate( *_chunk, _chunk->getAllocatedRegion().getDataSize(), wd );
+         NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
          }
       }
    } else {
       result = true;
    }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    _chunk->unlock_AllocatedChunk();
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    return result;
 }

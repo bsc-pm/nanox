@@ -579,15 +579,6 @@ namespace nanos {
             }
          }
 
-         void remove( WD *wd ) {
-            while ( !_lock.tryAcquire() ) {
-               myThread->processTransfers();
-            }
-            //*myThread->_file << myThread->getId() << " remove (from remove) wd " << wd->getId() << std::endl;
-            this->_remove(wd);
-            _lock.release();
-         }
-
          void _remove( WD *wd ) {
             if ( wd->getNumCopies() > 0 ) {
                _wdCount -= 1;
