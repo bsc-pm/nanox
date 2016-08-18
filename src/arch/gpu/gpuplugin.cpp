@@ -90,7 +90,7 @@ class GPUPlugin : public ArchPlugin
             //   verbose( "Reserving for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
             //}
 
-            ext::GPUProcessor *gpu = NEW nanos::ext::GPUProcessor( gpuC, id, core, *gpuMemSpace );
+            ext::GPUProcessor *gpu = NEW nanos::ext::GPUProcessor( &_device, gpuC, id, core, *gpuMemSpace );
             (*_gpus)[gpuC] = gpu;
          }
       }

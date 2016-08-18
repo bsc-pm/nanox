@@ -35,8 +35,8 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
-      ProcessingElement( getGPUDevice(), memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
+GPUProcessor::GPUProcessor( GPUDevice *gpudev, int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
+      ProcessingElement( gpudev, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(),
       _initialized( false ), _gpuMemory( gpuMem ), _core( core ), _thread( NULL)
 {
