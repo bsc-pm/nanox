@@ -116,7 +116,7 @@ AS_IF([test "x$gasnet" = xyes],[
   gasnet_available_conduits=
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
-  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX,[],-DGASNET_CONDUIT_ARIES)
 
   # set the appropiate LDFLAGS for conduits that require MPI
   AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])

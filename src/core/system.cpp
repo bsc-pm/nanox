@@ -109,7 +109,7 @@ namespace PMInterfaceType
 
 // default system values go here
 System::System () :
-      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ), _SMP("SMP"),
+      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
@@ -120,7 +120,7 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _net(), _usingCluster( false ), _usingClusterMPI( false ), _clusterMPIPlugin( NULL ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::getSMPDevice() ),
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( NULL ),
       _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(),
       _activeMemorySpaces(), _acceleratorCount(0), _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
@@ -146,6 +146,7 @@ System::System () :
 	   , _preSchedule (false)
       , _slots()
 	   , _watchAddr (NULL)
+	   , _newAlloc (true)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -522,6 +523,7 @@ void System::start ()
 
    //don't allow untiedMaster in cluster, otherwise Nanos finalization crashes
    _smpPlugin->associateThisThread( usingCluster() ? false : getUntieMaster() );
+   _hostMemory = NEW HostMemoryAddressSpace( *_smpPlugin->getDevice() );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
@@ -867,9 +869,6 @@ void System::finish ()
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
-
-   // FIXME: if we enable this, the program may crash calling _net.finalize():
-   _pluginManager.unloadPlugins();
 
    verbose0 ( "NANOS++ shutting down.... end" );
    //! \note printing execution summary
@@ -1739,23 +1738,23 @@ void System::setCreateLocalTasks( bool value ) {
    _createLocalTasks = value;
 }
 
-memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize ) {
+memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost ) {
    memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide, slabSize );
+   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide, slabSize, sharedWithHost );
    _separateAddressSpaces[ id ] = mem;
    return id;
 }
 
 void System::registerObject( int numObjects, nanos_copy_data_internal_t *obj ) {
    for ( int i = 0; i < numObjects; i += 1 ) {
-      _hostMemory.registerObject( &obj[i] );
+      _hostMemory->registerObject( &obj[i] );
    }
 }
 
 void System::unregisterObject( int numObjects, void *base_addresses ) {
    uint64_t* addrs = (uint64_t*)base_addresses;
    for ( int i = 0; i < numObjects; i += 1 ) {
-      _hostMemory.unregisterObject((void*)(addrs[i]));
+      _hostMemory->unregisterObject((void*)(addrs[i]));
    }
 }
 

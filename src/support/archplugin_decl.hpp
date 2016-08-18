@@ -39,6 +39,7 @@ namespace nanos {
       public:
          /** \brief Constructs the plugin and registers itself in System. */
          ArchPlugin( const char *name, int version );
+         virtual ~ArchPlugin() {}
          
          /** \brief Returns the number of helper PEs this plugin requires.
           * This number is added to the number of SMP PEs.
@@ -85,6 +86,8 @@ namespace nanos {
          virtual unsigned int getMaxPEs() const;
          virtual unsigned int getNumWorkers() const;
          virtual unsigned int getMaxWorkers() const;
+
+         virtual Device *getDevice() = 0;
 
          virtual int initNetwork(int *argc, char ***argv) { return 0; }
          virtual BaseThread *getClusterThread() const { return NULL; }

@@ -58,7 +58,7 @@ namespace ext {
       _opencls.reserve( numDevices );
       _openclThreads.reserve( numDevices );
       for ( unsigned int openclC = 0; openclC < numDevices; ++openclC ) {
-         memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide(), 0 );
+         memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, nanos::ext::OpenCLConfig::getAllocWide(), 0, false );
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
          oclmemory.setAcceleratorNumber( sys.getNewAcceleratorId() );
 

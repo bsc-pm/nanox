@@ -273,6 +273,32 @@ inline void NewNewDirectoryEntryData::unlock() {
    _setLock.release();
 }
 
+inline bool NewNewDirectoryEntryData::accessedBy( ProcessingElement *pe ) {
+   bool result;
+   while ( !_setLock.tryAcquire() ) {
+      //myThread->processTransfers();
+   }
+   result = _pes.count( pe ) > 0;
+   _setLock.release();
+   return result;
+
+}
+
+inline std::vector<ProcessingElement *> *NewNewDirectoryEntryData::getAccessedPEs() {
+   _setLock.acquire();
+   std::vector<ProcessingElement *> *out = NULL;
+   if ( _pes.size() > 0 ) {
+      out = NEW std::vector<ProcessingElement *>( _pes.size(), NULL );
+      unsigned int count = 0;
+      for ( std::set<ProcessingElement *>::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+         (*out)[count++] = *it;
+      }
+   }
+   _setLock.release();
+   return out;
+}
+
+
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }
@@ -287,9 +313,15 @@ inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegio
 
 inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
-   dict->lockObject();
-   dict->registerRegion( reg, missingParts, version );
-   dict->unlockObject();
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, reg );
+   if ( regEntry->getVersion() == dict->getVersion() ) {
+      version = dict->getVersion();
+      missingParts.push_back( std::make_pair(reg, reg) );
+   } else {
+      dict->lockObject();
+      dict->registerRegion( reg, missingParts, version );
+      dict->unlockObject();
+   }
 }
 
 } // namespace nanos

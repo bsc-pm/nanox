@@ -229,6 +229,11 @@ void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id
    NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
 }
 
+bool global_reg_t::accessedBy( ProcessingElement *pe ) const {
+   return NewNewRegionDirectory::accessedBy( key, id, pe );
+}
+
+
 DeviceOps *global_reg_t::getDeviceOps() const {
    return NewNewRegionDirectory::getOps( key, id );
 }
@@ -240,9 +245,9 @@ DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) 
    if ( home == 0 ) {
       ops = NewNewRegionDirectory::getOps( key, id );
    } else {
-      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, wd, copyIdx );
+      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk_ForTransferRDLock( *this, wd, copyIdx ); //not really for transfer, but rd lock
       ops = chunk->getDeviceOps( *this, &wd, copyIdx );
-      chunk->unlock();
+      chunk->unlock_AllocatedChunk();
    }
    return ops;
 }

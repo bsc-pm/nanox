@@ -221,6 +221,12 @@ void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, Proces
    regEntry->addAccess( pe, loc, version ); //addAccess IMPL
 }
 
+bool NewNewRegionDirectory::accessedBy( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe )
+{
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   return regEntry->accessedBy( pe ); 
+}
+
 void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version )
 {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
@@ -617,7 +623,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                /*reg_t lol =*/ dict->registerRegion(1, missingParts, version);
                objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 5560 );)
                for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
                   //*myThread->_file << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
                   if ( mit->first == mit->second ) {
@@ -639,7 +645,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
          hb._lock.release();
       }
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 557 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 5570 );)
       if ( wd.getDepth() == 0 ) {
          _unregisterObjects( objects_to_clear );
       }

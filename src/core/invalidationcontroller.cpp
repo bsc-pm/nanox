@@ -54,14 +54,14 @@ bool InvalidationController::isInvalidating() const {
 }
 
 void InvalidationController::postIssueActions( memory_space_id_t id ) {
-   sys.getSeparateMemory(id).getCache().lock();
+   // sys.getSeparateMemory(id).getCache().lock(); // needed to avoid deadlocking?
    sys.getSeparateMemory(id).getCache().addToAllocatedRegionMap( _allocatedRegion );
    sys.getSeparateMemory(id).getCache().MAPlock();
    for ( std::set< std::pair< AllocatedChunk **, AllocatedChunk * > >::iterator it = _chunksToInval.begin(); it != _chunksToInval.end(); it++ ) {
       sys.getSeparateMemory(id).getCache().removeFromAllocatedRegionMap( it->second->getAllocatedRegion() );
    }
    sys.getSeparateMemory(id).getCache().MAPunlock();
-   sys.getSeparateMemory(id).getCache().unlock();
+   // sys.getSeparateMemory(id).getCache().unlock(); // needed to avoid deadlocking?
 }
 
 void InvalidationController::waitOps( memory_space_id_t id, WD const &wd ) {
@@ -92,18 +92,20 @@ void InvalidationController::postCompleteActions( memory_space_id_t id, WD const
       _invalChunk->setHostAddress( targetHostAddr );
    }
    for ( std::set< AllocatedChunk * >::iterator it = _chunksToFree.begin(); it != _chunksToFree.end(); it++ ) {
-      sys.getSeparateMemory(id).getCache().freeChunk( *it, wd );
+      // sys.getSeparateMemory(id).getCache().freeChunk( *it, true, wd, 0 ); //original version
+      sys.getSeparateMemory(id).getCache().freeChunk( *it, false, wd, 0 );
    }
-   sys.getSeparateMemory(id).getCache().lock();
    // if ( _softInvalidationCount > 0 ) {
    //    std::cerr << "soft inval at wd " << wd.getId() << " " << wd.getDescription() << std::endl;
    // }
    sys.getSeparateMemory(id).getCache().increaseSoftInvalidationCount( _softInvalidationCount );
    sys.getSeparateMemory(id).getCache().increaseHardInvalidationCount( _hardInvalidationCount );
-   for ( std::set< std::pair< AllocatedChunk **, AllocatedChunk * > >::iterator it = _chunksToInval.begin(); it != _chunksToInval.end(); it++ ) {
-      *(it->first) = NULL;
-   }
-   sys.getSeparateMemory(id).getCache().unlock();
+
+   // disabled with the new version: sys.getSeparateMemory(id).getCache().lock();
+   // disabled with the new version: for ( std::set< std::pair< AllocatedChunk **, AllocatedChunk * > >::iterator it = _chunksToInval.begin(); it != _chunksToInval.end(); it++ ) {
+   // disabled with the new version:    *(it->first) = NULL;
+   // disabled with the new version: }
+   // disabled with the new version: sys.getSeparateMemory(id).getCache().unlock();
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-free"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key, (nanos_event_value_t) 0 ); )

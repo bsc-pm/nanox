@@ -48,6 +48,7 @@ class ClusterPlugin : public ArchPlugin
       ext::SMPProcessor *_cpu;
       ext::SMPMultiThread *_clusterThread;
       std::size_t _gasnetSegmentSize;
+      ClusterDevice _device;
 
    public:
       ClusterPlugin();
@@ -75,6 +76,7 @@ class ClusterPlugin : public ArchPlugin
       virtual unsigned int getMaxPEs() const;
       virtual unsigned int getNumWorkers() const;
       virtual unsigned int getMaxWorkers() const;
+      virtual ClusterDevice* getDevice();
 };
 
 } // namespace ext

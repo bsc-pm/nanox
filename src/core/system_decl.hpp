@@ -106,9 +106,6 @@ namespace nanos {
          Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads
          Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
 
-         // Devices
-         SMPDevice _SMP;
-
          // configuration variables
          size_t               _deviceStackSize;
          bool                 _profile;
@@ -199,7 +196,7 @@ namespace nanos {
 
          unsigned int                                  _separateMemorySpacesCount;
          std::vector< SeparateMemoryAddressSpace * >   _separateAddressSpaces;
-         HostMemoryAddressSpace                        _hostMemory;
+         HostMemoryAddressSpace                       *_hostMemory;
          RegionCache::CachePolicy                      _regionCachePolicy;
          std::string                                   _regionCachePolicyStr;
          std::size_t                                   _regionCacheSlabSize;
@@ -265,6 +262,7 @@ namespace nanos {
          bool _preSchedule;
          std::map<int, std::set<WD *> > _slots;
          void *_watchAddr;
+         bool _newAlloc;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -580,7 +578,7 @@ namespace nanos {
          int getWgId();
          unsigned int getRootMemorySpaceId();
 
-         HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
+         HostMemoryAddressSpace &getHostMemory() { return *_hostMemory; }
 
          SeparateMemoryAddressSpace &getSeparateMemory( memory_space_id_t id ) {
             //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
@@ -601,7 +599,7 @@ namespace nanos {
       public:
          //std::list<GraphEntry *> *getGraphRepList();
          
-         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
+         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory->getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
          PEList& getPEList();
@@ -672,7 +670,7 @@ namespace nanos {
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
-         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize );
+         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost );
          void setSMPPlugin(SMPBasePlugin *p);
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
@@ -723,7 +721,7 @@ namespace nanos {
 void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes );
 global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
 
-         SMPDevice &_getSMPDevice();
+         SMPDevice *_getSMPDevice();
          int initClusterMPI(int *argc, char ***argv);
          void finalizeClusterMPI();
          void notifyIntoBlockingMPICall();

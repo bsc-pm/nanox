@@ -678,9 +678,10 @@ inline PEList const &System::getPEs() const {
 }
 
 inline void System::allocLock() {
-   while ( !_allocLock.tryAcquire() ) {
-      myThread->processTransfers();
-   }
+   // while ( !_allocLock.tryAcquire() ) {
+   //    myThread->processTransfers();
+   // }
+   _allocLock.acquire();
 }
 
 inline void System::allocUnlock() {
@@ -691,8 +692,8 @@ inline bool System::useFineAllocLock() const {
    return !_cgAlloc;
 }
 
-inline SMPDevice &System::_getSMPDevice() {
-   return _SMP;
+inline SMPDevice *System::_getSMPDevice() {
+   return _smpPlugin->getDevice();
 }
 
 } // namespace nanos

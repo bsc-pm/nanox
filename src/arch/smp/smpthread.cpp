@@ -53,7 +53,7 @@ void SMPThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( *getSMPDevice() );
 
    dd.execute( work );
 }
@@ -81,7 +81,7 @@ void SMPThread::idle( bool debug )
       }
       }
    }
-   getSMPDevice().tryExecuteTransfer();
+   getSMPDevice()->tryExecuteTransfer();
 }
 
 void SMPThread::wait()
@@ -249,4 +249,27 @@ void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **r
       _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
    }
    _totalThreads = representingPEsCount;
+}
+
+void SMPThread::bind() {
+   unsigned int binding_id = ((SMPProcessor *)runningOn())->getBindingId();
+   verbose( "Binding thread " << getMyThreadSafe()->getId() << " to cpu " << binding_id );
+   if ( sys._hwloc.isHwlocAvailable() ) {
+      sys._hwloc.bind( binding_id );
+   } else {
+      _pthread.bind();
+   }
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t numa_key = ID->getEventKey("thread-numa-node"); )
+
+   NANOS_INSTRUMENT ( nanos_event_key_t keys[2]; )
+   NANOS_INSTRUMENT ( keys[0] = cpuid_key )
+   NANOS_INSTRUMENT ( keys[1] = numa_key )
+
+   NANOS_INSTRUMENT ( nanos_event_value_t values[2]; )
+   NANOS_INSTRUMENT ( values[0] = (nanos_event_value_t) binding_id + 1; )
+   NANOS_INSTRUMENT ( values[1] = (nanos_event_value_t) runningOn()->getNumaNode() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, keys, values); )
 }

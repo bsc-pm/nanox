@@ -69,6 +69,8 @@ namespace nanos {
          memory_space_id_t getHome() const;
          void lock();
          void unlock();
+         bool accessedBy( ProcessingElement *pe );
+         std::vector<ProcessingElement *> *getAccessedPEs();
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 
@@ -194,6 +196,7 @@ namespace nanos {
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
+         static bool accessedBy( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
          static void addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version );
          static bool delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId );
          static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );

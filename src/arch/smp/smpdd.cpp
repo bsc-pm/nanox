@@ -23,7 +23,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 #include "taskexecutionexception.hpp"
-#include "smpdevice.hpp"
+#include "smpdevice_decl.hpp"
 #include "schedule.hpp"
 #include <string>
 
@@ -32,7 +32,7 @@ using namespace nanos::ext;
 
 //SMPDevice nanos::ext::SMP("SMP");
 
-SMPDevice &nanos::ext::getSMPDevice() {
+SMPDevice *nanos::ext::getSMPDevice() {
    return sys._getSMPDevice();
 }
 

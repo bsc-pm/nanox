@@ -117,21 +117,7 @@ void PThread::bind()
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
-   verbose( "Binding thread " << getMyThreadSafe()->getId() << " to cpu " << cpu_id );
    pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t numa_key = ID->getEventKey("thread-numa-node"); )
-   
-   NANOS_INSTRUMENT ( nanos_event_key_t keys[2]; )
-   NANOS_INSTRUMENT ( keys[0] = cpuid_key )
-   NANOS_INSTRUMENT ( keys[1] = numa_key )
-   
-   NANOS_INSTRUMENT ( nanos_event_value_t values[2]; )
-   NANOS_INSTRUMENT ( values[0] = (nanos_event_value_t) cpu_id + 1; )
-   NANOS_INSTRUMENT ( values[1] = (nanos_event_value_t) _core->getNumaNode() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, keys, values); )
 }
 
 void PThread::yield()
