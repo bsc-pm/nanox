@@ -91,6 +91,7 @@ namespace nanos {
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
+         typedef std::map<std::string, ArchPlugin*> ArchitecturePluginsByName;
 
          //! \brief Compiler supplied flags in symbols
          struct SuppliedFlags
@@ -146,6 +147,7 @@ namespace nanos {
          /*! Architecture plugins */
          SMPBasePlugin       *_smpPlugin;
          ArchitecturePlugins  _archs;
+         ArchitecturePluginsByName _archsByName;
 
 
          PEList               _pes;
@@ -560,6 +562,7 @@ namespace nanos {
           *   \return The index of the plugin in the vector.
           */
          size_t registerArchitecture( ArchPlugin * plugin );
+         ArchPlugin *getArchPlugin( const std::string &label ) const;
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
@@ -721,7 +724,9 @@ namespace nanos {
 void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes );
 global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
 
+         //FIXME this should be a more scalable mechanism
          SMPDevice *_getSMPDevice();
+
          int initClusterMPI(int *argc, char ***argv);
          void finalizeClusterMPI();
          void notifyIntoBlockingMPICall();

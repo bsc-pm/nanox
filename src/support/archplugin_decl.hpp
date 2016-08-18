@@ -36,10 +36,13 @@ namespace nanos {
     */
    class ArchPlugin : public Plugin
    {
+      size_t _id;
       public:
          /** \brief Constructs the plugin and registers itself in System. */
          ArchPlugin( const char *name, int version );
          virtual ~ArchPlugin() {}
+
+         size_t getId() const;
          
          /** \brief Returns the number of helper PEs this plugin requires.
           * This number is added to the number of SMP PEs.

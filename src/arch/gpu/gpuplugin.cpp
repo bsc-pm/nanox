@@ -37,15 +37,22 @@ class GPUPlugin : public ArchPlugin
 {
    std::vector<ext::GPUProcessor *> *_gpus;
    std::vector<ext::GPUThread *>    *_gpuThreads;
+   GPUDevice                         _device;
+
    public:
       GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 )
          , _gpus( NULL )
          , _gpuThreads( NULL )
+         , _device("GPU")
       {}
 
       void config( Config& cfg )
       {
          GPUConfig::prepare( cfg );
+      }
+
+      virtual GPUDevice *getDevice() {
+         return &_device;
       }
 
       void init()
@@ -54,7 +61,7 @@ class GPUPlugin : public ArchPlugin
          _gpus = NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL); 
          _gpuThreads = NEW std::vector<nanos::ext::GPUThread *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUThread *) NULL); 
          for ( int gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::GPU, nanos::ext::GPUConfig::getAllocWide(), 0 );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, nanos::ext::GPUConfig::getAllocWide(), 0, false );
             SeparateMemoryAddressSpace &gpuMemory = sys.getSeparateMemory( id );
             gpuMemory.setAcceleratorNumber( sys.getNewAcceleratorId() );
 
