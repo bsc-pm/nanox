@@ -221,7 +221,7 @@ void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
       arch = 0;
    }
 #ifdef GPU_DEV
-   else if ( completedWD->canRunIn( GPU ) )
+   else if ( completedWD->canRunIn( *getGPUDevice() ) )
    {
       arch = 1;
    }

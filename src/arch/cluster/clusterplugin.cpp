@@ -94,7 +94,7 @@ void ClusterPlugin::init()
          supported_archs[0] = getSMPDevice();
 
          #ifdef GPU_DEV
-         supported_archs[1] = &GPU;
+         supported_archs[1] = getGPUDevice();
          #endif
          #ifdef OpenCL_DEV
          supported_archs[2] = &OpenCLDev;

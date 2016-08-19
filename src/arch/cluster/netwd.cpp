@@ -92,7 +92,7 @@ void SerializedWDFields::setup( WD const &wd ) {
       _archId = 0;
    }
 #ifdef GPU_DEV
-   else if ( wd.canRunIn( GPU ) )
+   else if ( wd.canRunIn( *getGPUDevice() ) )
    {
       _archId = 1;
    }
