@@ -28,7 +28,7 @@
 
 namespace nanos {
 
-   class NewNewDirectoryEntryData : public Version {
+   class DirectoryEntryData : public Version {
       private:
          //int _writeLocation;
          //int _invalidated;
@@ -41,11 +41,11 @@ namespace nanos {
          ProcessingElement * _firstWriterPE;
          uint64_t _baseAddress;
       public:
-         NewNewDirectoryEntryData();
-         NewNewDirectoryEntryData( memory_space_id_t home );
-         NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
-         ~NewNewDirectoryEntryData();
-         NewNewDirectoryEntryData & operator= ( NewNewDirectoryEntryData &de );
+         DirectoryEntryData();
+         DirectoryEntryData( memory_space_id_t home );
+         DirectoryEntryData( const DirectoryEntryData &de );
+         ~DirectoryEntryData();
+         DirectoryEntryData & operator= ( DirectoryEntryData &de );
          // bool hasWriteLocation() const ;
          // int getWriteLocation() const ;
          // void setWriteLocation( int id ) ;
@@ -71,14 +71,14 @@ namespace nanos {
          void unlock();
          bool accessedBy( ProcessingElement *pe );
          std::vector<ProcessingElement *> *getAccessedPEs();
-         friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
+         friend std::ostream & operator<< (std::ostream &o, DirectoryEntryData const &entry);
    };
 
   /*! \class NewDirectory
    *  \brief Stores copy accesses controls their versions and if they are dirty in any cache
    */
    typedef std::list< std::pair< reg_t, reg_t > > NewLocationInfoList; 
-   class NewNewRegionDirectory
+   class RegionDirectory
    {
       private:
          class Object {
@@ -108,7 +108,7 @@ namespace nanos {
             }
             void destroyDictionary() {
                for ( unsigned int reg_id = 1; reg_id < _object->getRegionNodeCount()+1; reg_id += 1 ) {
-                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _object->getRegionData( reg_id );
+                  DirectoryEntryData *entry = ( DirectoryEntryData * ) _object->getRegionData( reg_id );
                   delete entry;
                }
                delete _object;
@@ -119,9 +119,9 @@ namespace nanos {
                if ( _registeredObject != NULL ) {
                   _object = NEW GlobalRegionDictionary( *_registeredObject );
                   _object->setRegisteredObject( _registeredObject );
-                  NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
+                  DirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
                   if ( entry == NULL ) {
-                     entry = NEW NewNewDirectoryEntryData();
+                     entry = NEW DirectoryEntryData();
                      _object->setRegionData( 1, entry ); //resetGlobalRegionDictionary
                   }
                }
@@ -148,11 +148,11 @@ namespace nanos {
 
          /*! \brief NewDirectory copy constructor (private) 
           */
-         NewNewRegionDirectory( const NewNewRegionDirectory &dir );
+         RegionDirectory( const RegionDirectory &dir );
 
          /*! \brief NewDirectory copy assignment operator (private) 
           */
-         const NewNewRegionDirectory & operator= ( const NewNewRegionDirectory &dir );
+         const RegionDirectory & operator= ( const RegionDirectory &dir );
 
          GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd );
          GlobalRegionDictionary *getRegionDictionary( CopyData const &cd );
@@ -165,7 +165,7 @@ namespace nanos {
 
       public:
          typedef GlobalRegionDictionary *RegionDirectoryKey;
-         //typedef std::pair< Region, NewNewDirectoryEntryData const *> LocationInfo;
+         //typedef std::pair< Region, DirectoryEntryData const *> LocationInfo;
          RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd );
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd );
@@ -175,11 +175,11 @@ namespace nanos {
 
          /*! \brief NewDirectory default constructor
           */
-         NewNewRegionDirectory();
+         RegionDirectory();
 
          /*! \brief NewDirectory destructor
           */
-         ~NewNewRegionDirectory();
+         ~RegionDirectory();
 
          void invalidate( CacheRegionDictionary *regions, unsigned int from );
 
@@ -188,7 +188,7 @@ namespace nanos {
          void tryLock();
          GlobalRegionDictionary &getDictionary( CopyData const &cd );
 
-         static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
+         static DirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
          static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version );

@@ -25,7 +25,7 @@
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "smpdd.hpp"
 #include "regiondict.hpp"
 #include "memcachecopy.hpp"
@@ -739,7 +739,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
                                     return false;
                                  }
                               }
@@ -765,7 +765,7 @@ namespace nanos {
             //               NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
             //               if ( !locs.empty() ) {
             //                  for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-            //                     if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+            //                     if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
             //                        return true;
             //                     }
             //                  }
@@ -791,7 +791,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( ! locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0) ) {
+                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0) ) {
                                     return true;
                                  }
                               }
@@ -818,8 +818,8 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
-                                 && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 )  ) {
+                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
+                                 && RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 )  ) {
                                     return true;
                                 }
                               }
@@ -847,7 +847,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
+                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -874,7 +874,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
+                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -1165,7 +1165,7 @@ namespace nanos {
                maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                // *myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
                // {
-               //    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               //    DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
                //    *myThread->_file << " " << *entry << std::endl;
                // }
                if ( locs.empty() ) {

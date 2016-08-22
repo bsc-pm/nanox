@@ -20,7 +20,7 @@
 #ifndef ADDRESSSPACE_DECL
 #define ADDRESSSPACE_DECL
 
-#include "newregiondirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "regioncache_decl.hpp"
 
 #include "addressspace_fwd.hpp"
@@ -99,7 +99,7 @@ inline uint64_t TransferListEntry::getSrcAddress() const {
 typedef std::list< TransferListEntry > TransferList;
 
 class HostAddressSpace {
-   NewNewRegionDirectory _directory;
+   RegionDirectory _directory;
 
    public:
    HostAddressSpace( Device &arch );
@@ -114,10 +114,10 @@ class HostAddressSpace {
    void synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data );
    memory_space_id_t getMemorySpaceId() const;
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
-   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
+   RegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
    void registerObject( nanos_copy_data_internal_t *obj );
    void unregisterObject( void *baseAddr );
-   NewNewRegionDirectory const &getDirectory() const;
+   RegionDirectory const &getDirectory() const;
 };
 
 

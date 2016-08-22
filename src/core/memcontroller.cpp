@@ -20,7 +20,7 @@
 #include "memcontroller_decl.hpp"
 #include "workdescriptor.hpp"
 #include "regiondict.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "memcachecopy.hpp"
 #include "globalregt.hpp"
 
@@ -91,9 +91,9 @@ void MemController::preInit( ) {
    }
              for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
                 _memCacheCopies[ index ]._reg.id = _memCacheCopies[ index ]._reg.key->obtainRegionId( _wd->getCopies()[index], *_wd, index );
-                NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( _memCacheCopies[ index ]._reg.id );
+                DirectoryEntryData *entry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( _memCacheCopies[ index ]._reg.id );
                 if ( entry == NULL ) {
-                   entry = NEW NewNewDirectoryEntryData();
+                   entry = NEW DirectoryEntryData();
                    _memCacheCopies[ index ]._reg.key->setRegionData( _memCacheCopies[ index ]._reg.id, entry ); //preInit memCacheCopy._reg
                 }
              }
@@ -147,8 +147,8 @@ void MemController::preInit( ) {
       }
       if ( _VERBOSE_CACHE ) { 
          for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
-               NewNewDirectoryEntryData *rsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );
-               NewNewDirectoryEntryData *dsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->second );
+               DirectoryEntryData *rsentry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );
+               DirectoryEntryData *dsentry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->second );
             *(myThread->_file) << "<" << it->first << ": [" << *rsentry << "] ," << it->second << " : [" << *dsentry << "] > ";
          }
          *(myThread->_file) << std::endl;
@@ -190,15 +190,15 @@ void MemController::preInit( ) {
          reg_key_t dict = _memCacheCopies[index]._reg.key;
          for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
             if ( it->first != it->second ) {
-               NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
+               DirectoryEntryData *firstEntry = ( DirectoryEntryData * ) dict->getRegionData( it->first );
+               DirectoryEntryData *secondEntry = ( DirectoryEntryData * ) dict->getRegionData( it->second );
                if ( firstEntry == NULL ) {
                   if ( secondEntry != NULL ) {
-                     firstEntry = NEW NewNewDirectoryEntryData();
+                     firstEntry = NEW DirectoryEntryData();
                      *firstEntry = *secondEntry;
                   } else {
-                     firstEntry = NEW NewNewDirectoryEntryData();
-                     secondEntry = NEW NewNewDirectoryEntryData();
+                     firstEntry = NEW DirectoryEntryData();
+                     secondEntry = NEW DirectoryEntryData();
                      dict->setRegionData( it->second, secondEntry ); // preInit fragment
                   }
                   dict->setRegionData( it->first, firstEntry ); //preInit fragment
@@ -210,9 +210,9 @@ void MemController::preInit( ) {
                   }
                }
             } else {
-               NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
+               DirectoryEntryData *entry = ( DirectoryEntryData * ) dict->getRegionData( it->first );
                if ( entry == NULL ) {
-                  entry = NEW NewNewDirectoryEntryData();
+                  entry = NEW DirectoryEntryData();
                   dict->setRegionData( it->first, entry ); //preInit fragment
                } else {
                }
@@ -443,7 +443,7 @@ void MemController::copyDataIn() {
          std::ostream &o = (*myThread->_file);
          o << "### copyDataIn wd " << std::dec << _wd->getId() << " (" << (_wd->getDescription()!=NULL?_wd->getDescription():"[no desc]")<< ") numCopies "<< _wd->getNumCopies() << " running on " << std::dec << _pe->getMemorySpaceId() << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd->getNumCopies(); index += 1 ) {
-         NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
+         DirectoryEntryData *d = RegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
          o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " "; _memCacheCopies[ index ]._reg.key->printRegion( o, _memCacheCopies[ index ]._reg.id ) ;
          if ( d ) o << " " << *d << std::endl; 
          else o << " dir entry n/a" << std::endl;

@@ -44,7 +44,7 @@
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
 
-#include "newregiondirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
 
 #ifdef GPU_DEV
@@ -602,7 +602,7 @@ namespace nanos {
       public:
          //std::list<GraphEntry *> *getGraphRepList();
          
-         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory->getDirectory(); }
+         RegionDirectory const &getMasterRegionDirectory() { return _hostMemory->getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
          PEList& getPEList();

@@ -233,7 +233,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
          if ( !data_source.isLocatedIn( 0 ) && rs_ops->addCacheOp( &wd ) ) {
             memory_space_id_t location = data_source.getPreferedSourceLocation(0);
             if ( location == 0 ) {
-               NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *data_source.key, data_source.id );
+               DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *data_source.key, data_source.id );
                *myThread->_file << "region_shape : " << region_shape.id << ", data_source " << data_source.id << " entry: " << *entry << " I want version " << memCopy.getVersion()<< std::endl;
             }
             ensure( location > 0, "Wrong location.");
@@ -250,8 +250,8 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
          if ( !data_source.isLocatedIn( 0 ) && !region_shape.isLocatedIn( 0 ) && rs_ops->addCacheOp( &wd ) ) {
             memory_space_id_t location = data_source.getPreferedSourceLocation(0);
             if ( location == 0 ) {
-               NewNewDirectoryEntryData *ds_entry = NewNewRegionDirectory::getDirectoryEntry( *data_source.key, data_source.id );
-               NewNewDirectoryEntryData *rs_entry = NewNewRegionDirectory::getDirectoryEntry( *region_shape.key, region_shape.id );
+               DirectoryEntryData *ds_entry = RegionDirectory::getDirectoryEntry( *data_source.key, data_source.id );
+               DirectoryEntryData *rs_entry = RegionDirectory::getDirectoryEntry( *region_shape.key, region_shape.id );
                *myThread->_file << "region_shape : " << region_shape.id << " { " << *rs_entry << "}, data_source " << data_source.id << " { " << *ds_entry << " }, I want version " << memCopy.getVersion() << std::endl;
             }
             ensure( location > 0, "Wrong location.");

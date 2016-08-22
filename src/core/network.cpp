@@ -828,7 +828,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
             if ( !reg.isLocatedIn( 0 ) ) {
                DeviceOps *thisOps = reg.getDeviceOps();
                if ( thisOps->addCacheOp( /* debug: */ &myThread->getThreadWD() ) ) {
-                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                  DirectoryEntryData *entry = ( DirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( /*_VERBOSE_CACHE*/ 0 ) {
                      std::cerr << " SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
                      if ( entry ) std::cerr << " " << *entry << std::endl;
@@ -942,7 +942,7 @@ void Network::notifyRegionMetaData( CopyData *cd, unsigned int seq ) {
    reg_t master_id = cd->getHostRegionId();
 
    if ( master_id != 0 ) {
-      NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
+      RegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
    }
 
    if ( seq ) updateMetadataSequenceNumber( seq );

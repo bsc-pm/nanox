@@ -111,7 +111,7 @@ inline bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
 
 inline void MemCacheCopy::printLocations( std::ostream &o ) const {
    for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end(); it++ ) {
-      NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
+      DirectoryEntryData *d = RegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
       o << "   [ " << it->first << "," << it->second << " ] "; _reg.key->printRegion( o, it->first ); 
       if ( d ) o << " " << *d << std::endl; 
       else o << " dir entry n/a" << std::endl;

@@ -24,7 +24,7 @@
 #include "os.hpp"
 #include "memtracker.hpp"
 #include "regioncache.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 
 //#define EXTRA_QUEUE_DEBUG
 
@@ -420,7 +420,7 @@ namespace nanos {
                         NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                         if ( !locs.empty() ) {
                            for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                              if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
                                  return false;
                               }
                            }
@@ -869,7 +869,7 @@ namespace nanos {
                   for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                      for ( unsigned int mem = 0; mem < numMemSpaces; mem++ ) {
                         if ( scores[mem] != -1 ) {
-                           if ( NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->second, mem ) ) {
+                           if ( RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->second, mem ) ) {
                               scores[ mem ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                            }
                         }

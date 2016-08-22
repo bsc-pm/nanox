@@ -28,7 +28,7 @@
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "deviceops_decl.hpp"
-#include "newregiondirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "memoryops_fwd.hpp"
 #include "cachedregionstatus_decl.hpp"
 #include "memcachecopy_fwd.hpp"
@@ -42,12 +42,12 @@ namespace nanos {
    class RegionCache;
 
    class LockedObjects {
-      std::set< NewNewRegionDirectory::RegionDirectoryKey > _lockedObjects;
+      std::set< RegionDirectory::RegionDirectoryKey > _lockedObjects;
       LockedObjects( LockedObjects const & );
       LockedObjects &operator=( LockedObjects const & );
       public:
       LockedObjects();
-      void addAndLock( NewNewRegionDirectory::RegionDirectoryKey key );
+      void addAndLock( RegionDirectory::RegionDirectoryKey key );
       void releaseLockedObjects();
    };
 

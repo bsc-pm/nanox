@@ -34,11 +34,11 @@ inline bool global_reg_t::operator!=( global_reg_t const &reg ) const {
 }
 
 inline memory_space_id_t global_reg_t::getFirstLocation() const {
-   return NewNewRegionDirectory::getFirstLocation( key, id );
+   return RegionDirectory::getFirstLocation( key, id );
 }
 
 inline std::vector<ProcessingElement *> *global_reg_t::getAccessedPEs() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    return entry->getAccessedPEs();
 }
 

@@ -71,7 +71,7 @@ void MemCacheCopy::release( memory_space_id_t loc, WD const &wd, unsigned int co
       //deallocate
       sys.getSeparateMemory( loc ).getCache().freeChunk( _chunk, false, wd, copyIdx );
       //deallocate end
-      NewNewRegionDirectory::delAccess( _reg.key, _reg.id, loc );
+      RegionDirectory::delAccess( _reg.key, _reg.id, loc );
    }
 }
 
