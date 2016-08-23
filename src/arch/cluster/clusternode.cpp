@@ -57,7 +57,7 @@ WD & ClusterNode::getMultiWorkerWD () const {
 
 BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *parent ) {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
-   ensure( helper.canRunIn( *getSMPDevice() ), "Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ), "Incompatible worker thread" );
    ClusterThread &th = *new ClusterThread( helper, this, parent, _clusterNode );
 
    return th;

@@ -68,7 +68,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
                  , _memkindSupport( false )
                  , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
                  , _asyncSMPTransfers( true )
-                 , _device( "SMP" )
    {}
 
    SMPPlugin::~SMPPlugin() {
@@ -136,7 +135,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
       cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
 
-//#ifdef MEMKIND_SUPPORT
+#ifdef MEMKIND_SUPPORT
       cfg.registerConfigOption( "smp-memkind", NEW Config::FlagOption( _memkindSupport, true ),
             "SMP memkind support." );
       cfg.registerArgOption( "smp-memkind", "smp-memkind" );
@@ -146,7 +145,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "Set the size of SMP memkind memory area." );
       cfg.registerArgOption( "smp-memkind-memory-size", "smp-memkind-memory-size" );
       cfg.registerEnvOption( "smp-memkind-memory-size", "NX_SMP_MEMKIND_MEMORY_SIZE" );
-//#endif
+#endif
       cfg.registerConfigOption( "smp-sync-transfers", NEW Config::FlagOption( _asyncSMPTransfers, false ),
             "SMP sync transfers." );
       cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
@@ -162,7 +161,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       _cpuSystemMask = OS::getSystemAffinity();
       _cpuProcessMask = OS::getProcessAffinity();
       _availableCPUs = OS::getMaxProcessors();
-      int available_cpus_by_mask = _cpuProcessMask.size();
+      int available_cpus_by_mask = _cpuSystemMask.size();
 
       if ( _availableCPUs == 0 ) {
          if ( available_cpus_by_mask > 0 ) {
@@ -192,55 +191,17 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          fatal0("Invalid number of requested cpus (--smp-cpus)");
       }
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
-      //message0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs << " mask cpus " << available_cpus_by_mask);
 
+      //! \note Fill _bindings vector with the active CPUs first, then the not active
       _bindings.reserve( _availableCPUs );
-      if ( sys._hwloc.isHwlocAvailable() ) {
-         if ( available_cpus_by_mask == _availableCPUs ) {
-            //fill from 0 to _availableCPUs - 1, these are the logical indexes of Hwloc
-            int relative_cpuidx = 0; //we will add _bindingStart when adding the value to the array
-            int count = 0;
-            while ( count < _availableCPUs ) {
-               _bindings.push_back( ( relative_cpuidx + _bindingStart ) % _availableCPUs );
-               //std::cerr << "this relative_cpuidx is " << relative_cpuidx << " next val will be " << ( ((relative_cpuidx + _bindingStride) >= _availableCPUs) ? (( relative_cpuidx + 1 ) % _availableCPUs % _bindingStride) : ( relative_cpuidx + _bindingStride ) ) << std::endl;
-               relative_cpuidx += _bindingStride;
-               if ( relative_cpuidx >= _availableCPUs ) {
-                  relative_cpuidx = ( ( relative_cpuidx + 1 ) % _availableCPUs % _bindingStride );
-               }
-               count += 1;
-            }
-            //for ( int i = 0; i < _availableCPUs; i++ ) {
-            //   _bindings.push_back( i );
-            //}
-
-         } else {
-            // WE GOT A SPECIFIC MASK, set first the CPUs specified by it, but using the logical index of Hwloc
-            warning0("Using the bindings specified by the process mask.");
-            for ( int i = 0; i < _availableCPUs; i++ ) {
-               if ( _cpuProcessMask.isSet(i) ) {
-                  _bindings.push_back( sys._hwloc.getBindingIdByOsId( i ) );
-               }
-            }
-            for ( int i = 0; i < _availableCPUs; i++ ) {
-               if ( !_cpuProcessMask.isSet(i) ) {
-                  _bindings.push_back( sys._hwloc.getBindingIdByOsId( i ) );
-               }
-            }
+      for ( int i = 0; i < _availableCPUs; i++ ) {
+         if ( _cpuProcessMask.isSet(i) ) {
+            _bindings.push_back(i);
          }
-
-      } else {
-
-         //FIXME: use _bindings as they are set by the OS (not a good idea)
-         //! \note Fill _bindings vector with the active CPUs first, then the not active
-         for ( int i = 0; i < _availableCPUs; i++ ) {
-            if ( _cpuProcessMask.isSet(i) ) {
-               _bindings.push_back(i);
-            }
-         }
-         for ( int i = 0; i < _availableCPUs; i++ ) {
-            if ( !_cpuProcessMask.isSet(i) ) {
-               _bindings.push_back(i);
-            }
+      }
+      for ( int i = 0; i < _availableCPUs; i++ ) {
+         if ( !_cpuProcessMask.isSet(i) ) {
+            _bindings.push_back(i);
          }
       }
 
@@ -251,41 +212,30 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       loadNUMAInfo();
 
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
-//#ifdef MEMKIND_SUPPORT
+#ifdef MEMKIND_SUPPORT
       if ( _memkindSupport ) {
-         mem_id = sys.addSeparateMemoryAddressSpace( _device, _smpAllocWide, sys.getRegionCacheSlabSize(), true );
-// on-demand alloc         SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
-// on-demand alloc         void *addr = NULL;
-// on-demand alloc#ifdef MEMKIND_SUPPORT
-// on-demand alloc         addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
-// on-demand alloc#endif
-// on-demand alloc         if ( addr == NULL ) {
-// on-demand alloc            OSAllocator a;
-// on-demand alloc            warning0("Could not allocate memory with memkind_malloc(), requested " << _memkindMemorySize << " bytes. Continuing with a regular allocator.");
-// on-demand alloc            addr = a.allocate(_memkindMemorySize);
-// on-demand alloc            if ( addr == NULL ) {
-// on-demand alloc               fatal0("Could not allocate memory with a regullar allocator.");
-// on-demand alloc            }
-// on-demand alloc         }
-// on-demand alloc         message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
-// on-demand alloc         memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
-// on-demand alloc         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
+         mem_id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
+         SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
+         void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
+         if ( addr == NULL ) {
+            OSAllocator a;
+            warning0("Could not allocate memory with memkind_malloc(), requested " << _memkindMemorySize << " bytes. Continuing with a regular allocator.");
+            addr = a.allocate(_memkindMemorySize);
+            if ( addr == NULL ) {
+               fatal0("Could not allocate memory with a regullar allocator.");
+            }
+         }
+         message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
+         memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
+         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
       }
-//#endif
-
-//      std::cerr << "SMPPlugin: using bindings (" << _bindings.size() << ") [ ";
-//      for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
-//         std::cerr << *it << " ";
-//      }
-//      std::cerr << " ]" << std::endl;
-
+#endif
 
       //! \note Create the SMPProcessors in _cpus array
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
-         //bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
-         bool active = ( (count < _currentCPUs) ); //we are now using hwloc ids
+         bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
@@ -300,7 +250,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, _smpAllocWide, sys.getRegionCacheSlabSize(), true );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
@@ -470,10 +420,9 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       for (unsigned int i = 0; i < _cpus->size(); ++i)
           workers_per_cpu[i] = 0;
 
-      //int bindingStart = _bindingStart % _cpus->size();
+      int bindingStart = _bindingStart % _cpus->size();
       //! \bug FIXME: This may be wrong in some cases...
-      //workers_per_cpu[bindingStart] = 1;
-      workers_per_cpu[0] = 1;
+      workers_per_cpu[bindingStart] = 1;
       num_cpus_with_current_limit++;
 
       if (active_cpus == 1) {
@@ -485,7 +434,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
 
       int current_workers = 1;
-      int idx = 1;//bindingStart + _bindingStride;
+      int idx = bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
 
          idx = (idx % _cpus->size());
@@ -503,7 +452,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             num_cpus_with_current_limit++;
 
             current_workers++;
-            idx += 1;//_bindingStride;
+            idx += _bindingStride;
 
             if (num_cpus_with_current_limit == active_cpus) {
                //! All the enabled cpus have the same number of workers. So, if
@@ -551,14 +500,14 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
    {
       //ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
-      //int bindingStart=_bindingStart%_cpus->size();
+      int bindingStart=_bindingStart%_cpus->size();
       //Get the first (aka bindingStart) active processor
       for ( std::vector<ext::SMPProcessor *>::const_iterator it = _cpus->begin();
-            it != _cpus->end() && target == NULL /*&& bindingStart>=0 */;
+            it != _cpus->end() && bindingStart>=0 ;
             it++ ) {
          if ( (*it)->isActive() ) {
             target = *it;
-            // --bindingStart;
+            --bindingStart;
          }
       }
       return target;
@@ -1074,10 +1023,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    bool SMPPlugin::asyncTransfersEnabled() const {
       return _asyncSMPTransfers;
-   }
-
-   SMPDevice *SMPPlugin::getDevice() {
-      return &_device;
    }
 
 }

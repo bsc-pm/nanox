@@ -23,7 +23,7 @@
 #include "workdescriptor_fwd.hpp"
 #include "atomic_decl.hpp"
 #include "lock_decl.hpp"
-#include "regiondirectory_decl.hpp"
+#include "newregiondirectory_decl.hpp"
 #include "addressspace_decl.hpp"
 #include "memoryops_decl.hpp"
 #include "memcachecopy_decl.hpp"
@@ -42,6 +42,7 @@ class MemController {
    WD                         *_wd;
    ProcessingElement          *_pe;
    Lock                        _provideLock;
+   //std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    RegionSet _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;
@@ -64,13 +65,12 @@ public:
    void preInit();
    void initialize( ProcessingElement &pe );
    bool allocateTaskMemory();
-   bool allocateTaskMemory2();
    void copyDataIn();
    void copyDataOut( MemControllerPolicy policy );
    bool isDataReady( WD const &wd );
    bool isOutputDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
-   //bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
+   bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
    void setAffinityScore( std::size_t score );
    std::size_t getAffinityScore() const;
    void setMaxAffinityScore( std::size_t score );

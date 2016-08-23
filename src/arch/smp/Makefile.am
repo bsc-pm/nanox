@@ -57,6 +57,7 @@ common_libadd=\
         $(END)
 
 smp_sources = \
+	smpdevice.hpp \
 	smpdevice_decl.hpp \
 	smptransferqueue.hpp \
 	smptransferqueue_decl.hpp \
@@ -71,8 +72,6 @@ smp_sources = \
 	$(END)
 
 pe_smp_sources = \
-	smpdevice_decl.hpp \
-	smpdevice.hpp \
 	smpplugin_decl.hpp \
 	smpplugin.cpp \
 	$(END)

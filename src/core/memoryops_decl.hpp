@@ -83,6 +83,8 @@ class BaseAddressSpaceInOps : public BaseOps {
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const *wd );
+
+   virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 };
 
 typedef BaseAddressSpaceInOps HostAddressSpaceInOps;
@@ -98,6 +100,8 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const *wd );
+
+   virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 };
 
 class SeparateAddressSpaceOutOps : public BaseOps {

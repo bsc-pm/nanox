@@ -59,7 +59,6 @@ struct global_reg_t {
    DeviceOps *getDeviceOps() const;
    DeviceOps *getHomeDeviceOps( WD const &wd, unsigned int copyIdx );
    void setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const;
-   bool accessedBy( ProcessingElement *pe ) const;
    bool contains( global_reg_t const &reg ) const;
    bool isLocatedIn( memory_space_id_t loc ) const;
    void fillCopyData( CopyData &cd, uint64_t baseAddress ) const;
@@ -73,7 +72,6 @@ struct global_reg_t {
    ProcessingElement *getFirstWriterPE() const;
    uint64_t getFirstAddress(uint64_t baseAddress) const;
    bool isLocatedInSeparateMemorySpaces() const;
-   std::vector<ProcessingElement *> *getAccessedPEs() const;
 };
 
 } // namespace nanos

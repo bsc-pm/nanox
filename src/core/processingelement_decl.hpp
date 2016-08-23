@@ -40,6 +40,8 @@ namespace ext {
 
       private:
          int                                  _id;
+         //! Unique ID
+         int                                  _uid;
          std::vector<const Device *>          _devices;
          unsigned int                         _activeDevice; //if _activeDevice == _devices.size then all are active
          ThreadList                           _threads;

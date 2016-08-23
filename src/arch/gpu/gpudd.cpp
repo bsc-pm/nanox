@@ -22,9 +22,7 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-GPUDevice *nanos::ext::getGPUDevice() {
-   return static_cast<GPUDevice *>(sys.getArchPlugin( "GPU PE Plugin" )->getDevice());
-}
+GPUDevice nanos::ext::GPU( "GPU" );
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {

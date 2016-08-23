@@ -25,7 +25,7 @@
 
 namespace nanos {
 
-inline DirectoryEntryData::DirectoryEntryData() : Version( 1 )
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    //, _writeLocation( -1 )
    , _ops()
    , _location()
@@ -39,7 +39,7 @@ inline DirectoryEntryData::DirectoryEntryData() : Version( 1 )
    _location.insert(0);
 }
 
-inline DirectoryEntryData::DirectoryEntryData( memory_space_id_t home ) : Version( 1 )
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( memory_space_id_t home ) : Version( 1 )
    //, _writeLocation( -1 )
    , _ops()
    , _location()
@@ -53,7 +53,7 @@ inline DirectoryEntryData::DirectoryEntryData( memory_space_id_t home ) : Versio
    _location.insert( home );
 }
 
-inline DirectoryEntryData::DirectoryEntryData( const DirectoryEntryData &de ) : Version( de )
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ) : Version( de )
    //, _writeLocation( de._writeLocation )
    , _ops()
    , _location( de._location )
@@ -66,10 +66,10 @@ inline DirectoryEntryData::DirectoryEntryData( const DirectoryEntryData &de ) : 
 {
 }
 
-inline DirectoryEntryData::~DirectoryEntryData() {
+inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
 }
 
-inline DirectoryEntryData & DirectoryEntryData::operator= ( DirectoryEntryData &de ) {
+inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDirectoryEntryData &de ) {
    Version::operator=( de );
    //_writeLocation = de._writeLocation;
    while ( !_setLock.tryAcquire() ) {
@@ -91,19 +91,19 @@ inline DirectoryEntryData & DirectoryEntryData::operator= ( DirectoryEntryData &
    return *this;
 }
 
-//inline bool DirectoryEntryData::hasWriteLocation() const {
+//inline bool NewNewDirectoryEntryData::hasWriteLocation() const {
 //   return ( _writeLocation != -1 );
 //}
 
-// inline int DirectoryEntryData::getWriteLocation() const {
+// inline int NewNewDirectoryEntryData::getWriteLocation() const {
 //    return _writeLocation;
 // }
 // 
-// inline void DirectoryEntryData::setWriteLocation( int id ) {
+// inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
 //    _writeLocation = id;
 // }
 
-inline void DirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
+inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
    }
@@ -138,7 +138,7 @@ inline void DirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_i
    _setLock.release();
 }
 
-inline void DirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
+inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
    }
@@ -151,7 +151,7 @@ inline void DirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned
    _setLock.release();
 }
 
-inline bool DirectoryEntryData::delAccess( memory_space_id_t from ) {
+inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
@@ -172,7 +172,7 @@ inline bool DirectoryEntryData::delAccess( memory_space_id_t from ) {
    return result;
 }
 
-inline bool DirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
+inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
@@ -185,11 +185,11 @@ inline bool DirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int
    return result;
 }
 
-inline bool DirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
+inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
    return this->isLocatedIn( pe->getMemorySpaceId() );
 }
 
-inline bool DirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
+inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
@@ -202,7 +202,7 @@ inline bool DirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    return result;
 }
 
-inline void DirectoryEntryData::print(std::ostream &o) const {
+inline void NewNewDirectoryEntryData::print(std::ostream &o) const {
    o << " V: " << this->getVersion() << " Locs: ";
    for ( std::set< memory_space_id_t >::iterator it = _location.begin(); it != _location.end(); it++ ) {
       o << *it << " ";
@@ -210,7 +210,7 @@ inline void DirectoryEntryData::print(std::ostream &o) const {
    o << std::endl;
 }
 
-inline int DirectoryEntryData::getFirstLocation() {
+inline int NewNewDirectoryEntryData::getFirstLocation() {
    int result;
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
@@ -220,7 +220,7 @@ inline int DirectoryEntryData::getFirstLocation() {
    return result;
 }
 
-inline int DirectoryEntryData::getNumLocations() {
+inline int NewNewDirectoryEntryData::getNumLocations() {
    int result;
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
@@ -230,98 +230,66 @@ inline int DirectoryEntryData::getNumLocations() {
    return result;
 }
 
-inline DeviceOps *DirectoryEntryData::getOps() {
+inline DeviceOps *NewNewDirectoryEntryData::getOps() {
    return &_ops;
 }
 
-inline std::set< memory_space_id_t > const &DirectoryEntryData::getLocations() const {
+inline std::set< memory_space_id_t > const &NewNewDirectoryEntryData::getLocations() const {
    return _location;
 }
 
-inline memory_space_id_t DirectoryEntryData::getRootedLocation() const{
+inline memory_space_id_t NewNewDirectoryEntryData::getRootedLocation() const{
    return _rooted;
 }
 
 
-inline bool DirectoryEntryData::isRooted() const{
+inline bool NewNewDirectoryEntryData::isRooted() const{
    return _rooted != (memory_space_id_t) -1;
 }
 
-inline ProcessingElement *DirectoryEntryData::getFirstWriterPE() const {
+inline ProcessingElement *NewNewDirectoryEntryData::getFirstWriterPE() const {
    return _firstWriterPE;
 }
 
-inline void DirectoryEntryData::setBaseAddress(uint64_t addr) {
+inline void NewNewDirectoryEntryData::setBaseAddress(uint64_t addr) {
    _baseAddress = addr;
 }
 
-inline uint64_t DirectoryEntryData::getBaseAddress() const {
+inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
    return _baseAddress;
 }
 
-inline memory_space_id_t DirectoryEntryData::getHome() const {
+inline memory_space_id_t NewNewDirectoryEntryData::getHome() const {
    return _home;
 }
 
-inline void DirectoryEntryData::lock() {
+inline void NewNewDirectoryEntryData::lock() {
    while ( !_setLock.tryAcquire() ) {
       //myThread->processTransfers();
    }
 }
 
-inline void DirectoryEntryData::unlock() {
+inline void NewNewDirectoryEntryData::unlock() {
    _setLock.release();
 }
 
-inline bool DirectoryEntryData::accessedBy( ProcessingElement *pe ) {
-   bool result;
-   while ( !_setLock.tryAcquire() ) {
-      //myThread->processTransfers();
-   }
-   result = _pes.count( pe ) > 0;
-   _setLock.release();
-   return result;
-
-}
-
-inline std::vector<ProcessingElement *> *DirectoryEntryData::getAccessedPEs() {
-   _setLock.acquire();
-   std::vector<ProcessingElement *> *out = NULL;
-   if ( _pes.size() > 0 ) {
-      out = NEW std::vector<ProcessingElement *>( _pes.size(), NULL );
-      unsigned int count = 0;
-      for ( std::set<ProcessingElement *>::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
-         (*out)[count++] = *it;
-      }
-   }
-   _setLock.release();
-   return out;
-}
-
-
-inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }
 
-inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
    return getRegionDictionary( cd );
 }
 
-inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
    return getRegionDictionary( addr );
 }
 
-inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
-   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, reg );
-   if ( regEntry->getVersion() == dict->getVersion() ) {
-      version = dict->getVersion();
-      missingParts.push_back( std::make_pair(reg, reg) );
-   } else {
-      dict->lockObject();
-      dict->registerRegion( reg, missingParts, version );
-      dict->unlockObject();
-   }
+   dict->lockObject();
+   dict->registerRegion( reg, missingParts, version );
+   dict->unlockObject();
 }
 
 } // namespace nanos

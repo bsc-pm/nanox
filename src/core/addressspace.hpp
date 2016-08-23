@@ -20,7 +20,7 @@
 #ifndef ADDRESSSPACE_H
 #define ADDRESSSPACE_H
 #include "addressspace_decl.hpp"
-#include "regiondirectory.hpp"
+#include "newregiondirectory.hpp"
 
 namespace nanos {
 
@@ -32,7 +32,7 @@ void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferList &
 }
 
 inline void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations ) {
-   RegionDirectory::__getLocation( reg.key, reg.id, locations, version, *((WD*)NULL) );
+   NewNewRegionDirectory::__getLocation( reg.key, reg.id, locations, version, *((WD*)NULL) );
 }
 
 inline void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {

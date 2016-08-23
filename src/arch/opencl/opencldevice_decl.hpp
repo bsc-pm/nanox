@@ -30,7 +30,6 @@ class OpenCLDevice : public Device
 {
 public:
    OpenCLDevice ( const char *name );
-   ~OpenCLDevice() {};
 
 public:
 //   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
@@ -81,7 +80,6 @@ public:
    virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId );
    virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId );
    virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list );
-   virtual void tryExecuteTransfer() {}
 
 };
 

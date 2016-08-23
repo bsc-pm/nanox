@@ -174,37 +174,4 @@ bool Hwloc::isCpuAvailable( unsigned int cpu ) const
    return hwloc_get_pu_obj_by_os_index( _hwlocTopology, cpu ) != NULL;
 #endif
 }
-
-void Hwloc::bind(unsigned int id) {
-#ifdef HWLOC
-   hwloc_cpuset_t set = hwloc_bitmap_alloc();
-   hwloc_bitmap_zero(set);
-   hwloc_bitmap_set(set, id);
-//   {
-//   hwloc_obj_t obj = hwloc_get_obj_by_type( _hwlocTopology, HWLOC_OBJ_PU, id );
-//   std::cerr << "bind to logical " << id << " using hwloc, os index is " << obj->os_index << std::endl;
-//   }
-   hwloc_set_cpubind(_hwlocTopology, set, HWLOC_CPUBIND_THREAD);
-   hwloc_bitmap_free(set);
-#endif
-}
-
-void Hwloc::printBindings( std::vector<int> &bindings ) {
-#ifdef HWLOC
-   for ( unsigned int i = 0; i < bindings.size(); i++ ) {
-      hwloc_obj_t obj = hwloc_get_pu_obj_by_os_index( _hwlocTopology, bindings[i] );
-      std::cerr << "binding id " << bindings[i] << " has os_index " << obj->os_index << " and logical index " << obj->logical_index << std::endl;
-   }
-#endif
-}
-
-unsigned int Hwloc::getBindingIdByOsId( unsigned int id ) {
-#ifdef HWLOC
-   hwloc_obj_t obj = hwloc_get_pu_obj_by_os_index( _hwlocTopology, id );
-   return obj->logical_index;
-#else
-   return (unsigned int) -1;
-#endif
-}
-
 }

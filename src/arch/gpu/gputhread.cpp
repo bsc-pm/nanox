@@ -49,7 +49,7 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( *ext::getSMPDevice() );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( ext::getSMPDevice() );
 
    while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
 

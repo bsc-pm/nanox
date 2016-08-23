@@ -25,7 +25,7 @@
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
-#include "regiondirectory.hpp"
+#include "newregiondirectory.hpp"
 #include "smpdd.hpp"
 #include "regiondict.hpp"
 #include "memcachecopy.hpp"
@@ -764,7 +764,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
                                     return false;
                                  }
                               }
@@ -790,7 +790,7 @@ namespace nanos {
             //               NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
             //               if ( !locs.empty() ) {
             //                  for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-            //                     if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+            //                     if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
             //                        return true;
             //                     }
             //                  }
@@ -816,7 +816,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( ! locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0) ) {
                                     return true;
                                  }
                               }
@@ -843,8 +843,8 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
-                                 && RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 )  ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
+                                 && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 )  ) {
                                     return true;
                                 }
                               }
@@ -872,7 +872,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -899,7 +899,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! RegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -1270,7 +1270,7 @@ namespace nanos {
                         //if (sys.getNetwork()->getNodeNum() == 0) { message("init: queue " << (winner) << " for wd " << wd.getId() ); }
 
                         if ( winner == 0 && tdata._numLocalAccelerators > 0 ) {
-                           if ( wd.canRunIn( *getSMPDevice() ) ) {
+                           if ( wd.canRunIn( getSMPDevice() ) ) {
                               //tdata._readyQueues[ winner ].push_back( &wd );
                               PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                               //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Multiple nodes, node 0 won / multiple acc, SMP winner is " << winner << std::endl;
@@ -1310,7 +1310,7 @@ namespace nanos {
                               }
                            }
                            if ( !acc_avail ) {
-                              if ( wd.canRunIn( *getSMPDevice() ) ) {
+                              if ( wd.canRunIn( getSMPDevice() ) ) {
                                  (*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, SMP winner global queue" << std::endl;
                                  tdata._globalReadyQueue.push_back( &wd );
                               } else {
@@ -2128,7 +2128,7 @@ namespace nanos {
                maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                // *myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
                // {
-               //    DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               //    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
                //    *myThread->_file << " " << *entry << std::endl;
                // }
                if ( locs.empty() ) {
@@ -2147,7 +2147,7 @@ namespace nanos {
                         int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
                         scores[ numNodes + accelerator_id ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                      }
-                     if ( score_idx == 0 && !wd.canRunIn( *getSMPDevice() ) ) {
+                     if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
                         scores[ 0 ] = 0;
                      }
 
@@ -2171,7 +2171,7 @@ namespace nanos {
                               && wd.canRunIn( sys.getSeparateMemory( loc ).getDevice() ) ) {
                            int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
                            scores[ numNodes + accelerator_id ] += region_shape.getDataSize();
-                           if ( score_idx == 0 && !wd.canRunIn( *getSMPDevice() ) ) {
+                           if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
                               scores[ 0 ] = 0;
                            }
                         }

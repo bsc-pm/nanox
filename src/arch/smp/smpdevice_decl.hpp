@@ -36,7 +36,6 @@ namespace nanos {
    class SMPDevice : public Device
    {
       SMPTransferQueue _transferQueue;
-      Atomic<unsigned long> _allocatedBytes;
       public:
          /*! \brief SMPDevice constructor
           */
@@ -72,8 +71,7 @@ namespace nanos {
 
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list );
 
-         virtual void tryExecuteTransfer();
-
+         void tryExecuteTransfer();
 
    };
 } // namespace nanos

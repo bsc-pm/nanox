@@ -92,7 +92,7 @@ void ClusterThread::runDependent () {
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( *getSMPDevice() );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
 
    dd.getWorkFct()( work.getData() );
 }
@@ -216,12 +216,12 @@ BaseThread * ClusterThread::getNextThread ()
 
 void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
    int arch = -1;
-   if ( completedWD->canRunIn( *getSMPDevice() ) )
+   if ( completedWD->canRunIn( getSMPDevice() ) )
    {
       arch = 0;
    }
 #ifdef GPU_DEV
-   else if ( completedWD->canRunIn( *getGPUDevice() ) )
+   else if ( completedWD->canRunIn( GPU ) )
    {
       arch = 1;
    }

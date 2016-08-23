@@ -26,7 +26,6 @@
 #include "memorymap.hpp"
 #include "system_decl.hpp"
 #include "os.hpp"
-#include <sys/mman.h>
 
 namespace nanos {
 
@@ -139,99 +138,75 @@ ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(64, T())
       message0("error initializing containerlock ");
       fatal("can not continue")
    }
-   _mmapContainerElemsPerPage = getpagesize() / sizeof(T);
-   if ( getpagesize() % sizeof(T) != 0 ) {
-      fatal("Pagesize is not multiple of Elem size.");
-   }
-   int num_pages = 1024; //FIXME un-hardcode value
-   _mmapContainerCapacityInBytes = _mmapContainerElemsPerPage * sizeof(T) * num_pages;
-   void *result = mmap( (void *) NULL, _mmapContainerCapacityInBytes, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
-   _mmapContainer = (T*)result;
-   _mmapContainerCurrentElems = _mmapContainerElemsPerPage * num_pages;
-//   std::cerr << "Allocated new _mmapContainer in " << _mmapContainer << " space for " << _mmapContainerCurrentElems << " elems "<< std::endl;
-
-//    if ( mprotect( &_mmapContainer[_mmapContainerCurrentElems], getpagesize(), PROT_READ|PROT_WRITE ) != 0 ) {
-//       fatal("Error growing container");
-//    } else {
-//       _mmapContainerCurrentElems += _mmapContainerElemsPerPage;
-//    }
 }
 
 template <class T>
 ContainerDense< T >::~ContainerDense() {
-   if ( munmap(_mmapContainer, _mmapContainerCapacityInBytes) != 0 ) {
-      fatal("Error in munmap");
-   }
 }
 
 template <class T>
 RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) {
    RegionNode *n = NULL;
-   // if ( pthread_rwlock_rdlock(&_containerLock) ) {
-   //    message0("lock error " );
-   //    fatal("can not continue");
-   // }
-   // n = _container[ id ].getLeaf();
-   // if ( pthread_rwlock_unlock(&_containerLock) ) {
-   //    message0("lock error " );
-   //    fatal("can not continue");
-   // }
-   n = _mmapContainer[ id ].getLeaf();
+   if ( pthread_rwlock_rdlock(&_containerLock) ) {
+      message0("lock error " );
+      fatal("can not continue");
+   }
+   n = _container[ id ].getLeaf();
+   if ( pthread_rwlock_unlock(&_containerLock) ) {
+      message0("lock error " );
+      fatal("can not continue");
+   }
    return n;
 }
 
 template <class T>
 void ContainerDense< T >::addRegionNode( RegionNode *leaf ) {
    // no locking needed, only called from addRegion -> _root.addNode() -> addRegionNode
-   // _container[ leaf->getId() ].setLeaf( leaf );
-   // _container[ leaf->getId() ].setData( NULL );
-   _mmapContainer[ leaf->getId() ].setLeaf( leaf );
-   _mmapContainer[ leaf->getId() ].setData( NULL );
+   _container[ leaf->getId() ].setLeaf( leaf );
+   _container[ leaf->getId() ].setData( NULL );
    _leafCount++;
 }
 
 template <class T>
 Version *ContainerDense< T >::getRegionData( reg_t id ) {
    Version *v = NULL;
-   // //_containerLock.acquire();
-   // //while ( !_containerLock.tryAcquire() ) {
-   // //   myThread->idle();
-   // //}
-   // //std::cerr << "acquired @ " << __func__ << std::endl;
-   // if ( pthread_rwlock_rdlock(&_containerLock) ) {
-   //    message0("lock error ");
-   //    fatal("can not continue");
-   // }
-   // v = _container[ id ].getData();
-   // //std::cerr << "released @ " << __func__ << std::endl;
-   // //_containerLock.release();
-   // if ( pthread_rwlock_unlock(&_containerLock) ) {
-   //    message0("lock error ");
-   //    fatal("can not continue");
-   // }
-   v = _mmapContainer[ id ].getData();
+   //_containerLock.acquire();
+   //while ( !_containerLock.tryAcquire() ) {
+   //   myThread->idle();
+   //}
+   //std::cerr << "acquired @ " << __func__ << std::endl;
+   if ( pthread_rwlock_rdlock(&_containerLock) ) {
+      message0("lock error ");
+      fatal("can not continue");
+   }
+   v = _container[ id ].getData();
+   //std::cerr << "released @ " << __func__ << std::endl;
+   //_containerLock.release();
+   if ( pthread_rwlock_unlock(&_containerLock) ) {
+      message0("lock error ");
+      fatal("can not continue");
+   }
    return v;
 }
 
 template <class T>
 void ContainerDense< T >::setRegionData( reg_t id, Version *data ) {
-   // //_containerLock.acquire();
-   // //while ( !_containerLock.tryAcquire() ) {
-   // //   myThread->idle();
-   // //}
-   // //std::cerr << "acquired @ " << __func__ << std::endl;
-   // if ( pthread_rwlock_rdlock(&_containerLock) ) {
-   //    message0("lock error ");
-   //    fatal("can not continue");
-   // }
-   // _container[ id ].setData( data );
-   // //std::cerr << "released @ " << __func__ << std::endl;
-   // if ( pthread_rwlock_unlock(&_containerLock) ) {
-   //    message0("lock error ");
-   //    fatal("can not continue");
-   // }
-   // //_containerLock.release();
-   _mmapContainer[ id ].setData( data );
+   //_containerLock.acquire();
+   //while ( !_containerLock.tryAcquire() ) {
+   //   myThread->idle();
+   //}
+   //std::cerr << "acquired @ " << __func__ << std::endl;
+   if ( pthread_rwlock_rdlock(&_containerLock) ) {
+      message0("lock error ");
+      fatal("can not continue");
+   }
+   _container[ id ].setData( data );
+   //std::cerr << "released @ " << __func__ << std::endl;
+   if ( pthread_rwlock_unlock(&_containerLock) ) {
+      message0("lock error ");
+      fatal("can not continue");
+   }
+   //_containerLock.release();
 }
 
 template <class T>
@@ -264,11 +239,10 @@ reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const re
 template <class T>
 reg_t ContainerDense< T >::getNewRegionId() {
    reg_t id = _idSeed++;
-   // if ( id % 64 == 0 ) {
-   //    _container.resize( id + 64 );
-   // }
-   // if (id >= MAX_REG_ID) { std::cerr <<"Max regions reached."<<std::endl;}
-   if (id >= (_mmapContainerCapacityInBytes / sizeof(T)) ) { std::cerr <<"Max regions reached."<<std::endl;}
+   if ( id % 64 == 0 ) {
+      _container.resize( id + 64 );
+   }
+   if (id >= MAX_REG_ID) { std::cerr <<"Max regions reached."<<std::endl;}
    return id;
 }
 

@@ -63,7 +63,7 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
    _unalignedNodeMem( false ), _gpuPresend( 1 ), _smpPresend( 1 ),
    _cachePolicy( System::DEFAULT ), _remoteNodes( NULL ), _cpu( NULL ),
-   _clusterThread( NULL ), _gasnetSegmentSize( 0 ), _device( "Cluster" ) {
+   _clusterThread( NULL ), _gasnetSegmentSize( 0 ) {
 }
 
 void ClusterPlugin::config( Config& cfg )
@@ -91,10 +91,10 @@ void ClusterPlugin::init()
          segmentAddr[ 0 ] = NULL;
 
          ClusterNode::ClusterSupportedArchMap supported_archs;
-         supported_archs[0] = getSMPDevice();
+         supported_archs[0] = &getSMPDevice();
 
          #ifdef GPU_DEV
-         supported_archs[1] = getGPUDevice();
+         supported_archs[1] = &GPU;
          #endif
          #ifdef OpenCL_DEV
          supported_archs[2] = &OpenCLDev;
@@ -115,7 +115,7 @@ void ClusterPlugin::init()
          unsigned int node_index = 0;
          for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
             if ( nodeC != _gasnetApi->getNodeNum() ) {
-               memory_space_id_t id = sys.addSeparateMemoryAddressSpace( _device, !( getAllocFit() ), 0, false );
+               memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ), 0 );
                SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
                nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
                nodeMemory.setNodeNumber( nodeC );
@@ -351,10 +351,6 @@ bool ClusterPlugin::unalignedNodeMemory() const {
 // std::size_t ClusterPlugin::getGASNetSegmentSize() const {
 //    return _gasnetSegmentSize;
 // }
-
-ClusterDevice *ClusterPlugin::getDevice() {
-   return &_device;
-}
 
 
 }

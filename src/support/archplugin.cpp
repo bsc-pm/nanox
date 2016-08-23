@@ -24,11 +24,7 @@ using namespace nanos;
 
 ArchPlugin::ArchPlugin( const char *name, int version ) : Plugin( name, version )
 {
-   _id = sys.registerArchitecture( this );
-}
-
-size_t ArchPlugin::getId() const {
-   return _id;
+   sys.registerArchitecture( this );
 }
 
 unsigned ArchPlugin::getNumHelperPEs() const

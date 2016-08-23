@@ -150,7 +150,7 @@ class unique_pointer {
          other.pointer = NULL;
       }
 
-      virtual ~unique_pointer() { if( pointer ) delete_function( pointer ); }
+      virtual ~unique_pointer() { if( pointer ) delete pointer; }
 
       unique_pointer const& operator=( unique_pointer &other ) {
          if( pointer )

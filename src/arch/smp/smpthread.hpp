@@ -96,7 +96,7 @@ namespace ext {
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
          virtual void join() { _pthread.join(); joined(); }
-         virtual void bind();
+         virtual void bind() { _pthread.bind(); }
          /** \brief SMP specific yield implementation */
          virtual void yield() { _pthread.yield(); }
          /** \brief Blocks the thread if it still has enabled the sleep flag */

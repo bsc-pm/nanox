@@ -132,7 +132,7 @@ inline void DependableObject::decreasePredecessorsInLock ( DependableObject * fi
 
       //remove the predecessor from the list!
       if ( _predecessors.size() != 0 ) {
-         unsigned int wdId = finishedPred->getWD() == NULL ? 0 : finishedPred->getWD()->getId();
+         unsigned int wdId = finishedPred->getWD()->getId();
          DependableObjectVector::iterator it = _predecessors.find( std::make_pair( wdId, finishedPred ) );
          if ( it != _predecessors.end() )
             _predecessors.erase( it );
@@ -167,7 +167,7 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    bool inserted = false;
    {
       SyncLockBlock lock( this->getLock() );
-      inserted = _predecessors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
+      inserted = _predecessors.insert ( std::make_pair( depObj.getWD()->getId(), &depObj ) ).second;
    }
 
    return inserted;

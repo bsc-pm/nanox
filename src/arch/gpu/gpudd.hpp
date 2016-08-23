@@ -26,19 +26,19 @@
 namespace nanos {
 namespace ext {
 
-   
-   GPUDevice *getGPUDevice();
-   //class GPUPlugin;
+   extern GPUDevice GPU;
+
+   class GPUPlugin;
 
    class GPUDD : public DD
    {
-      //friend class GPUPlugin;
+      friend class GPUPlugin;
 
       public:
          // constructors
-         GPUDD( work_fct w ) : DD( getGPUDevice(), w ) {}
+         GPUDD( work_fct w ) : DD( &GPU, w ) {}
 
-         GPUDD() : DD( getGPUDevice(), NULL ) {}
+         GPUDD() : DD( &GPU, NULL ) {}
 
          // copy constructors
          GPUDD( const GPUDD &dd ) : DD( dd ) {}

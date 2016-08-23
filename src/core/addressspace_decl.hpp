@@ -20,7 +20,7 @@
 #ifndef ADDRESSSPACE_DECL
 #define ADDRESSSPACE_DECL
 
-#include "regiondirectory_decl.hpp"
+#include "newregiondirectory_decl.hpp"
 #include "regioncache_decl.hpp"
 
 #include "addressspace_fwd.hpp"
@@ -99,7 +99,7 @@ inline uint64_t TransferListEntry::getSrcAddress() const {
 typedef std::list< TransferListEntry > TransferList;
 
 class HostAddressSpace {
-   RegionDirectory _directory;
+   NewNewRegionDirectory _directory;
 
    public:
    HostAddressSpace( Device &arch );
@@ -114,10 +114,10 @@ class HostAddressSpace {
    void synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data );
    memory_space_id_t getMemorySpaceId() const;
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
-   RegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
+   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
    void registerObject( nanos_copy_data_internal_t *obj );
    void unregisterObject( void *baseAddr );
-   RegionDirectory const &getDirectory() const;
+   NewNewRegionDirectory const &getDirectory() const;
 };
 
 
@@ -127,10 +127,9 @@ class SeparateAddressSpace {
    unsigned int _acceleratorNumber;
    bool         _isAccelerator;
    void        *_sdata;
-   bool         _sharedWithHost;
    
    public:
-   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost );
+   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
 
    void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const *wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
@@ -139,15 +138,13 @@ class SeparateAddressSpace {
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList &list, WD const *wd );
 
+   void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    //void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
-#if 1 /* OLD ALLOC */
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-   void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-#endif
    void setRegionVersion( global_reg_t const &reg, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx );
-   //unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+   unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;
    unsigned int getAcceleratorNumber() const;
@@ -166,18 +163,17 @@ class SeparateAddressSpace {
 
    unsigned int getSoftInvalidationCount() const;
    unsigned int getHardInvalidationCount() const;
-   //bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
+   bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
    void registerOwnedMemory(global_reg_t reg);
    Device const &getDevice() const;
    AllocatedChunk *getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx );
-   bool isSharedWithHost() const;
 };
 
 template <class T>
 class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
-   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize, bool sharedWithHost );
+   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const *wd, bool inval = false );
 };
 

@@ -34,12 +34,7 @@ inline bool global_reg_t::operator!=( global_reg_t const &reg ) const {
 }
 
 inline memory_space_id_t global_reg_t::getFirstLocation() const {
-   return RegionDirectory::getFirstLocation( key, id );
-}
-
-inline std::vector<ProcessingElement *> *global_reg_t::getAccessedPEs() const {
-   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
-   return entry->getAccessedPEs();
+   return NewNewRegionDirectory::getFirstLocation( key, id );
 }
 
 } // namespace nanos

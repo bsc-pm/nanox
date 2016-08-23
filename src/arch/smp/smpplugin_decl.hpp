@@ -27,7 +27,6 @@
 #include "smpbaseplugin_decl.hpp"
 #include "plugin.hpp"
 #include "smpprocessor.hpp"
-#include "smpdevice.hpp"
 #include "os.hpp"
 
 #include "cpuset.hpp"
@@ -84,8 +83,6 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _memkindSupport;
    std::size_t                  _memkindMemorySize;
    bool                         _asyncSMPTransfers;
-
-   SMPDevice _device;
 
    public:
    SMPPlugin();
@@ -208,8 +205,6 @@ class SMPPlugin : public SMPBasePlugin
     *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
     */
    virtual std::string getBindingMaskString() const;
-
-   virtual SMPDevice *getDevice();
 
 protected:
 

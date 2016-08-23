@@ -667,8 +667,7 @@ TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
 }
 
 bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {
-   //return _mcontrol.canAllocateMemory( thd.runningOn()->getMemorySpaceId(), considerInvalidations );
-   return true;
+   return _mcontrol.canAllocateMemory( thd.runningOn()->getMemorySpaceId(), considerInvalidations );
 }
 
 //void WorkDescriptor::initMyGraphRepListNoPred( ) {

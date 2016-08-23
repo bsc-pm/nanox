@@ -44,7 +44,7 @@
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
 
-#include "regiondirectory_decl.hpp"
+#include "newregiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
 
 #ifdef GPU_DEV
@@ -91,7 +91,6 @@ namespace nanos {
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
-         typedef std::map<std::string, ArchPlugin*> ArchitecturePluginsByName;
 
          //! \brief Compiler supplied flags in symbols
          struct SuppliedFlags
@@ -106,6 +105,9 @@ namespace nanos {
          Atomic<int> _atomicWDSeed;                   //!< \brief ID seed for new WD's
          Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads
          Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
+
+         // Devices
+         SMPDevice _SMP;
 
          // configuration variables
          size_t               _deviceStackSize;
@@ -147,7 +149,6 @@ namespace nanos {
          /*! Architecture plugins */
          SMPBasePlugin       *_smpPlugin;
          ArchitecturePlugins  _archs;
-         ArchitecturePluginsByName _archsByName;
 
 
          PEList               _pes;
@@ -198,7 +199,7 @@ namespace nanos {
 
          unsigned int                                  _separateMemorySpacesCount;
          std::vector< SeparateMemoryAddressSpace * >   _separateAddressSpaces;
-         HostMemoryAddressSpace                       *_hostMemory;
+         HostMemoryAddressSpace                        _hostMemory;
          RegionCache::CachePolicy                      _regionCachePolicy;
          std::string                                   _regionCachePolicyStr;
          std::size_t                                   _regionCacheSlabSize;
@@ -264,7 +265,6 @@ namespace nanos {
          bool _preSchedule;
          std::map<int, std::set<WD *> > _slots;
          void *_watchAddr;
-         bool _newAlloc;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -562,7 +562,6 @@ namespace nanos {
           *   \return The index of the plugin in the vector.
           */
          size_t registerArchitecture( ArchPlugin * plugin );
-         ArchPlugin *getArchPlugin( const std::string &label ) const;
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
@@ -581,7 +580,7 @@ namespace nanos {
          int getWgId();
          unsigned int getRootMemorySpaceId();
 
-         HostMemoryAddressSpace &getHostMemory() { return *_hostMemory; }
+         HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
 
          SeparateMemoryAddressSpace &getSeparateMemory( memory_space_id_t id ) {
             //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
@@ -602,7 +601,7 @@ namespace nanos {
       public:
          //std::list<GraphEntry *> *getGraphRepList();
          
-         RegionDirectory const &getMasterRegionDirectory() { return _hostMemory->getDirectory(); }
+         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
          PEList& getPEList();
@@ -673,7 +672,7 @@ namespace nanos {
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
-         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost );
+         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize );
          void setSMPPlugin(SMPBasePlugin *p);
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
@@ -724,9 +723,7 @@ namespace nanos {
 void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes );
 global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
 
-         //FIXME this should be a more scalable mechanism
-         SMPDevice *_getSMPDevice();
-
+         SMPDevice &_getSMPDevice();
          int initClusterMPI(int *argc, char ***argv);
          void finalizeClusterMPI();
          void notifyIntoBlockingMPICall();

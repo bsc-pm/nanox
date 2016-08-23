@@ -85,10 +85,6 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerDense {
       std::vector< T >           _container;
-      T           *_mmapContainer;
-      std::size_t _mmapContainerCapacityInBytes;
-      std::size_t _mmapContainerCurrentElems;
-      std::size_t _mmapContainerElemsPerPage;
       Atomic<unsigned int>       _leafCount;
       Atomic<reg_t>              _idSeed;
       std::vector< std::size_t > _dimensionSizes;

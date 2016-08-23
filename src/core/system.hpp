@@ -32,7 +32,6 @@
 #include "instrumentation_decl.hpp"
 #include "synchronizedcondition.hpp"
 #include "regioncache.hpp"
-#include "plugin.hpp"
 #include <cmath>
 #include <climits>
 
@@ -411,15 +410,7 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 {
    size_t id = _archs.size();
    _archs.push_back( plugin );
-   _archsByName[ std::string( plugin->getName() ) ] = plugin;
    return id;
-}
-
-inline ArchPlugin * System::getArchPlugin( const std::string &label ) const
-{
-   ArchitecturePluginsByName::const_iterator it = _archsByName.find(label);
-   if ( it == _archsByName.end() ) return NULL;
-   return (*it).second;
 }
 
 #ifdef GPU_DEV
@@ -687,10 +678,9 @@ inline PEList const &System::getPEs() const {
 }
 
 inline void System::allocLock() {
-   // while ( !_allocLock.tryAcquire() ) {
-   //    myThread->processTransfers();
-   // }
-   _allocLock.acquire();
+   while ( !_allocLock.tryAcquire() ) {
+      myThread->processTransfers();
+   }
 }
 
 inline void System::allocUnlock() {
@@ -701,8 +691,8 @@ inline bool System::useFineAllocLock() const {
    return !_cgAlloc;
 }
 
-inline SMPDevice *System::_getSMPDevice() {
-   return _smpPlugin->getDevice();
+inline SMPDevice &System::_getSMPDevice() {
+   return _SMP;
 }
 
 } // namespace nanos

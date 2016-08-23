@@ -21,7 +21,6 @@ inline MemCacheCopy::MemCacheCopy() :
    , _invalControl()
    , _allocFrom( -1 )
    , _regionsToCommit()
-   , _useHost(false)
 {
 }
 
@@ -34,8 +33,7 @@ inline MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemContro
    , _policy( sys.getRegionCachePolicy() )
    , _invalControl()
    , _allocFrom( -1 )
-   , _regionsToCommit()
-   , _useHost(false) {
+   , _regionsToCommit() {
    sys.getHostMemory().getRegionId( wd.getCopies()[ index ], _reg, wd, index );
 }
 
@@ -111,7 +109,7 @@ inline bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
 
 inline void MemCacheCopy::printLocations( std::ostream &o ) const {
    for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end(); it++ ) {
-      DirectoryEntryData *d = RegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
+      NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
       o << "   [ " << it->first << "," << it->second << " ] "; _reg.key->printRegion( o, it->first ); 
       if ( d ) o << " " << *d << std::endl; 
       else o << " dir entry n/a" << std::endl;

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "addressspace_decl.hpp"
-#include "regiondirectory.hpp"
+#include "newregiondirectory.hpp"
 #include "regioncache.hpp"
 #include "system.hpp"
 #include "regiondict.hpp"
@@ -29,7 +29,7 @@ MemSpace< HostAddressSpace >::MemSpace( Device &d ) : HostAddressSpace( d ) {
 }
 
 template <>
-MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize, bool sharedWithHost ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize, sharedWithHost ) {
+MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize ) {
 }
 
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
@@ -60,7 +60,7 @@ memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
 }
 
-RegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
+NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
    return _directory.getRegionDirectoryKey( addr );
 }
 
@@ -76,17 +76,11 @@ void HostAddressSpace::unregisterObject( void *baseAddr ) {
    _directory.unregisterObject( baseAddr );
 }
 
-RegionDirectory const &HostAddressSpace::getDirectory() const {
+NewNewRegionDirectory const &HostAddressSpace::getDirectory() const {
    return _directory;
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize, bool sharedWithHost ) : 
-   _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ),
-   _nodeNumber( 0 ),
-   _acceleratorNumber( 0 ),
-   _isAccelerator( false ),
-   _sdata( NULL ),
-   _sharedWithHost( sharedWithHost ) {
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const *wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk ) {
@@ -110,19 +104,21 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
-#if 1 /* OLD ALLOC */
 bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    return _cache.prepareRegions( memCopies, numCopies, wd );
 }
-#endif
 
 //void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
 //   _cache.prepareRegion( reg, wd );
 //}
 
-//unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-//   return _cache.getVersion( reg, wd, copyIdx );
-//}
+unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+   return _cache.getVersion( reg, wd, copyIdx );
+}
+
+void SeparateAddressSpace::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   _cache.releaseRegions( memCopies, numCopies, wd );
+}
 
 //void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
 //   _cache.releaseRegion( reg, wd, copyIdx, policy );
@@ -193,15 +189,9 @@ unsigned int SeparateAddressSpace::getHardInvalidationCount() const {
    return _cache.getHardInvalidationCount();
 }
 
-//bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd ) {
-//   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations, wd );
-//}
-
-#if 1 /* OLD ALLOC */
-void SeparateAddressSpace::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
-   _cache.releaseRegions( memCopies, numCopies, wd );
+bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd ) {
+   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations, wd );
 }
-#endif
 
 void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
    _cache.invalidateObject( reg );
@@ -213,10 +203,6 @@ void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, AllocatedC
 
 Device const &SeparateAddressSpace::getDevice() const {
    return _cache.getDevice();
-}
-
-bool SeparateAddressSpace::isSharedWithHost() const {
-   return _sharedWithHost;
 }
 
 //AllocatedChunk *SeparateAddressSpace::getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx ) {

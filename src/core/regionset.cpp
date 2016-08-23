@@ -20,7 +20,7 @@
 #include "system_decl.hpp"
 #include "regiondict.hpp"
 #include "regionset_decl.hpp"
-#include "regiondirectory.hpp"
+#include "newregiondirectory.hpp"
 #include "addressspace.hpp"
 #include "globalregt.hpp"
 
@@ -87,7 +87,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
       if ( wantedReg != wantedDir->second.end() ) {
          versionHIT = wantedReg->second;
          //double check the directory because a there may be WDs that have not been detected as predecessors
-         DirectoryEntryData *entry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( wantedReg->first );
+         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( wantedReg->first );
          if ( entry->getVersion() > versionHIT ) {
             versionHIT = entry->getVersion();
          }
@@ -107,7 +107,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
       unsigned int versionSUBR = 0;
       if ( wantedDir->first->doTheseRegionsForm( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUBR ) ) {
          if ( versionHIT < versionSUBR && versionSUPER < versionSUBR ) {
-            DirectoryEntryData *dirEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            NewNewDirectoryEntryData *dirEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             if ( dirEntry != NULL ) { /* if entry is null, do check directory, because we need to insert the region info in the intersect maps */
                for ( std::map< reg_t, unsigned int >::const_iterator it = wantedDir->second.begin(); it != wantedDir->second.end(); it++ ) {
                   global_reg_t r( it->first, wantedDir->first );
@@ -131,11 +131,11 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
-            DirectoryEntryData *firstEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << " entry " << firstEntry << std::endl;
             if ( firstEntry != NULL ) {
                locations.push_back( std::make_pair( reg.id, superPart ) );
-               DirectoryEntryData *secondEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
+               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
                if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
                *firstEntry = *secondEntry;
             } else {

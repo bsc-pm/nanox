@@ -204,7 +204,7 @@ namespace nanos {
                   it!=sys.getWorkersEnd(); it++) {
                   BaseThread *worker = it->second;
 #ifdef GPU_DEV
-                  if ( worker->runningOn()->supports( *sys.getArchPlugin("GPU PE Plugin")->getDevice() ) )
+                  if ( worker->runningOn()->supports( nanos::ext::GPU ) )
                   {
                      int node = worker->runningOn()->getNumaNode();
                      // Convert to virtual
@@ -229,7 +229,7 @@ namespace nanos {
             {
 #ifdef GPU_DEV
                // If it's a GPU wd and the node has GPUs, it can run
-               if ( wd.canRunIn( *sys.getArchPlugin("GPU PE Plugin")->getDevice() ) ) {
+               if ( wd.canRunIn( nanos::ext::GPU ) ) {
                   //fprintf( stderr, "GPU WD, can it run in node %d? %d\n", node, (int)_gpuNodes.count( node ) );
                   return _gpuNodes.count( node ) != 0;
                }

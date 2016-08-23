@@ -47,7 +47,6 @@ private:
    static std::map<cl_device_id, cl_context> _devices;
    std::vector<ext::OpenCLProcessor *> _opencls;
    std::vector<OpenCLThread *>  _openclThreads;
-   OpenCLDevice _device;
 
    friend class OpenCLConfig;
    
@@ -55,10 +54,9 @@ public:
    OpenCLPlugin() : ArchPlugin( "OpenCL PE Plugin", 1 )
       , _opencls()
       , _openclThreads()
-      , _device( "OPENCL" )
    { }
 
-   virtual ~OpenCLPlugin() {}
+   ~OpenCLPlugin() { }
 
    void config( Config &cfg );
    void init();
@@ -92,10 +90,6 @@ public:
    
    virtual unsigned int getMaxWorkers() const {
       return _opencls.size();
-   }
-
-   virtual OpenCLDevice* getDevice() {
-      return &_device;
    }
 
 }; // class OpenCLPlugin

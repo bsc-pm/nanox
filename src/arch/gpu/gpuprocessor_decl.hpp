@@ -107,7 +107,7 @@ namespace ext {
 
       public:
          //! Constructors
-         GPUProcessor( GPUDevice *gpudev, int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem );
+         GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem );
 
          virtual ~GPUProcessor();
 
