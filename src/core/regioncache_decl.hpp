@@ -68,7 +68,7 @@ namespace nanos {
          bool                              _flushable;
          bool                              _invalidating;
          
-         CacheRegionDictionary *_newRegions;
+         CacheRegionDictionary *_regions;
 
       public:
          AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddr, std::size_t size, global_reg_t const &allocatedRegion, bool rooted );
