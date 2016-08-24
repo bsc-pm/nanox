@@ -99,8 +99,8 @@ devinclude_HEADERS = \
 	bitcounter.hpp \
 	regiondict_decl.hpp  \
 	regiondict.hpp  \
-	newregiondirectory.hpp  \
-	newregiondirectory_decl.hpp  \
+	regiondirectory.hpp  \
+	regiondirectory_decl.hpp  \
 	regioncache_fwd.hpp  \
 	regioncache_decl.hpp  \
 	regioncache.hpp  \
@@ -238,9 +238,9 @@ common_sources=\
 	regiondict_decl.hpp  \
 	regiondict.hpp  \
 	regiondict.cpp  \
-	newregiondirectory.cpp  \
-	newregiondirectory.hpp  \
-	newregiondirectory_decl.hpp  \
+	regiondirectory.cpp  \
+	regiondirectory.hpp  \
+	regiondirectory_decl.hpp  \
 	regioncache_fwd.hpp  \
 	regioncache_decl.hpp  \
 	regioncache.hpp  \

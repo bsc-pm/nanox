@@ -79,7 +79,7 @@ void InvalidationController::preIssueActions( memory_space_id_t id, WD const &wd
    //if ( _VERBOSE_CACHE ) { std::cerr << "===> Invalidation complete at " << _memorySpaceId << " remove access for regs: "; }
    for ( std::set< global_reg_t >::iterator it = _regions_to_remove_access.begin(); it != _regions_to_remove_access.end(); it++ ) {
    //if ( _VERBOSE_CACHE ) { std::cerr << it->id << " "; }
-      NewNewRegionDirectory::delAccess( it->key, it->id, id );
+      RegionDirectory::delAccess( it->key, it->id, id );
    }
    //if ( _VERBOSE_CACHE ) { std::cerr << std::endl ; }
 }

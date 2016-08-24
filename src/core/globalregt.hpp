@@ -34,7 +34,7 @@ inline bool global_reg_t::operator!=( global_reg_t const &reg ) const {
 }
 
 inline memory_space_id_t global_reg_t::getFirstLocation() const {
-   return NewNewRegionDirectory::getFirstLocation( key, id );
+   return RegionDirectory::getFirstLocation( key, id );
 }
 
 } // namespace nanos
