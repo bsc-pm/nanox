@@ -868,9 +868,6 @@ void System::finish ()
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
 
-   // FIXME: if we enable this, the program may crash calling _net.finalize():
-   _pluginManager.unloadPlugins();
-
    verbose0 ( "NANOS++ shutting down.... end" );
    //! \note printing execution summary
    if ( _summary ) executionSummary();
