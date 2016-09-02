@@ -39,42 +39,36 @@ namespace ext {
          typedef std::vector<BaseThread *>    ThreadList;
 
       private:
-         int                                  _id;
-         //! Unique ID
+         int                                  _id;                   //!< Unique ID
          int                                  _uid;
          std::vector<const Device *>          _devices;
-         unsigned int                         _activeDevice; //if _activeDevice == _devices.size then all are active
+         unsigned int                         _activeDevice;         //!< if _activeDevice == _devices.size then all are active
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
 
       private:
-         /*! \brief ProcessingElement default constructor
-          */
+         //! \brief ProcessingElement default constructor (private)
          ProcessingElement ();
-         /*! \brief ProcessingElement copy constructor (private)
-          */
+         //! \brief ProcessingElement copy constructor (private)
          ProcessingElement ( const ProcessingElement &pe );
-         /*! \brief ProcessingElement copy assignment operator (private)
-          */
+         //! \brief ProcessingElement copy assignment operator (private)
          const ProcessingElement & operator= ( const ProcessingElement &pe );
       public:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
 
-         /*! \brief ProcessingElement constructor
-          */
+         //! \brief ProcessingElement constructor
          ProcessingElement ( const Device *arch, unsigned int memSpaceId,
             unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
 
          ProcessingElement ( const Device **arch, unsigned int numArchs, unsigned int memSpaceId,
             unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
 
-         /*! \brief ProcessingElement destructor
-          */
+         //! \brief ProcessingElement destructor
          virtual ~ProcessingElement();
 
-         /* get/put methods */
+         //! \brief get identifier
          int getId() const;
          
          std::vector<Device const *> const &getDeviceTypes () const;
@@ -87,8 +81,6 @@ namespace ext {
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
          virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;
-
-         //BaseThread & associateThisThread ( bool untieMain=true );
 
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
@@ -105,24 +97,22 @@ namespace ext {
          /* Memory space support */
          void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
-         //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
          bool testInputs( WorkDescriptor& wd );
 
          BaseThread *getFirstThread() const { return _threads[0]; }
 
-         /*!
-          * \brief Wake up all threads associated with the PE
-          */
+         //! \brief Wake up all threads associated with the PE
          virtual void wakeUpThreads();
 
-         /*!
-          * \brief Sleep up all threads associated with the PE
-          */
+         //! \brief Sleep up all threads associated with the PE
          virtual void sleepThreads();
 
+         //! \brief Get the number of threads associated with this PE
          std::size_t getNumThreads() const;
+
+         //! \brief Get the number of threads running (active) in this PE
          std::size_t getRunningThreads() const;
 
          virtual bool isActive() const { return true; }
