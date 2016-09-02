@@ -52,7 +52,7 @@ namespace nanos {
          virtual ~ThreadManager() {}
 
          virtual void init();
-         bool lastActiveThread();
+         bool lastActiveThread( void );
 
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED

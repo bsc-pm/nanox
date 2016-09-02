@@ -196,21 +196,26 @@ void ThreadManager::init()
    _initialized = true;
 }
 
-bool ThreadManager::lastActiveThread()
+bool ThreadManager::lastActiveThread( void )
 {
-   // We omit the test if the Thread Manager is not yet initializated
+   //! \note We omit the test if the Thread Manager is not yet initializated
    if ( !_initialized ) return false;
 
-   // We omit the test if the cpu does not belong to my process_mask
+   //! \note We omit the test if the cpu does not belong to my process_mask
    BaseThread *thread = getMyThreadSafe();
    int my_cpu = thread->getCpuId();
    if ( !_cpuProcessMask->isSet( my_cpu ) ) return false;
 
+   //! \note Getting initial process mask (not yielded threads) having into account
+   //!       these currently active. Checking if the list of processor have only one
+   //!       single active processor (and this processor is my cpu).
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
    bool last = mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu);
 
-   // Watch out if we have oversubscription
-   last &= thread->runningOn()->getRunningThreads() <= 1;
+   //! \note Watch out if we have oversubscription. As the current thread may be already
+   //        marked as leaving the processor we need to take that into account
+   last &= thread->runningOn()->getRunningThreads() <= (thread->isSleeping()? 0:1) ;
+
    return last;
 }
 
