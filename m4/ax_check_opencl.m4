@@ -155,29 +155,56 @@ AS_IF([test "x$with_opencl" != xno],[
                ocl_ver = (char *)malloc(sizeof(char)*len);
                err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, len, ocl_ver, NULL);
 
+
                FILE* out = fopen("conftest.out","w");
                fprintf(out,"%s\n", ocl_ver);
                fclose(out);
+               free(ocl_ver);
+
+               err = clGetDeviceInfo(device,  CL_DEVICE_VERSION, 0, NULL, &len);
+               ocl_ver = (char *)malloc(sizeof(char)*len);
+               err = clGetDeviceInfo(device,  CL_DEVICE_VERSION, len, ocl_ver, NULL);
+			
+               FILE* out_device_version = fopen("conftest_device_version.out","w");
+               fprintf(out_device_version,"%s\n", ocl_ver);
+               fclose(out_device_version);
                
                free(ocl_ver);
                return ret;
             ])],
-          [ac_cv_opencl_version=$(cat conftest.out)
+          [ac_cv_opencl_version=$(cat conftest.out),
+	   ac_cv_opencl_device=$(cat conftest_device_version.out)
           ],
-          [AC_MSG_FAILURE([
+          [
+          AS_IF([ $(cat conftest_device_version.out | grep -q Altera) ],[
+             ac_cv_opencl_version=$(cat conftest.out),
+             ac_cv_opencl_device=$(cat conftest_device_version.out)
+          ],  
+             [AC_MSG_FAILURE([
 ------------------------------
 OpenCL version test execution failed
 ------------------------------])
+             ])
           ],
           [
             ac_cv_opencl_version=skip
           ])
         ])
+	
+      #Check if is Altera OpenCL
+      AS_IF([test "$ac_cv_opencl_version" != skip],[
+	AS_IF([$(echo $ac_cv_opencl_device | grep -q Altera)],[ac_cv_opencl_altera=yes],[ac_cv_opencl_altera=no])
+      ])dnl
+
       AS_IF([test "$ac_cv_opencl_version" != skip],[
         ac_cv_opencl_version=$(expr "$ac_cv_opencl_version" : "OpenCL C \(@<:@\.0-9@:>@\+\)")
       ])dnl
 
+
+
+
     ])dnl opencl
+
 
     opencllibs="$LIBS"
 
@@ -204,7 +231,8 @@ because cross-compilation mode has been detected.
 ------------------------------])
     ],[
       AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
-      AS_IF([test "$user_requested" = yes -a "$opencl" != yes],[
+      
+      AS_IF([test "$user_requested" = yes -a "$opencl" != yes -a "$ac_cv_opencl_altera" != yes  ],[
         AC_MSG_ERROR([
 ------------------------------
 Version of the provided OpenCL package is too old.
@@ -215,12 +243,15 @@ OpenCL 1.1 or greater is required.
 
 ])dnl with_opencl
 
+AS_IF([ test "$ac_cv_opencl_altera" = yes ],[opencl=yes],[opencl=no])
+
 AS_IF([test $opencl = yes],[
     ARCHITECTURES="$ARCHITECTURES opencl"
 
     AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
     AC_DEFINE([CL_USE_DEPRECATED_OPENCL_2_0_APIS],[],[Disables warnings when using functions deprecated in OpenCL 2.0])
 ])dnl
+
 
 AM_CONDITIONAL([OPENCL_SUPPORT],[test "$opencl" = yes])
 
