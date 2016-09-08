@@ -881,7 +881,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          // for each empty PE, create one thread and sleep it
          if ( target->getNumThreads() == 0 ) {
             createWorker( target, workers );
-            target->setActive(false);
             target->sleepThreads();
          }
       }
