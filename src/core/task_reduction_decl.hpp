@@ -92,8 +92,7 @@ class TaskReduction {
          }
       }
       else {
-         NANOS_ARCHITECTURE_PADDING_SIZE(size);
-         NANOS_ARCHITECTURE_PADDING_SIZE(size_elem);
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
 
          char * storage = (char*) malloc (_size*threads);
          _min = & storage[0];
@@ -125,14 +124,14 @@ class TaskReduction {
          }
       }
       else {
-         NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+         NANOS_ARCHITECTURE_PADDING_SIZE(_size);
          char * storage = (char*) malloc (_size * threads);
 
          _min = & storage[0];
          _max = & storage[_size * threads];
          for ( size_t i=0; i<_num_threads; i++) {
             _storage[i].data = (void *) &storage[i * _size];
-            initialize(i);
+            _storage[i].isInitialized = false;
          }
       }
    }

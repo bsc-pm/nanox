@@ -20,7 +20,7 @@
 #include "system_decl.hpp"
 #include "regiondict.hpp"
 #include "regionset_decl.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "addressspace.hpp"
 #include "globalregt.hpp"
 
@@ -31,7 +31,7 @@ RegionSet::RegionSet() : _lock(), _set() {
 
 void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    reg_set_t &regs = _set[ reg.key ];
    reg_set_t::iterator elem = regs.lower_bound( reg.id );
@@ -54,7 +54,7 @@ void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
 
 bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    bool i_has_it = ( _set.find( reg.key ) != _set.end() );
    // std::cerr << "asking for " << reg.key << "  My Objects ( " << this << " ) : ";
@@ -69,7 +69,7 @@ bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
 unsigned int RegionSet::hasRegion( global_reg_t const &reg ) {
    unsigned int version = (unsigned int) -1;
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    _lock.release();
    return version;
@@ -87,7 +87,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
       if ( wantedReg != wantedDir->second.end() ) {
          versionHIT = wantedReg->second;
          //double check the directory because a there may be WDs that have not been detected as predecessors
-         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( wantedReg->first );
+         DirectoryEntryData *entry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( wantedReg->first );
          if ( entry->getVersion() > versionHIT ) {
             versionHIT = entry->getVersion();
          }
@@ -95,7 +95,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
          wantedDir->second.erase( wantedReg );
       }
       //if ( resultHIT ) {
-      //   std::cerr << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
+      //   o << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
       //}
 
       unsigned int versionSUPER = 0;
@@ -107,7 +107,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
       unsigned int versionSUBR = 0;
       if ( wantedDir->first->doTheseRegionsForm( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUBR ) ) {
          if ( versionHIT < versionSUBR && versionSUPER < versionSUBR ) {
-            NewNewDirectoryEntryData *dirEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            DirectoryEntryData *dirEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             if ( dirEntry != NULL ) { /* if entry is null, do check directory, because we need to insert the region info in the intersect maps */
                for ( std::map< reg_t, unsigned int >::const_iterator it = wantedDir->second.begin(); it != wantedDir->second.end(); it++ ) {
                   global_reg_t r( it->first, wantedDir->first );
@@ -121,21 +121,21 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
                sys.getHostMemory().getVersionInfo( reg, version, locations );
             }
             resultSUBR = true;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
          }
       }
       if ( !resultSUBR && ( resultSUPER || resultHIT ) ) {
          if ( versionHIT >= versionSUPER ) {
             version = versionHIT;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
-            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
-            NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            DirectoryEntryData *firstEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << " entry " << firstEntry << std::endl;
             if ( firstEntry != NULL ) {
                locations.push_back( std::make_pair( reg.id, superPart ) );
-               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
+               DirectoryEntryData *secondEntry = ( DirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
                if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
                *firstEntry = *secondEntry;
             } else {

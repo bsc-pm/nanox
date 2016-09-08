@@ -67,6 +67,9 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
+   if ( lwd->getHostId() != 0 ) {
+      id = lwd->getHostId();
+   }
 
    return id;
 }
@@ -191,6 +194,10 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 
       if ( team != NULL ) {
          warning( "Submitting to another team not implemented yet" );
+      }
+
+      if ( sys.getVerboseCopies() ) {
+         *myThread->_file << "Submitting WD " << wd->getId() << " " << (wd->getDescription() == NULL ? "n/a" : wd->getDescription()) << std::endl;
       }
 
       sys.setupWD( *wd, myThread->getCurrentWD() );

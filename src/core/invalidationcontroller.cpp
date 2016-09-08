@@ -67,7 +67,7 @@ void InvalidationController::postIssueActions( memory_space_id_t id ) {
 void InvalidationController::waitOps( memory_space_id_t id, WD const &wd ) {
    //*myThread->_file << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " invalidation for wd " << wd.getId() << " wait for ownOps: " << _invalOps->getOwnOps().size() << " otherOps: " << _invalOps->getOtherOps().size() << std::endl;
    //_invalOps->print(*myThread->_file);
-   while ( !_invalOps->isDataReady( wd, true ) ) { myThread->idle(); }
+   while ( !_invalOps->isDataReady( wd, true ) ) { myThread->processTransfers(); }
    //*myThread->_file << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " invalidation for wd " << wd.getId() << " wait done _chunksToFree size= " << _chunksToFree.size() << " and _regions_to_remove_access.size= " << _regions_to_remove_access.size() << std::endl;
    postCompleteActions( id, wd );
 }
@@ -79,7 +79,7 @@ void InvalidationController::preIssueActions( memory_space_id_t id, WD const &wd
    //if ( _VERBOSE_CACHE ) { std::cerr << "===> Invalidation complete at " << _memorySpaceId << " remove access for regs: "; }
    for ( std::set< global_reg_t >::iterator it = _regions_to_remove_access.begin(); it != _regions_to_remove_access.end(); it++ ) {
    //if ( _VERBOSE_CACHE ) { std::cerr << it->id << " "; }
-      NewNewRegionDirectory::delAccess( it->key, it->id, id );
+      RegionDirectory::delAccess( it->key, it->id, id );
    }
    //if ( _VERBOSE_CACHE ) { std::cerr << std::endl ; }
 }

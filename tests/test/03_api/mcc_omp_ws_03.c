@@ -27,6 +27,8 @@
 </testinfo>
 */
 
+#include <stdint.h>
+
 typedef unsigned long int size_t;
 struct  cudaPitchedPtr
 {
@@ -1157,8 +1159,8 @@ typedef void *nanos_ws_item_t;
 extern nanos_err_t nanos_worksharing_next_item(nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi);
 struct  mcc_struct_anon_10
 {
-  int lower;
-  int upper;
+  int64_t lower;
+  int64_t upper;
   _Bool execute:1;
   _Bool last:1;
 };
@@ -1230,10 +1232,10 @@ typedef enum nanos_omp_sched_t nanos_omp_sched_t;
 extern nanos_ws_t nanos_omp_find_worksharing(nanos_omp_sched_t kind);
 struct  mcc_struct_anon_9
 {
-  int lower_bound;
-  int upper_bound;
-  int loop_step;
-  int chunk_size;
+  int64_t lower_bound;
+  int64_t upper_bound;
+  int64_t loop_step;
+  int64_t chunk_size;
 };
 typedef struct mcc_struct_anon_9 nanos_ws_info_loop_t;
 typedef void *nanos_ws_info_t;

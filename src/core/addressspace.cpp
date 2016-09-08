@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "addressspace_decl.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "regioncache.hpp"
 #include "system.hpp"
 #include "regiondict.hpp"
@@ -60,7 +60,7 @@ memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
 }
 
-NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
+RegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
    return _directory.getRegionDirectoryKey( addr );
 }
 
@@ -76,7 +76,7 @@ void HostAddressSpace::unregisterObject( void *baseAddr ) {
    _directory.unregisterObject( baseAddr );
 }
 
-NewNewRegionDirectory const &HostAddressSpace::getDirectory() const {
+RegionDirectory const &HostAddressSpace::getDirectory() const {
    return _directory;
 }
 
@@ -204,5 +204,9 @@ void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, AllocatedC
 Device const &SeparateAddressSpace::getDevice() const {
    return _cache.getDevice();
 }
+
+//AllocatedChunk *SeparateAddressSpace::getAndReferenceAllocatedChunk( global_reg_t reg, WD const *wd, unsigned int copyIdx ) {
+//   return _cache.getAndReferenceAllocatedChunk( reg, wd, copyIdx );
+//}
 
 }

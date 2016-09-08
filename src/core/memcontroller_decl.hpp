@@ -23,7 +23,7 @@
 #include "workdescriptor_fwd.hpp"
 #include "atomic_decl.hpp"
 #include "lock_decl.hpp"
-#include "newregiondirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "addressspace_decl.hpp"
 #include "memoryops_decl.hpp"
 #include "memcachecopy_decl.hpp"
@@ -42,7 +42,7 @@ class MemController {
    WD                         *_wd;
    ProcessingElement          *_pe;
    Lock                        _provideLock;
-   //std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
+   //std::map< RegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    RegionSet _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;

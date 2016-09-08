@@ -20,12 +20,13 @@
 #ifndef _NANOS_MPI_WD
 #define _NANOS_MPI_WD
 
-#include "mpi.h"
-#include <stdint.h>
 #include "mpidevice.hpp"
 #include "workdescriptor.hpp"
 #include "config.hpp"
 #include "mpiprocessor_decl.hpp"
+
+#include <mpi.h>
+#include <stdint.h>
 
 namespace nanos {
 namespace ext {

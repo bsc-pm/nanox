@@ -20,130 +20,72 @@
 #ifndef _NANOS_MPI_REMOTE_NODE
 #define _NANOS_MPI_REMOTE_NODE
 
-#include "mpi.h"
-#include "atomic_decl.hpp"
 #include "mpiremotenode_decl.hpp"
+
+#include "atomic_decl.hpp"
 #include "config.hpp"
-#include "mpidevice.hpp"
-#include "mpithread.hpp"
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
+
+#include "mpidevice.hpp"
+#include "mpithread.hpp"
+
+#include "concurrent_queue.hpp"
+
+#include <mpi.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 namespace nanos {
 namespace ext {
-    
-Lock MPIRemoteNode::_taskLock;
-pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait for completion
-pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 
-std::list<int> MPIRemoteNode::_pendingTasksQueue;
-std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
-std::vector<MPI_Datatype*>  MPIRemoteNode::_taskStructsCache;
-bool MPIRemoteNode::_initialized=false;
-bool MPIRemoteNode::_disconnectedFromParent=false;
-int MPIRemoteNode::_currentTaskParent=-1;
-int MPIRemoteNode::_currProcessor=0;
 
-Lock& MPIRemoteNode::getTaskLock() {
-    return _taskLock;
+inline mpi::command::Dispatcher& MPIRemoteNode::getDispatcher() {
+    return *MPIRemoteNode::_commandDispatcher;
 }
 
-int MPIRemoteNode::getQueueCurrTaskIdentifier() {
-    return _pendingTasksQueue.front();
+inline int MPIRemoteNode::getCurrentTaskParent() {
+    return MPIRemoteNode::_currentTaskParent;
 }
 
-int MPIRemoteNode::getQueueCurrentTaskParent() {
-    return _pendingTaskParentsQueue.front();
+inline void MPIRemoteNode::setCurrentTaskParent(int parent) {
+    MPIRemoteNode::_currentTaskParent=parent;
 }
 
-int MPIRemoteNode::getCurrentTaskParent() {
-    return _currentTaskParent;
+inline int MPIRemoteNode::getCurrentProcessor() {
+    return MPIRemoteNode::_currProcessor++;
 }
 
-void MPIRemoteNode::setCurrentTaskParent(int parent) {
-    _currentTaskParent=parent;
+inline bool MPIRemoteNode::isNextTaskAvailable() {
+    return !MPIRemoteNode::_pendingTasksWithParent->empty();
 }
 
-int MPIRemoteNode::getCurrentProcessor() {
-    return _currProcessor++;
+inline void MPIRemoteNode::addTaskToQueue(int task_id, int parent_id) {
+    MPIRemoteNode::_pendingTasksWithParent->push( std::make_pair(task_id,parent_id) );
 }
 
-void MPIRemoteNode::testTaskQueueSizeAndLock() {    
-    pthread_mutex_lock( &_taskMutex ); 
-    if (_pendingTasksQueue.size()==0) {
-        pthread_cond_wait( &_taskWait, &_taskMutex );
-    } 
-    pthread_mutex_unlock( &_taskMutex ); 
+inline std::pair<int,int> MPIRemoteNode::getNextTaskAndParent() {
+    return MPIRemoteNode::_pendingTasksWithParent->pop();
 }
 
-void MPIRemoteNode::addTaskToQueue(int task_id, int parentId) {
-    pthread_mutex_lock( &_taskMutex ); 
-    _pendingTasksQueue.push_back(task_id);
-    _pendingTaskParentsQueue.push_back(parentId);
-    pthread_cond_signal( &_taskWait );
-    pthread_mutex_unlock( &_taskMutex ); 
+inline bool MPIRemoteNode::getDisconnectedFromParent(){
+    return MPIRemoteNode::_disconnectedFromParent;
 }
 
-void MPIRemoteNode::removeTaskFromQueue() {
-    pthread_mutex_lock( &_taskMutex ); 
-    _pendingTasksQueue.pop_front();
-    _pendingTaskParentsQueue.pop_front();
-    pthread_mutex_unlock( &_taskMutex ); 
+inline void MPIRemoteNode::registerSpawn( MPI_Comm communicator, mpi::RemoteSpawn& spawn ) {
+    ensure0( _spawnedRemotes.find( communicator ) == _spawnedRemotes.end(),
+             "A remote group can only be inserted once (communicator already present)" );
+    _spawnedRemotes.insert( std::make_pair( communicator, &spawn ) );
 }
 
-
-bool MPIRemoteNode::getDisconnectedFromParent(){
-    return _disconnectedFromParent; 
+inline RemoteSpawnMap& MPIRemoteNode::getRegisteredSpawns() {
+    return _spawnedRemotes;
 }
 
-////////////////////////////////
-//Auxiliar filelock routines////
-////////////////////////////////
-/*! Try to get lock. Return its file descriptor or -1 if failed.
- *
- *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
- *  @return File descriptor of lock file, or -1 if failed.
- */
-static int tryGetLock( char const *lockName )
-{
-    int fd = open( lockName, O_RDWR|O_CREAT, 0666 );   
-    struct flock lock;
-    lock.l_type    = F_WRLCK;   /* Test for any lock on any part of file. */
-    lock.l_start   = 0;
-    lock.l_whence  = SEEK_SET;
-    lock.l_len     = 0;        
-    if ( fcntl(fd, F_SETLKW, &lock) < 0)  {  /* Overwrites lock structure with preventors. */
-        fd=-1;        
-        close( fd );
-    }
-    return fd;
-}
-
-/*! Release the lock obtained with tryGetLock( lockName ).
- *
- *  @param fd File descriptor of lock returned by tryGetLock( lockName ).
- *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
- */
-static void releaseLock( int fd, char const *lockName )
-{
-    if( fd < 0 )
-        return;
-    struct flock lock;
-    lock.l_type    = F_WRLCK;   /* Test for any lock on any part of file. */
-    lock.l_start   = 0;
-    lock.l_whence  = SEEK_SET;
-    lock.l_len     = 0;        
-    fcntl(fd, F_UNLCK, &lock);  /* Overwrites lock structure with preventors. */
-    //remove( lockName );
-    close( fd );
-}
-
-} // namespace ext
+} // namespace mpi
 } // namespace nanos
 
 #endif

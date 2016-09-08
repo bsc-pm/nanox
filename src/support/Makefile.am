@@ -101,6 +101,8 @@ devinclude_HEADERS = \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
 	smartpointer.hpp \
+	memory/memoryaddress.hpp \
+	concurrent_queue.hpp \
 	$(END) 
 
 support_sources = \
@@ -191,6 +193,9 @@ support_sources = \
 	genericevent.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	memory/memoryaddress.hpp \
+	memory/memoryaddress.cpp \
+	concurrent_queue.hpp \
 	dbmanager.hpp \
 	$(END)
 

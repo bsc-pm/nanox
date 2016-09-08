@@ -274,7 +274,11 @@ typedef std::set<const Device *>  DeviceList;
          void const                   *_remoteAddr;
          void                         *_callback;
          void                         *_arguments;
+         std::vector<WorkDescriptor *>*_submittedWDs;
+         bool                          _reachedTaskwait;
       public:
+         int                           _schedValues[8];
+         std::map<memory_space_id_t,unsigned int>   _schedPredecessorLocs;
          MemController                 _mcontrol;
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -754,6 +758,7 @@ typedef std::set<const Device *>  DeviceList;
          //! \brief Returns the concurrency level of the WD considering
          //         the commutative access map that the caller provides.
          int getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) const;
+         void addPresubmittedWDs( unsigned int numWDs, WD **wds );
    };
 
    typedef class WorkDescriptor WD;

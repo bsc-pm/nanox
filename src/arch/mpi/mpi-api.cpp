@@ -17,13 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "mpi.h"
 #include "nanos-mpi.h"
-#include "mpiremotenode_decl.hpp"
+#include "mpiremotenode.hpp"
 #include "system.hpp"
 #include "mpidd.hpp"
-#include <string.h>
 
+#include <mpi.h>
+#include <string.h>
 
 using namespace nanos;
 
@@ -172,11 +172,11 @@ void nanos_mpi_finalizef_ (void) {
 }
 
 NANOS_API_DEF(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI_Comm comm)) {
-        return nanos::ext::MPIRemoteNode::nanosMPISendTaskinit(buf,count,MPI_INT,dest,comm);
+        return nanos::ext::MPIRemoteNode::nanosMPISendTaskInit(buf,count,dest,comm);
 }
 
 NANOS_API_DEF(int, nanos_mpi_send_taskend, (void *buf, int count, int disconnect, MPI_Comm comm)){
-        return nanos::ext::MPIRemoteNode::nanosMPISendTaskend(buf,count,MPI_INT,disconnect,comm);
+        return nanos::ext::MPIRemoteNode::nanosMPISendTaskEnd(buf,count,MPI_INT,disconnect,comm);
 }
 NANOS_API_DEF(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype* datatype, int dest, MPI_Comm comm)){
         return nanos::ext::MPIRemoteNode::nanosMPISendDatastruct(buf,count,*datatype,dest,comm);

@@ -278,7 +278,7 @@ class InstrumentationExtrae: public Instrumentation
            Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
            Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
         }
-#ifdef MPI_DEV
+#ifdef HAVE_MPI_H
         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
         if (offload_trace_on != NULL){ 
            //MPI plugin init will initialize extrae...
@@ -287,7 +287,7 @@ class InstrumentationExtrae: public Instrumentation
 #endif
             /* Regular SMP OMPItrace initialization */      
             OMPItrace_init();      
-#ifdef MPI_DEV
+#ifdef HAVE_MPI_H
         }
 #endif
         

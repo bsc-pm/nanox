@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 #include "globalregt_decl.hpp"
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "regiondict.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -33,7 +33,7 @@ uint64_t global_reg_t::getKeyFirstAddress() const {
 
 uint64_t global_reg_t::getRealFirstAddress() const {
    uint64_t addr = 0;
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    //ensure(entry != NULL, "invalid entry.");
    if ( entry == NULL ) {
       //std::cerr << "Warning, getRealFirstAddress() w/NULL entry!" << std::endl;
@@ -124,7 +124,7 @@ void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t *region)
 
 
 memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t dest ) const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    memory_space_id_t selected;
    if ( entry->isLocatedIn( dest ) ) {
@@ -141,8 +141,8 @@ memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t des
 
 unsigned int global_reg_t::getHostVersion( bool increaseVersion ) const {
    unsigned int version = 0;
-   if ( NewNewRegionDirectory::isLocatedIn( key, id, (memory_space_id_t) 0 ) ) {
-      version = NewNewRegionDirectory::getVersion( key, id, increaseVersion );
+   if ( RegionDirectory::isLocatedIn( key, id, (memory_space_id_t) 0 ) ) {
+      version = RegionDirectory::getVersion( key, id, increaseVersion );
    }
    return version;
 }
@@ -226,19 +226,19 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
 }
 
 void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const {
-   NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
+   RegionDirectory::addAccess( key, id, pe, loc, version );
 }
 
 DeviceOps *global_reg_t::getDeviceOps() const {
-   return NewNewRegionDirectory::getOps( key, id );
+   return RegionDirectory::getOps( key, id );
 }
 
 DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) {
    DeviceOps *ops = NULL;
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    memory_space_id_t home = (entry->getRootedLocation() == (unsigned int) -1) ? 0 : entry->getRootedLocation();
    if ( home == 0 ) {
-      ops = NewNewRegionDirectory::getOps( key, id );
+      ops = RegionDirectory::getOps( key, id );
    } else {
       AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, wd, copyIdx );
       ops = chunk->getDeviceOps( *this, &wd, copyIdx );
@@ -258,11 +258,11 @@ bool global_reg_t::contains( global_reg_t const &reg ) const {
 }
 
 bool global_reg_t::isLocatedIn( memory_space_id_t loc ) const {
-   return NewNewRegionDirectory::isLocatedIn( key, id, loc );
+   return RegionDirectory::isLocatedIn( key, id, loc );
 }
 
 unsigned int global_reg_t::getVersion() const {
-   return NewNewRegionDirectory::getVersion( key, id, false );
+   return RegionDirectory::getVersion( key, id, false );
 }
 
 void global_reg_t::fillCopyData( CopyData &cd, uint64_t baseAddress ) const {
@@ -273,47 +273,47 @@ void global_reg_t::fillCopyData( CopyData &cd, uint64_t baseAddress ) const {
 }
 
 bool global_reg_t::isRegistered() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    return entry != NULL;
 }
 
 std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getLocations();
 }
 
 memory_space_id_t global_reg_t::getRootedLocation() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getRootedLocation();
 }
 
 bool global_reg_t::isRooted() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->isRooted();
 }
 void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
    //setRooted();
-   NewNewRegionDirectory::addRootedAccess( key, id, loc, 2 );
+   RegionDirectory::addRootedAccess( key, id, loc, 2 );
 }
 
 unsigned int global_reg_t::getNumLocations() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getNumLocations();
 }
 
 ProcessingElement *global_reg_t::getFirstWriterPE() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getFirstWriterPE();
 }
 
 bool global_reg_t::isLocatedInSeparateMemorySpaces() const {
    bool res;
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   DirectoryEntryData *entry = RegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    entry->lock();
    std::set< memory_space_id_t > const &locs = entry->getLocations();

@@ -30,6 +30,8 @@
 
 namespace nanos {
 
+   typedef TR1::unordered_map<unsigned int, ProcessingElement *> PEList;
+
    /** \brief Base class for specific architecture plugins
     */
    class ArchPlugin : public Plugin
@@ -76,7 +78,7 @@ namespace nanos {
 
          virtual void initialize();
          virtual void finalize();
-         virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+         virtual void addPEs( PEList &pes ) const;
          virtual void addDevices( DeviceList &devices ) const;
          virtual void startSupportThreads();
          virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers );

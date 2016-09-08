@@ -206,17 +206,17 @@ typedef void * nanos_ws_data_t; // abstract type to specify all data needed for 
 typedef void * nanos_ws_item_t; // abstract type to specify a portion for a worksharing construct (used in next item service)
 
 typedef struct {
-   int           lower_bound;  // loop lower bound
-   int           upper_bound;  // loop upper bound
-   int           loop_step;    // loop step
-   int           chunk_size;   // loop chunk size
+   int64_t         lower_bound;  // loop lower bound
+   int64_t         upper_bound;  // loop upper bound
+   int64_t         loop_step;    // loop step
+   int64_t         chunk_size;   // loop chunk size
 } nanos_ws_info_loop_t; /* nanos_ws_info_t, specific loop data */
 
 typedef struct {
-   int   lower;      // loop item lower bound
-   int   upper;      // loop item upper bound
-   bool  execute:1;  // is a valid loop item?
-   bool  last:1;     // is the last loop item?
+   int64_t         lower;      // loop item lower bound
+   int64_t         upper;      // loop item upper bound
+   bool            execute:1;  // is a valid loop item?
+   bool            last:1;     // is the last loop item?
 } nanos_ws_item_loop_t; /* nanos_ws_item_t, specific loop data */
 
 typedef struct nanos_ws_desc {

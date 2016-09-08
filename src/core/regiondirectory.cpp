@@ -40,7 +40,7 @@
 #include "debug.hpp"
 #endif
 
-#include "newregiondirectory.hpp"
+#include "regiondirectory.hpp"
 #include "hashfunction_decl.hpp"
 #include "regiondict.hpp"
 #include "os.hpp"
@@ -56,7 +56,7 @@
 
 namespace nanos {
 
-std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &ent)
+std::ostream & operator<< (std::ostream &o, DirectoryEntryData const &ent)
 {
    //o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Locs: ";
    o << " V: " << ent.getVersion() << " Locs: ";
@@ -67,25 +67,25 @@ std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &ent)
    return o;
 }
 
-NewNewRegionDirectory::HashBucket::HashBucket() : _lock(), _bobjects( NULL ) { }
+RegionDirectory::HashBucket::HashBucket() : _lock(), _bobjects( NULL ) { }
 
-NewNewRegionDirectory::HashBucket::HashBucket( NewNewRegionDirectory::HashBucket const &hb ) : _lock(), _bobjects( hb._bobjects ) { }
+RegionDirectory::HashBucket::HashBucket( RegionDirectory::HashBucket const &hb ) : _lock(), _bobjects( hb._bobjects ) { }
 
-NewNewRegionDirectory::HashBucket &NewNewRegionDirectory::HashBucket::operator=( NewNewRegionDirectory::HashBucket const &hb ) {
+RegionDirectory::HashBucket &RegionDirectory::HashBucket::operator=( RegionDirectory::HashBucket const &hb ) {
    _bobjects = hb._bobjects;
    return *this;
 }
-NewNewRegionDirectory::HashBucket::~HashBucket() { }
+RegionDirectory::HashBucket::~HashBucket() { }
 
 #define HASH_BUCKETS 256
 
-NewNewRegionDirectory::NewNewRegionDirectory() : _keys(), _keysSeed( 1 ),
+RegionDirectory::RegionDirectory() : _keys(), _keysSeed( 1 ),
    _keysLock(), _objects( HASH_BUCKETS, HashBucket() ) {}
 
-uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD const *wd ) {
+uint64_t RegionDirectory::_getKey( uint64_t addr, std::size_t len, WD const *wd ) {
    bool exact;
    while ( !_keysLock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
    //*myThread->_file << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
@@ -102,12 +102,12 @@ uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD cons
    return key;
 }
 
-uint64_t NewNewRegionDirectory::_getKey( uint64_t addr ) const {
+uint64_t RegionDirectory::_getKey( uint64_t addr ) const {
    uint64_t key = _keys.getExactByAddress( addr, 0 );
    return key;
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
+GlobalRegionDictionary *RegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
    std::size_t objectSize = cd.getMaxSize();
 #if 0
@@ -119,7 +119,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    GlobalRegionDictionary *dict = NULL;
 
    while ( !hb._lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 
    if ( hb._bobjects == NULL ) {
@@ -131,9 +131,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
       if ( *o == NULL ) {
          *o = NEW Object( NEW GlobalRegionDictionary( cd ) );
          dict = (*o)->getGlobalRegionDictionary();
-         NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+         DirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
          if ( entry == NULL ) {
-            entry = NEW NewNewDirectoryEntryData();
+            entry = NEW DirectoryEntryData();
             dict->setRegionData( 1, entry ); //getRegionDictionaryRegisterIfNeeded
             if ( sys.getVerboseCopies() ) {
                *myThread->_file << "New object: ";
@@ -151,9 +151,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
             }
          } else {
             dict = NEW GlobalRegionDictionary( cd );
-            NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+            DirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
             if ( entry == NULL ) {
-               entry = NEW NewNewDirectoryEntryData();
+               entry = NEW DirectoryEntryData();
                dict->setRegionData( 1, entry ); //getRegionDictionaryRegisterIfNeeded
             }
             (*o)->setGlobalRegionDictionary( dict );
@@ -167,12 +167,12 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    return dict;
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( CopyData const &cd ) {
+GlobalRegionDictionary *RegionDirectory::getRegionDictionary( CopyData const &cd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
    return getRegionDictionary( objectAddr, false );
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t objectAddr, bool canFail ) {
+GlobalRegionDictionary *RegionDirectory::getRegionDictionary( uint64_t objectAddr, bool canFail ) {
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
@@ -190,7 +190,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
    }
 #endif
    while ( !hb._lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    if ( hb._bobjects == NULL ) {
       if ( !canFail ) {
@@ -214,52 +214,52 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
    return dict;
 }
 
-void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version )
+void RegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version )
 {
    if (dict->getVersion() < version ) dict->setVersion( version );
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    regEntry->addAccess( pe, loc, version ); //addAccess IMPL
 }
 
-void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version )
+void RegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version )
 {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    regEntry->addRootedAccess( loc, version );
 }
 
-NewNewDirectoryEntryData *NewNewRegionDirectory::getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id ) {
-   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict.getRegionData( id ); //getDirectoryEntry
+DirectoryEntryData *RegionDirectory::getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id ) {
+   DirectoryEntryData *entry = ( DirectoryEntryData * ) dict.getRegionData( id ); //getDirectoryEntry
    return entry;
 }
 
-bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
    res = regEntry->delAccess( memorySpaceId );
    return res;
 }
 
-bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
    res = ( ( regEntry->isLocatedIn( pe ) ) && ( regEntry->getNumLocations() == 1 ) );
    return res;
 }
 
-bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
    res = ( ( regEntry->isLocatedIn( loc ) ) && ( regEntry->getNumLocations() == 1 ) );
    return res;
 }
 
-void NewNewRegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   NewNewDirectoryEntryData *fromEntry = getDirectoryEntry( *dict, from );
+void RegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   DirectoryEntryData *fromEntry = getDirectoryEntry( *dict, from );
    *regEntry = *fromEntry;
 }
 
-void NewNewRegionDirectory::print() const {
+void RegionDirectory::print() const {
    for ( std::vector< HashBucket >::const_iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket const &hb = *bit;
       if ( hb._bobjects != NULL ) {
@@ -268,7 +268,7 @@ void NewNewRegionDirectory::print() const {
             if ( dict == NULL ) continue;
             *myThread->_file <<"Object "<< (void*)dict << std::endl;
             for (reg_t i = 1; i < dict->getMaxRegionId(); i++ ) {
-               NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( i ); //print
+               DirectoryEntryData *entry = ( DirectoryEntryData * ) dict->getRegionData( i ); //print
                if ( !entry ) {
                   *myThread->_file << "\t" << i << " "; dict->printRegion( *myThread->_file, i ); *myThread->_file << " : null " << std::endl;
                } else {
@@ -281,38 +281,38 @@ void NewNewRegionDirectory::print() const {
 }
 
 
-unsigned int NewNewRegionDirectory::getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion ) {
-   NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, id );
+unsigned int RegionDirectory::getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion ) {
+   DirectoryEntryData *entry = getDirectoryEntry( *dict, id );
    return entry->getVersion( increaseVersion );
 }
 
-bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    return regEntry->isLocatedIn( pe, version );
 }
 
-bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //*myThread->_file << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( pe ) : 0;
 }
 
-bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+bool RegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //*myThread->_file << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( loc ) : 0;
 }
 
-unsigned int NewNewRegionDirectory::getFirstLocation( RegionDirectoryKey dict, reg_t id ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+unsigned int RegionDirectory::getFirstLocation( RegionDirectoryKey dict, reg_t id ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    return regEntry->getFirstLocation();
 }
 
-GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) {
+GlobalRegionDictionary &RegionDirectory::getDictionary( CopyData const &cd ) {
    return *getRegionDictionary( cd );
 }
 
-void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
+void RegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
    for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
       for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
          Object *o = it->second->getExactByAddress(it->first);
@@ -321,14 +321,14 @@ void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, M
    }
 }
 
-NewNewRegionDirectory::~NewNewRegionDirectory() {
+RegionDirectory::~RegionDirectory() {
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
       delete hb._bobjects;
    }
 }
 
-void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
+void RegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
    for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
       Object *o = it->second->getExactByAddress(it->first);
       sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
@@ -359,7 +359,7 @@ void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< O
    }
 }
 
-void NewNewRegionDirectory::synchronize( WD &wd, void *addr ) {
+void RegionDirectory::synchronize( WD &wd, void *addr ) {
    //std::ostream &o = (*myThread->_file);
    //o << "++++ WaitOn synchronize, w addr " << addr << std::endl;
    uint64_t objectAddr = (uint64_t) addr;
@@ -387,7 +387,7 @@ void NewNewRegionDirectory::synchronize( WD &wd, void *addr ) {
             if ( !reg.isLocatedIn( 0 ) ) {
                DeviceOps *thisOps = reg.getDeviceOps();
                if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
+                  DirectoryEntryData *entry = ( DirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
                   if ( _VERBOSE_CACHE ) {
                      *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                      if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -417,14 +417,14 @@ void NewNewRegionDirectory::synchronize( WD &wd, void *addr ) {
             if ( !data_source.isLocatedIn( 0 ) ) {
                //*myThread->_file << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); *myThread->_file << std::endl;
                //*myThread->_file << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); *myThread->_file << std::endl;
-               NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
+               DirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
                if ( regEntry == NULL ) {
-                  regEntry = NEW NewNewDirectoryEntryData();
+                  regEntry = NEW DirectoryEntryData();
                   region_shape.key->setRegionData( region_shape.id, regEntry );
                }
                DeviceOps *thisOps = regEntry->getOps();
                if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
+                  DirectoryEntryData *entry = ( DirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
                   if ( _VERBOSE_CACHE ) {
                      *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                      if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -463,7 +463,7 @@ void NewNewRegionDirectory::synchronize( WD &wd, void *addr ) {
    //o << "++++ DONE ++++ WaitOn synchronize, w addr " << addr << std::endl;
 }
 
-void NewNewRegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data ) {
+void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data ) {
    //std::ostream &o = (*myThread->_file);
    //o << "++++ WaitOn synchronize, w numDataAccesses " << numDataAccesses << std::endl;
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
@@ -501,7 +501,7 @@ void NewNewRegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, Da
                if ( !reg.isLocatedIn( 0 ) ) {
                   DeviceOps *thisOps = reg.getDeviceOps();
                   if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
+                     DirectoryEntryData *entry = ( DirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
                      if ( _VERBOSE_CACHE ) {
                         *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                         if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -531,14 +531,14 @@ void NewNewRegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, Da
                if ( !data_source.isLocatedIn( 0 ) ) {
                   //*myThread->_file << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); *myThread->_file << std::endl;
                   //*myThread->_file << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); *myThread->_file << std::endl;
-                  NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
+                  DirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
                   if ( regEntry == NULL ) {
-                     regEntry = NEW NewNewDirectoryEntryData();
+                     regEntry = NEW DirectoryEntryData();
                      region_shape.key->setRegionData( region_shape.id, regEntry );
                   }
                   DeviceOps *thisOps = regEntry->getOps();
                   if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
+                     DirectoryEntryData *entry = ( DirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
                      if ( _VERBOSE_CACHE ) {
                         *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                         if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -578,7 +578,7 @@ void NewNewRegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, Da
    //o << "++++ DONE ++++ WaitOn synchronize, w numDataAccesses " << numDataAccesses << std::endl;
 }
 
-void NewNewRegionDirectory::synchronize( WD &wd ) {
+void RegionDirectory::synchronize( WD &wd ) {
    std::ostream &o = (*myThread->_file);
    //o << "++++ WaitOn synchronize ALL" << std::endl;
    //*myThread->_file << "SYNC DIR with wd " << wd.getId() << std::endl;
@@ -595,7 +595,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
          HashBucket &hb = *bit;
          while ( !hb._lock.tryAcquire() ) {
-            myThread->idle();
+            myThread->processTransfers();
          }
          if ( hb._bobjects != NULL ) {
             for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
@@ -650,7 +650,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
       while ( !hb._lock.tryAcquire() ) {
-         myThread->idle();
+         myThread->processTransfers();
       }
       if ( hb._bobjects != NULL ) {
          for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
@@ -692,7 +692,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                      if ( !reg.isLocatedIn( 0 ) ) {
                         DeviceOps *thisOps = reg.getDeviceOps();
                         if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
+                           DirectoryEntryData *entry = ( DirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
                            if ( _VERBOSE_CACHE ) {
                               *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                               if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -723,14 +723,14 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                      if ( !data_source.isLocatedIn( 0 ) ) {
                         //*myThread->_file << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); *myThread->_file << std::endl;
                         //*myThread->_file << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); *myThread->_file << std::endl;
-								NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
+								DirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
 								if ( regEntry == NULL ) {
-									regEntry = NEW NewNewDirectoryEntryData();
+									regEntry = NEW DirectoryEntryData();
 									region_shape.key->setRegionData( region_shape.id, regEntry );
 								}
 								DeviceOps *thisOps = regEntry->getOps();
                         if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
+                           DirectoryEntryData *entry = ( DirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
                            if ( _VERBOSE_CACHE ) {
                               *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                               if ( entry ) *myThread->_file << " " << *entry << std::endl;
@@ -777,8 +777,8 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    //o << "++++ DONE ++++ WaitOn synchronize ALL" << std::endl;
 }
 
-DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+DeviceOps *RegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
+   DirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    DeviceOps *ops = NULL;
    if ( regEntry != NULL ) {
       ops = regEntry->getOps();
@@ -786,16 +786,16 @@ DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
    return ops;
 }
 
-reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) {
+reg_t RegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) {
    GlobalRegionDictionary *dict = getRegionDictionary( (uint64_t) hostObject, false );
    return dict->getLocalRegionIdFromMasterRegionId( hostRegionId );
 }
 
-void NewNewRegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId ) {
+void RegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId ) {
    dict->addMasterRegionId( masterId, localId );
 }
 
-void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
+void RegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
    //allocate dimensions
    nanos_region_dimension_internal_t *dimensions = 
       NEW nanos_region_dimension_internal_t[obj->dimension_count];
@@ -817,7 +817,7 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
    HashBucket &hb = _objects[ key ];
 
    while ( !hb._lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
 #if 0
    std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( objectAddr );
@@ -836,9 +836,9 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
       if ( *o == NULL ) {
          *o = NEW Object( NEW GlobalRegionDictionary( *cd ), cd );
          GlobalRegionDictionary *dict = (*o)->getGlobalRegionDictionary();
-         NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+         DirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
          if ( entry == NULL ) {
-            entry = NEW NewNewDirectoryEntryData();
+            entry = NEW DirectoryEntryData();
             dict->setRegionData( 1, entry ); //registerObject
             if ( sys.getVerboseCopies() ) {
                WD const &wd = *myThread->getCurrentWD();
@@ -860,11 +860,11 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 }
 
 
-void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
+void RegionDirectory::unregisterObject(void *baseAddr) {
    uint64_t key = jen_hash( this->_getKey( (uint64_t)baseAddr ) ) & (HASH_BUCKETS-1);
    HashBucket &hb = _objects[ key ];
    while ( !hb._lock.tryAcquire() ) {
-      myThread->idle();
+      myThread->processTransfers();
    }
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, unregister object: object not registered " << baseAddr << std::endl;
@@ -877,10 +877,6 @@ void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
          printBt( *(myThread->_file) );
          fatal("can not continue");
       } else {
-         GlobalRegionDictionary *dict = o->getGlobalRegionDictionary();
-         CopyData *rcd = o->getRegisteredObject();
-         delete dict;
-         delete rcd;
          delete o;
          hb._bobjects->eraseByAddress( (uint64_t) baseAddr );
          _keys.eraseByAddress( (uint64_t) baseAddr );

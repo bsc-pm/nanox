@@ -45,6 +45,9 @@ void *SMPDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem,
    SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
    sallocator->lock();
    retAddr = sallocator->allocate( size );
+   if ( retAddr != NULL ) {
+      bzero( retAddr, size );
+   }
    sallocator->unlock();
    return retAddr;
 }
@@ -76,7 +79,10 @@ void SMPDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
       if (sys._watchAddr != NULL ) {
          if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
-            *myThread->_file << "WATCH update dev: value " << *((double *) sys._watchAddr )<< std::endl;
+            // *myThread->_file << "WATCH update dev: value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            snprintf( buff, 256, "WATCH update dev: value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
          }
       }
       ::memcpy( (void *) devAddr, (void *) hostAddr, len );
@@ -95,13 +101,19 @@ void SMPDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
       if (sys._watchAddr != NULL ) {
          if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
-            *myThread->_file << "WATCH update host: old value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            snprintf( buff, 256, "WATCH update host: old value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
+            //*myThread->_file << "WATCH update host: old value " << *((double *) sys._watchAddr )<< std::endl;
          }
       }
       ::memcpy( (void *) hostAddr, (void *) devAddr, len );
       if (sys._watchAddr != NULL ) {
          if ((uint64_t )sys._watchAddr >= hostAddr && (uint64_t )sys._watchAddr < hostAddr + len) {
-            *myThread->_file << "WATCH update host: new value " << *((double *) sys._watchAddr )<< std::endl;
+            char buff[256];
+            //*myThread->_file << "WATCH update host: new value " << *((double *) sys._watchAddr )<< std::endl;
+            snprintf( buff, 256, "WATCH update host: new value %a", *((double *) sys._watchAddr ) );
+            *myThread->_file << buff << std::endl;
          }
       }
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key, (nanos_event_value_t) 0 ); )
@@ -122,7 +134,10 @@ bool SMPDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
          uint64_t target_addr = reg.getKeyFirstAddress();
          if ((uint64_t )sys._watchAddr >= target_addr && (uint64_t )sys._watchAddr < target_addr + reg.getBreadth() ) {
             uint64_t offset = (uint64_t) sys._watchAddr - target_addr;
-            *myThread->_file << "WATCH update dev from dev: old value [ " << (void *)(devDestAddr + offset) << " ] " << *((double *) (devDestAddr + offset) ) << " set value [from " << (void *)(devOrigAddr + offset) << " ] " << *((double *) (devOrigAddr + offset) )<< std::endl;
+            char buff[256];
+            snprintf( buff, 256, "WATCH update dev from dev: old value [ %p ] %a set value [ from %p ] %a", (void *)(devDestAddr + offset), *((double *) (devDestAddr + offset) ), (void *)(devOrigAddr + offset) , *((double *) (devOrigAddr + offset) ) );
+            //*myThread->_file << "WATCH update dev from dev: old value [ " << (void *)(devDestAddr + offset) << " ] " << *((double *) (devDestAddr + offset) ) << " set value [from " << (void *)(devOrigAddr + offset) << " ] " << *((double *) (devOrigAddr + offset) )<< std::endl;
+            *myThread->_file << buff << std::endl;
          }
       }
       ::memcpy( (void *) devDestAddr, (void *) devOrigAddr, len );

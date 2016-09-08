@@ -47,9 +47,24 @@ void SchedulerConf::config (Config &cfg)
 
    cfg.registerConfigOption ( "num-steal", NEW Config::PositiveVar( _numStealAfterSpins ), "Try to steal every so spins (default = 1)" );
    cfg.registerArgOption ( "num-steal", "spins-steal" );
+
+   cfg.registerConfigOption ( "hold-tasks", NEW Config::FlagOption( _holdTasks ), "Do not submit tasks until a taskwait is reached." );
+   cfg.registerArgOption ( "hold-tasks", "hold-tasks" );
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
+{
+   if ( sys.getSchedulerConf().getHoldTasksEnabled() && 
+         sys.getNetwork()->getNodeNum() == 0) {
+      WD *current = myThread->getCurrentWD();
+      WD *wd_to_submit = &wd;
+      current->addPresubmittedWDs( 1, &wd_to_submit );
+   } else {
+      _submit( wd, force_queue );
+   }
+}
+
+void Scheduler::_submit ( WD &wd, bool force_queue )
 {
    NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING, true) );
    BaseThread *mythread = myThread;
@@ -118,7 +133,18 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 
 }
 
-void Scheduler::submit ( WD ** wds, size_t numElems )
+void Scheduler::submit ( WD ** wds, size_t numElems ) 
+{
+   if ( sys.getSchedulerConf().getHoldTasksEnabled() && 
+         sys.getNetwork()->getNodeNum() == 0) {
+      WD *current = myThread->getCurrentWD();
+      current->addPresubmittedWDs( numElems, wds );
+   } else {
+      _submit( wds, numElems );
+   }
+}
+
+void Scheduler::_submit ( WD ** wds, size_t numElems )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
    if ( numElems == 0 ) return;
@@ -422,7 +448,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    verbose("Wait on condition");
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
       if ( checks == 0 ) {
-         verbose("   starting idle loop"); //FIXME:xteruel
+         //verbose("   starting idle loop"); //FIXME:xteruel
          condition->lock();
          if ( !( condition->check() ) ) {
 
@@ -430,6 +456,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             //! First checking prefetching queue
             WD * next = thread->getNextWD();
+            if ( next != NULL ) {
+                verbose("Got wd through getNextWD");
+            }
 
             if ( !thread->isSleeping() ) {
                //! Second calling scheduler policy at block
@@ -438,6 +467,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                      if ( sys.getSchedulerConf().getSchedulerEnabled() )
                         next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            if ( next != NULL ) {
+                verbose("Got wd through atBlock");
+            }
                   }
                }
             }
@@ -449,7 +481,12 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             }
 
             //! Finally coming back to our Thread's WD (idle task)
-            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(thread->getThreadWD());
+            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) {
+               next = &(thread->getThreadWD());
+            if ( next != NULL ) {
+                verbose("Got wd through getThreadWD");
+            }
+            }
 
             //! If found a wd to switch to, execute it
             if ( next ) {
@@ -736,7 +773,7 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    updateExitStats (*wd);
 
    //! \note getting more work to do (only if not going to sleep)
-   if ( !getMyThreadSafe()->isSleeping() ) {
+   if ( !getMyThreadSafe()->isSleeping() && schedule ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
@@ -778,7 +815,7 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
          do {
             result = wd->_mcontrol.allocateTaskMemory();
             if ( !result ) {
-               myThread->idle();
+               myThread->processTransfers();
             }
          } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
@@ -806,7 +843,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    if ( done ) {
       wd->finish();
       finishWork( wd, schedule );
-      // Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters
+
+      // As finishWork potentially may cause a context switch (due to waitCompletion) we need to
+      // refresh current thread pointer.
+      thread = getMyThreadSafe();
+
+      // Instrumenting context switch: wd leaves cpu and will not come back (last = true)
+      // and new_wd enters
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
 
@@ -899,7 +942,7 @@ void Scheduler::switchTo ( WD *to )
          do {
             result = to->_mcontrol.allocateTaskMemory();
             if ( !result ) {
-               myThread->idle();
+               myThread->processTransfers();
             }
          } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
@@ -995,7 +1038,7 @@ void Scheduler::exitTo ( WD *to )
        do {
           result = to->_mcontrol.allocateTaskMemory();
          if ( !result ) {
-            myThread->idle();
+            myThread->processTransfers();
          }
        } while( result == false );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )

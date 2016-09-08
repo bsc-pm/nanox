@@ -67,19 +67,30 @@ class atomic_flag {
 	public:
 		bool test_and_set();
 
+		bool load();
+
 		void clear();
 };
 
-bool atomic_flag::test_and_set()
+inline bool atomic_flag::test_and_set()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-	return __atomic_test_and_set(&_value,__ATOMIC_RELEASE);
+	return __atomic_test_and_set(&_value,__ATOMIC_ACQ_REL);
 #else
 	return __sync_lock_test_and_set(&_value, true);
 #endif
 }
 
-void atomic_flag::clear()
+inline bool atomic_flag::load()
+{
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+	return __sync_load_n(&_value,__ATOMIC_ACQUIRE);
+#else
+	return _value;
+#endif
+}
+
+inline void atomic_flag::clear()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
 	__atomic_clear(&_value,__ATOMIC_RELEASE);

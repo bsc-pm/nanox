@@ -25,7 +25,7 @@
 
 namespace nanos {
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
+inline DirectoryEntryData::DirectoryEntryData() : Version( 1 )
    //, _writeLocation( -1 )
    , _ops()
    , _location()
@@ -39,7 +39,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    _location.insert(0);
 }
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( memory_space_id_t home ) : Version( 1 )
+inline DirectoryEntryData::DirectoryEntryData( memory_space_id_t home ) : Version( 1 )
    //, _writeLocation( -1 )
    , _ops()
    , _location()
@@ -53,7 +53,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( memory_space_id_t hom
    _location.insert( home );
 }
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ) : Version( de )
+inline DirectoryEntryData::DirectoryEntryData( const DirectoryEntryData &de ) : Version( de )
    //, _writeLocation( de._writeLocation )
    , _ops()
    , _location( de._location )
@@ -66,17 +66,17 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectory
 {
 }
 
-inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
+inline DirectoryEntryData::~DirectoryEntryData() {
 }
 
-inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDirectoryEntryData &de ) {
+inline DirectoryEntryData & DirectoryEntryData::operator= ( DirectoryEntryData &de ) {
    Version::operator=( de );
    //_writeLocation = de._writeLocation;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    while ( !de._setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    _location.clear();
    _pes.clear();
@@ -91,21 +91,21 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    return *this;
 }
 
-//inline bool NewNewDirectoryEntryData::hasWriteLocation() const {
+//inline bool DirectoryEntryData::hasWriteLocation() const {
 //   return ( _writeLocation != -1 );
 //}
 
-// inline int NewNewDirectoryEntryData::getWriteLocation() const {
+// inline int DirectoryEntryData::getWriteLocation() const {
 //    return _writeLocation;
 // }
 // 
-// inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
+// inline void DirectoryEntryData::setWriteLocation( int id ) {
 //    _writeLocation = id;
 // }
 
-inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
+inline void DirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    //*myThread->_file << "+++++++++++++++++v entry " << (void *) this << " v++++++++++++++++++++++" << std::endl;
    if ( version > this->getVersion() ) {
@@ -138,9 +138,9 @@ inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_s
    _setLock.release();
 }
 
-inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
+inline void DirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    ensure(version == this->getVersion(), "addRootedAccess of already accessed entry." );
    _location.clear();
@@ -151,10 +151,10 @@ inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, un
    _setLock.release();
 }
 
-inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
+inline bool DirectoryEntryData::delAccess( memory_space_id_t from ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    _location.erase( from );
    std::set< ProcessingElement * >::iterator it = _pes.begin();
@@ -172,10 +172,10 @@ inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
    return result;
 }
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
+inline bool DirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    if ( _location.empty() ) {
       *myThread->_file << " Warning: empty _location set, it is likely that an invalidation is ongoing for this region. " << std::endl;
@@ -185,14 +185,14 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsign
    return result;
 }
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
+inline bool DirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
    return this->isLocatedIn( pe->getMemorySpaceId() );
 }
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
+inline bool DirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    bool result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = ( _location.count( loc ) > 0 );
    if ( !result && _location.size() == 0 ) { //locations.size = 0 means we are invalidating
@@ -202,7 +202,7 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    return result;
 }
 
-inline void NewNewDirectoryEntryData::print(std::ostream &o) const {
+inline void DirectoryEntryData::print(std::ostream &o) const {
    o << " V: " << this->getVersion() << " Locs: ";
    for ( std::set< memory_space_id_t >::iterator it = _location.begin(); it != _location.end(); it++ ) {
       o << *it << " ";
@@ -210,82 +210,82 @@ inline void NewNewDirectoryEntryData::print(std::ostream &o) const {
    o << std::endl;
 }
 
-inline int NewNewDirectoryEntryData::getFirstLocation() {
+inline int DirectoryEntryData::getFirstLocation() {
    int result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = *(_location.begin());
    _setLock.release();
    return result;
 }
 
-inline int NewNewDirectoryEntryData::getNumLocations() {
+inline int DirectoryEntryData::getNumLocations() {
    int result;
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
    result = _location.size();
    _setLock.release();
    return result;
 }
 
-inline DeviceOps *NewNewDirectoryEntryData::getOps() {
+inline DeviceOps *DirectoryEntryData::getOps() {
    return &_ops;
 }
 
-inline std::set< memory_space_id_t > const &NewNewDirectoryEntryData::getLocations() const {
+inline std::set< memory_space_id_t > const &DirectoryEntryData::getLocations() const {
    return _location;
 }
 
-inline memory_space_id_t NewNewDirectoryEntryData::getRootedLocation() const{
+inline memory_space_id_t DirectoryEntryData::getRootedLocation() const{
    return _rooted;
 }
 
 
-inline bool NewNewDirectoryEntryData::isRooted() const{
+inline bool DirectoryEntryData::isRooted() const{
    return _rooted != (memory_space_id_t) -1;
 }
 
-inline ProcessingElement *NewNewDirectoryEntryData::getFirstWriterPE() const {
+inline ProcessingElement *DirectoryEntryData::getFirstWriterPE() const {
    return _firstWriterPE;
 }
 
-inline void NewNewDirectoryEntryData::setBaseAddress(uint64_t addr) {
+inline void DirectoryEntryData::setBaseAddress(uint64_t addr) {
    _baseAddress = addr;
 }
 
-inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
+inline uint64_t DirectoryEntryData::getBaseAddress() const {
    return _baseAddress;
 }
 
-inline memory_space_id_t NewNewDirectoryEntryData::getHome() const {
+inline memory_space_id_t DirectoryEntryData::getHome() const {
    return _home;
 }
 
-inline void NewNewDirectoryEntryData::lock() {
+inline void DirectoryEntryData::lock() {
    while ( !_setLock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->processTransfers();
    }
 }
 
-inline void NewNewDirectoryEntryData::unlock() {
+inline void DirectoryEntryData::unlock() {
    _setLock.release();
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
+inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
+inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
    return getRegionDictionary( cd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
+inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
    return getRegionDictionary( addr );
 }
 
-inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
    dict->lockObject();
    dict->registerRegion( reg, missingParts, version );

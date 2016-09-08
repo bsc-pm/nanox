@@ -142,7 +142,7 @@ void Config::parseFiles ()
 
 void Config::registerEnvOption ( const std::string &option, const std::string &envVar )
 {
-	if ( _configOptions[option]->getEnvVar() != "" ) {
+   if ( _configOptions[option]->getEnvVar() != "" ) {
       message0("WARNING: EnvOption '" << envVar << "' overwrites '" << _configOptions[option]->getEnvVar()
          << "' previously defined for the config option '" << option << "'"
          << std::endl << "Try using 'Config::registerAlias() instead.");
@@ -152,7 +152,7 @@ void Config::registerEnvOption ( const std::string &option, const std::string &e
 
 void Config::registerArgOption ( const std::string &option, const std::string &arg )
 {
-	if ( _configOptions[option]->getArg() != "" ) {
+   if ( _configOptions[option]->getArg() != "" ) {
       message0("WARNING: ArgOption '" << arg << "' overwrites '" << _configOptions[option]->getArg()
          << "' previously defined for the config option '" << option << "'"
          << std::endl << "Try using 'Config::registerAlias() instead.");

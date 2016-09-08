@@ -21,6 +21,8 @@
  *  \brief 
  */
 #include "nanos.h"
+#include "config.h"
+#include "cpuset.hpp"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "debug.hpp"
@@ -48,6 +50,16 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
 {
    try {
       *res = sys.getSMPPlugin()->getBinding();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_binding, ( cpu_set_t *mask ))
+{
+   try {
+      sys.getSMPPlugin()->getCpuProcessMask().copyTo( mask );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -163,4 +175,15 @@ NANOS_API_DEF(void, nanos_set_watch_addr, (void *addr))
 NANOS_API_DEF(void, nanos_print_bt, (void))
 {
    printBt(std::cerr);
+}
+
+NANOS_API_DEF(void, nanos_enable_verbose_copies, (void))
+{
+   sys.setVerboseCopies(true);
+   sys.setVerboseDevOps(true);
+}
+NANOS_API_DEF(void, nanos_disable_verbose_copies, (void))
+{
+   sys.setVerboseCopies(false);
+   sys.setVerboseDevOps(false);
 }

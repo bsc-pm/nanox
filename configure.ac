@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.11a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.12a], [pm-tools@bsc.es])
 AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
@@ -319,7 +319,9 @@ AC_CONFIG_FILES([
                  src/arch/gpu/Makefile
                  src/arch/opencl/Makefile
                  src/arch/mpi/Makefile
+                 src/arch/mpi/nanox_compiler
                  src/utils/Makefile
+                 scripts/offload_slave_launch.sh
                  tests/Makefile
                  tests/gens/Makefile
                  tests/gens/api-generator

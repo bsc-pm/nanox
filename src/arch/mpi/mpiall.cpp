@@ -21,24 +21,16 @@
 #define MPIALL_HPP
 
 #include "mpiplugin.cpp"
-#include "mpiprocessor_fwd.hpp"
-#include "mpiprocessor_decl.hpp"
-#include "mpiprocessor.hpp"
 #include "mpiprocessor.cpp"
-#include "mpiremotenode_fwd.hpp"
-#include "mpiremotenode_decl.hpp"
-#include "mpiremotenode.hpp"
 #include "mpiremotenode.cpp"
-#include "mpidevice_decl.hpp"
-#include "mpidevice.hpp"
 #include "mpidevice.cpp"
-#include "mpidd.hpp"
 #include "mpidd.cpp"
-#include "mpithread.hpp"
 #include "mpithread.cpp"
-#include "nanos-mpi.h"
 #include "mpi-api.cpp"
 #include "mpiicpc_syms.cpp"
+#include "hostinfo.cpp"
+#include "command.cpp"
+#include "cachecommand.cpp"
 
 #endif	/* MPIALL_HPP */
 

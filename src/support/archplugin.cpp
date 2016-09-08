@@ -42,7 +42,7 @@ void ArchPlugin::initialize() {
 void ArchPlugin::finalize() {
    std::cerr << "Generic " << __FUNCTION__ << std::endl;
 }
-void ArchPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+void ArchPlugin::addPEs( PEList &pes ) const {
    std::cerr << "Generic " << __FUNCTION__ << std::endl;
 }
 void ArchPlugin::addDevices( DeviceList &devices ) const {
