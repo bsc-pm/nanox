@@ -1766,11 +1766,9 @@ void System::stopFirstThread( void ) {
 }
 
 void System::notifyIntoBlockingMPICall() {
-   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    static int created = 0;
    if ( _schedStats._createdTasks.value() > created ) {
       _inIdle = true;
-      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 4444 );)
       *myThread->_file << "created " << ( _schedStats._createdTasks.value() - created ) << " tasks. Send msg." << std::endl;
       created = _schedStats._createdTasks.value();
       //*myThread->_file << "Into blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
@@ -1779,9 +1777,7 @@ void System::notifyIntoBlockingMPICall() {
 }
 
 void System::notifyOutOfBlockingMPICall() {
-   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( _inIdle ) {
-      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       _inIdle = false;
    }
    //*myThread->_file << "Out of blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;

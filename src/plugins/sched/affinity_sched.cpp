@@ -178,7 +178,6 @@ namespace nanos {
          }
 
          void _getWithWD( WD *wd, BaseThread *thread ) {
-            NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
             memory_space_id_t mem_id = thread->runningOn()->getMemorySpaceId();
             //*myThread->_file << "computing WDs with base wd " << wd->getId() << " has numCopies " << wd->getNumCopies() << std::endl;
             //std::ostream &o = *thread->_file;
@@ -186,7 +185,6 @@ namespace nanos {
                int count=0;
                std::map< WD *, unsigned int > wd_count;
                std::map< GlobalRegionDictionary *, std::set< reg_t > > wd_regions;
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 137 );)
                for ( unsigned int idx = 0; idx < wd->getNumCopies(); idx += 1 ) {
                   global_reg_t allocated_reg;
                   sys.getSeparateMemory(mem_id).getCache().getAllocatableRegion(wd->_mcontrol._memCacheCopies[idx]._reg, allocated_reg);
@@ -236,9 +234,6 @@ namespace nanos {
                      }
                   }
                }
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9000000 + count );)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
             }
          }
 
@@ -249,8 +244,6 @@ namespace nanos {
                {
                   if ( _invSet.empty() ) {
                      //std::ostream &o = *thread->_file;
-                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 134 );)
                      this->_getWithWD( selected_wd, thread );
                      for ( _wd_set_t::const_iterator invIt = _invSet.begin(); invIt != _invSet.end(); invIt++ ) {
                         //this->_prepareToPush( thread, *invIt );
@@ -260,7 +253,6 @@ namespace nanos {
                      _invSet.insert(selected_wd);
                      //this->_prepareToPush( thread, selected_wd );
                      this->_remove(selected_wd);
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 0 );)
                   }
                   last_selected_wd = selected_wd;
                   selected_wd = NULL;
@@ -300,7 +292,6 @@ namespace nanos {
          }
 
          WD *fetch( BaseThread *thread ) {
-            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
             //std::ostream &o = *myThread->_file;
             memory_space_id_t id = thread->runningOn()->getMemorySpaceId();
             //o << "fetch for " << id << std::endl;
@@ -309,7 +300,6 @@ namespace nanos {
             if ( _topWDsQueue.empty() ) {
                if ( _lock.tryAcquire() ) {
                   //std::map<GlobalRegionDictionary *, std::set<reg_t> > const &map = sys.getSeparateMemory(id).getCache().getAllocatedRegionMap();
-                  //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 131 );)
                   while ( !_preQueue.empty() ) {
                      WD *preWD = _preQueue.pop_front( thread );
                      if ( preWD != NULL ) {
@@ -318,7 +308,6 @@ namespace nanos {
                         break;
                      }
                   }
-                  //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                   _tryComputeNextSet( thread );
 
                   // *myThread->_file << "topWDs queues: " << _topWDsQueue.size() << " invSet: " << _invSet.size() << std::endl;
@@ -326,7 +315,6 @@ namespace nanos {
                      //if ( _nextComputed.cswap( 1, 0 ) ) 
                      if ( _nextComputedLock.tryAcquire() ) 
                      {
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 132 );)
                         //o << "insert from invSet: { ";
                         for ( _wd_set_t::const_iterator it = _invSet.begin(); it != _invSet.end(); it++ ) {
                            WD *this_wd = *it;
@@ -338,16 +326,13 @@ namespace nanos {
                         }
                         //o << "}" << std::endl;
                         _invSet.clear();
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                         //*myThread->_file<<"done process inv set" << std::endl;
                         _nextComputedLock.release();
                      }
                   }
 
                   if ( _topWDsQueue.empty() && sys.getSeparateMemory(id).getCache().getCurrentAllocations() == 0 ) {
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 146 );)
                _scan(thread);
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                   }
                   top_wd = _topWDsQueue.pop_front( thread );
                   _lock.release();
@@ -377,7 +362,6 @@ namespace nanos {
          }
 
          void _scan( BaseThread *thread ) {
-            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
             memory_space_id_t id = thread->runningOn()->getMemorySpaceId();
             std::map<GlobalRegionDictionary *, std::set<reg_t> > const map = sys.getSeparateMemory(id).getCache().getAllocatedRegionMap();
             int inserted_wds = 0;
@@ -391,7 +375,6 @@ namespace nanos {
                   it != map.end(); it++ ) {
                _reg_map_t &reg_map = _wdMap[ it->first ];
                //it->first->lockContainer();
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
                //o << "\tobject " << it->first << " has regs: " <<  it->second.size() << std::endl;
                for ( std::set<reg_t>::iterator rit = it->second.begin(); rit != it->second.end(); rit++ ) {
                   //o << "\t\t"; it->first->printRegion(o, *rit ); o << std::endl;
@@ -418,9 +401,7 @@ namespace nanos {
                               this->_remove(wd);
                               //_wdCount -= 1;
                               //wd_set.erase(this_it);
-            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
                               _topWDsQueue.push_back(wd);
-            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                               inserted_wds += 1;
                            } else {
                               unsigned int current_count = wd_count[ wd ] + 1;
@@ -429,9 +410,7 @@ namespace nanos {
             //*myThread->_file << myThread->getId() << " remove (from scan(2)) wd " << wd->getId() << std::endl;
                                  this->_remove(wd);
                                  wd_count.erase( wd );
-            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
                                  _topWDsQueue.push_back(wd);
-            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                                  inserted_wds += 1;
                                  //_topWDs.erase( wd );
                               } else {
@@ -448,12 +427,8 @@ namespace nanos {
                   }
                }
                //it->first->releaseContainer();
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
             }
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 1000000 + inserted_wds );)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
             if ( selected_wd == NULL ) {
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 140 );)
                // if ( _topWDs.size() > 0 ) {
                //    selected_wd = *_topWDs.begin();
                // } else
@@ -473,7 +448,6 @@ namespace nanos {
                   selected_wd = this->_getRandomWD();
                   //o << "computed selected_wd w/random, wd "<< (selected_wd!=NULL ? selected_wd->getId() : 0) << std::endl;
                }
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
             }
          }
 
@@ -508,16 +482,11 @@ namespace nanos {
          }
 
          void prefetch( BaseThread *thread, WD &wd ) {
-            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
             if ( &wd == last_selected_wd ) {
                //*myThread->_file << "could prefetch!!" << std::endl;
                _lock.acquire();
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 144 );)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                last_selected_wd = NULL;
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 145 );)
                _scan(thread);
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
                _lock.release();
             }
          }
