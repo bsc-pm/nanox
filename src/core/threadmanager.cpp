@@ -723,15 +723,11 @@ void DlbThreadManager::acquireOne()
    if ( !team ) return;
 
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   size_t previous_mine_and_active = mine_and_active.size();
    if ( mine_and_active != *_cpuProcessMask ) {
-      // Only claim if some of my CPUs are not active
+      // We claim if some of our CPUs is lent
       DLB_ClaimCpus( 1 );
-   }
-
-   mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   if ( previous_mine_and_active == mine_and_active.size() ) {
-      // Only ask if DLB_ClaimCpus didn't give us anything
+   } else {
+      // Otherwise, just ask for 1 cpu
       DLB_UpdateResources_max( 1 );
    }
 }
