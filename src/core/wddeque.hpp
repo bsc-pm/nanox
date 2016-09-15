@@ -110,6 +110,7 @@ inline void WDDeque::push_front( WD** wds, size_t numElems )
 
 inline void WDDeque::push_back( WD** wds, size_t numElems )
 {
+   LockBlock lock( _lock );
    for( size_t i = 0; i < numElems; ++i )
    {
       WD* wd = wds[i];
@@ -745,6 +746,7 @@ inline void WDPriorityQueue<T>::push_front( WD** wds, size_t numElems )
 template<typename T>
 inline void WDPriorityQueue<T>::push_back( WD** wds, size_t numElems )
 {
+   LockBlock lock( _lock );
    fatal_cond( numElems == 0, "No reason to call push_back for 0 elements" );
    // Get the priority of the first one
   /* T firstPrio = (*wds)->getPriority();
