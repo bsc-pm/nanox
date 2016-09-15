@@ -235,9 +235,8 @@ namespace nanos {
          }
 
          // atomic access
-         void lock ();
-
-         void unlock ();
+         virtual void lock ();
+         virtual void unlock ();
 
          virtual void start () = 0;
          virtual void finish ();

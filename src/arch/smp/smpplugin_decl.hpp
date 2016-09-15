@@ -212,7 +212,7 @@ protected:
 
    void createWorker( ext::SMPProcessor *target, std::map<unsigned int, BaseThread *> &workers );
 
-   bool isValidMask( const CpuSet& mask );
+   bool isValidMask( const CpuSet& mask ) const;
 
    virtual bool asyncTransfersEnabled() const;
 };

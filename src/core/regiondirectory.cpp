@@ -588,7 +588,6 @@ void RegionDirectory::synchronize( WD &wd ) {
       //std::ostream &o = (*myThread->_file);
       o << "Synchronize directory from WD " << wd.getId() << " [" << ( ( wd.getDescription() != NULL) ? wd.getDescription() : "n/a" ) << "]" << std::endl;
    }
-             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( sys.getSeparateMemoryAddressSpacesCount() == 0 ) {
 
       std::map< uint64_t, MemoryMap< Object > * > objects_to_clear;
@@ -617,7 +616,6 @@ void RegionDirectory::synchronize( WD &wd ) {
                /*reg_t lol =*/ dict->registerRegion(1, missingParts, version);
                objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
                for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
                   //*myThread->_file << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
                   if ( mit->first == mit->second ) {
@@ -633,17 +631,14 @@ void RegionDirectory::synchronize( WD &wd ) {
                      }
                   }
                }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
             }
          }
          hb._lock.release();
       }
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 557 );)
       if ( wd.getDepth() == 0 ) {
          _unregisterObjects( objects_to_clear );
       }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       return;
    }
 

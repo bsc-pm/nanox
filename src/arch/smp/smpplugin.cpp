@@ -746,12 +746,13 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       for ( w_it = _workers.begin(); w_it != _workers.end(); ++w_it ) {
          BaseThread *thread = *w_it;
          if ( active_threads_checked < nthreads ) {
+            thread->lock();
             thread->tryWakeUp( team );
+            thread->unlock();
             active_threads_checked++;
          } else {
-            // \note Leave team inconditionally
             thread->lock();
-            thread->setLeaveTeam(true);
+            thread->setLeaveTeam( true );
             thread->sleep();
             thread->unlock();
          }
@@ -878,7 +879,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          // for each empty PE, create one thread and sleep it
          if ( target->getNumThreads() == 0 ) {
             createWorker( target, workers );
-            target->setActive(false);
             target->sleepThreads();
          }
       }
@@ -1015,10 +1015,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       sys.getPMInterface().setupWD( threadWD );
    }
 
-   bool SMPPlugin::isValidMask( const CpuSet& mask )
+   bool SMPPlugin::isValidMask( const CpuSet& mask ) const
    {
       // A mask is valid if it shares at least 1 bit with the system mask
-      return _cpuSystemMask.countCommon( mask ) > 0;
+      return (mask * _cpuSystemMask).size() > 0;
    }
 
    bool SMPPlugin::asyncTransfersEnabled() const {

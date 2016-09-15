@@ -34,12 +34,16 @@ class CpuSet
    private:
       cpu_set_t _mask;
    public:
-      // Constructors
+      // Default constructor
       CpuSet()
       {
          CPU_ZERO( &_mask );
       }
 
+      // Destructor
+      ~CpuSet() {}
+
+      // Copy constructors
       CpuSet( const cpu_set_t* cpu_set )
       {
          ::memcpy( &_mask, cpu_set, sizeof(cpu_set_t));
@@ -109,13 +113,6 @@ class CpuSet
       size_t size() const
       {
          return CPU_COUNT( &_mask );
-      }
-
-      size_t countCommon( const CpuSet& cpu_set ) const
-      {
-         cpu_set_t mask;
-         CPU_AND( &mask, &_mask, &cpu_set._mask );
-         return CPU_COUNT( &mask );
       }
 
       bool isSet(int n) const

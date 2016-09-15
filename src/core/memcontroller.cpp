@@ -75,16 +75,12 @@ void MemController::preInit( ) {
    if ( _VERBOSE_CACHE ) { 
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd->getId() << " " << (_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a")  << " NUM COPIES " << _wd->getNumCopies() << std::endl;
    }
-             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 131 );)
    // std::set<reg_key_t> dicts;
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( *_wd, index );
    //    dicts.insert( _memCacheCopies[ index ]._reg.key );
    }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 132 );)
              for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
                 _memCacheCopies[ index ]._reg.id = _memCacheCopies[ index ]._reg.key->obtainRegionId( _wd->getCopies()[index], *_wd, index );
                 DirectoryEntryData *entry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( _memCacheCopies[ index ]._reg.id );
@@ -93,8 +89,6 @@ void MemController::preInit( ) {
                    _memCacheCopies[ index ]._reg.key->setRegionData( _memCacheCopies[ index ]._reg.id, entry ); //preInit memCacheCopy._reg
                 }
              }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 133 );)
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
       uint64_t host_copy_addr = 0;
       if ( _wd->getParent() != NULL /* && !_wd->getParent()->_mcontrol._mainWd */ ) {
@@ -106,9 +100,7 @@ void MemController::preInit( ) {
          }
       }
    }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 134 );)
    //std::ostream &o = (*myThread->_file);
    //o << "### preInit wd " << _wd->getId() << std::endl;
    for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
@@ -155,7 +147,6 @@ void MemController::preInit( ) {
          }
       }
    }
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
 
 
@@ -167,7 +158,6 @@ void MemController::preInit( ) {
    //        o << std::endl; 
    //     }
    //  }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 135 );)
 
       for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
          std::list< std::pair< reg_t, reg_t > > &missingParts = _memCacheCopies[index]._locations;
@@ -203,7 +193,6 @@ void MemController::preInit( ) {
             }
          }
       }
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
 
    memory_space_id_t rooted_loc = 0;
@@ -352,20 +341,15 @@ void MemController::copyDataIn() {
       //}
    }
    
-             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 333 );)
       sys.allocLock();
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd->getId() << std::endl;
    for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd->getCopies()[index].isInput(), _wd->getCopies()[index].isOutput(), *_wd, index );
    }
       sys.allocUnlock();
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)
    _inOps->issue( _wd );
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          (*myThread->_file) << "### copyDataIn wd " << std::dec << _wd->getId() << " done" << std::endl;
@@ -384,10 +368,6 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
    //   }
    //}
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) { *(myThread->_file) << "### copyDataOut wd " << std::dec << _wd->getId() << " metadata set, not released yet" << std::endl; }
-
-             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
-
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 444 );)
 
    for ( unsigned int index = 0; index < _wd->getNumCopies(); index++ ) {
       if ( _wd->getCopies()[index].isOutput() ) {
@@ -424,7 +404,6 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd->getId() << std::endl;
       _outOps->issue( _wd );
    }
-             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 }
 
 uint64_t MemController::getAddress( unsigned int index ) const {

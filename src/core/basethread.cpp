@@ -43,10 +43,12 @@ void BaseThread::run ()
 
 void BaseThread::finish ()
 {
+   lock();
    if ( _status.has_team ) {
       setLeaveTeam(true);
       leaveTeam();
    }
+   unlock();
 }
 
 void BaseThread::addNextWD ( WD *next )
@@ -55,6 +57,8 @@ void BaseThread::addNextWD ( WD *next )
       debug("Add next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
       _nextWDs.push_back( next );
    }
+
+   sys.getThreadManager()->unblockThread(this);
 }
 
 WD * BaseThread::getNextWD ()
@@ -136,7 +140,10 @@ int BaseThread::getCpuId() const {
 
 void BaseThread::leaveTeam()
 {
-   ensure( this == myThread, "thread is not leaving team by itself" );
+   // It's allowed to make another thread leave the team as long as the target thread is blocked
+   ensure( this == myThread || _status.is_waiting || _status.has_joined,
+         "thread is not leaving team by itself" );
+
    if ( _teamData )
    {
       TeamData *td = _teamData;
@@ -144,10 +151,10 @@ void BaseThread::leaveTeam()
 
       td->getTeam()->removeThread( getTeamId() );
       _teamData = _teamData->getParentTeamData();
-      _status.has_team = _teamData != NULL;
-      _status.must_leave_team = false;
       delete td;
    }
+   _status.must_leave_team = false;
+   _status.has_team = _teamData != NULL;
 }
 
 void BaseThread::setLeaveTeam( bool leave )
@@ -158,6 +165,9 @@ void BaseThread::setLeaveTeam( bool leave )
       // either from my current team or from my next one
       ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
       if ( team ) team->removeExpectedThread( this );
+
+      // Only if this thread is already waiting to avoid waking it up only for that
+      if ( team && _status.is_waiting ) leaveTeam();
    }
 }
 
@@ -175,22 +185,28 @@ void BaseThread::sleep()
 
 void BaseThread::tryWakeUp( ThreadTeam *team )
 {
-   lock();
-   if ( isSleeping() ) {
-      // Thread is tagged to sleep. It may be already waiting or just tagged
-      reserve();
-      setNextTeam( team );
+   if ( _status.is_waiting ) {
+      // Thread is blocked. Set up team and wakeup
+      if ( getTeam() == NULL ) {
+         reserve();
+         if ( team ) setNextTeam( team );
+      }
       wakeup();
+   } else {
+      // Thread is running
+      if ( _status.must_sleep ) {
+         // Thread is only tagged. Fix flag.
+         _status.must_sleep = false;
+      }
+      if ( getTeam() == NULL ) {
+         // Thread is running but orphan
+         reserve();
+         setNextTeam( NULL );
+         if ( team ) sys.acquireWorker( team, this, true, false, false );
+      }
    }
-   if ( !isWaiting() && !getTeam() ) {
-      // Thread is already running but without team
-      reserve();
-      setNextTeam( NULL );
-      sys.acquireWorker( team, this, true, false, false );
-   }
-   // either way, this thread must be in the expected set
-   team->addExpectedThread(this);
-   unlock();
+   _status.must_leave_team = false;
+   if ( team ) team->addExpectedThread(this);
 }
 
 unsigned int BaseThread::getOsId() const {

@@ -1074,17 +1074,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
-   
-   /* DLB */
-   // In case the master have been busy crating tasks 
-   // every 10 tasks created I'll check if I must return claimed cpus
-   // or there are available cpus idle
-   if ( sys.getPMInterface().isMalleable() ) {
-      if(_atomicWDSeed.value()%10==0){
-         _threadManager->returnClaimedCpus();
-         _threadManager->acquireResourcesIfNeeded();
-      }
-   }
+
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
    }
@@ -1502,12 +1492,21 @@ void System::endTeam ( ThreadTeam *team )
 
 void System::waitUntilThreadsPaused ()
 {
+   // Wake up all workers to avoid deadlock
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      it->second->tryWakeUp(NULL);
+   }
+
    // Wait until all threads are paused
    _pausedThreadsCond.wait();
 }
 
 void System::waitUntilThreadsUnpaused ()
 {
+   // Wake up all workers to avoid deadlock
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      it->second->tryWakeUp(NULL);
+   }
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
 }
@@ -1783,11 +1782,9 @@ void System::stopFirstThread( void ) {
 }
 
 void System::notifyIntoBlockingMPICall() {
-   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    static int created = 0;
    if ( _schedStats._createdTasks.value() > created ) {
       _inIdle = true;
-      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 4444 );)
       *myThread->_file << "created " << ( _schedStats._createdTasks.value() - created ) << " tasks. Send msg." << std::endl;
       created = _schedStats._createdTasks.value();
       //*myThread->_file << "Into blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
@@ -1796,9 +1793,7 @@ void System::notifyIntoBlockingMPICall() {
 }
 
 void System::notifyOutOfBlockingMPICall() {
-   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( _inIdle ) {
-      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       _inIdle = false;
    }
    //*myThread->_file << "Out of blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;

@@ -41,6 +41,7 @@ namespace nanos {
       protected:
          Lock              _lock;
          bool              _initialized;
+         unsigned int      _maxThreads;
          const CpuSet     *_cpuProcessMask;     /* Read-only masks from SMPPlugin */
          const CpuSet     *_cpuActiveMask;
 
@@ -52,21 +53,23 @@ namespace nanos {
          virtual ~ThreadManager() {}
 
          virtual void init();
-         bool lastActiveThread( void );
+         bool lastActiveThread();
+         unsigned int getMaxThreads() { return _maxThreads; }
 
+         virtual bool isGreedy() { return false; }
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
                      , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
                      ) {}
+         virtual void acquireOne() {}
          virtual void acquireResourcesIfNeeded() {}
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
          virtual void blockThread(BaseThread*) {}
          virtual void unblockThread(BaseThread*) {}
-         virtual void unblockThreads(std::vector<BaseThread*>) {}
          virtual void processMaskChanged() {}
    };
 
@@ -82,7 +85,6 @@ namespace nanos {
    class BlockingThreadManager : public ThreadManager
    {
       private:
-         int               _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
          bool              _useBlock;
@@ -92,19 +94,20 @@ namespace nanos {
          BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup );
          virtual ~BlockingThreadManager();
          virtual void init();
+         virtual bool isGreedy();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
                      , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
                      );
+         virtual void acquireOne();
          virtual void acquireResourcesIfNeeded();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 
@@ -119,7 +122,6 @@ namespace nanos {
    class BusyWaitThreadManager : public ThreadManager
    {
       private:
-         int               _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
          unsigned int      _sleepTime;
@@ -131,19 +133,20 @@ namespace nanos {
                                  bool use_sleep, bool use_dlb, bool warmup );
          virtual ~BusyWaitThreadManager();
          virtual void init();
+         virtual bool isGreedy();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
                      , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
                      );
+         virtual void acquireOne();
          virtual void acquireResourcesIfNeeded();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 
@@ -157,7 +160,6 @@ namespace nanos {
    class DlbThreadManager : public ThreadManager
    {
       private:
-         int               _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
 
@@ -165,19 +167,20 @@ namespace nanos {
          DlbThreadManager( unsigned int num_yields, bool warmup );
          virtual ~DlbThreadManager();
          virtual void init();
+         virtual bool isGreedy();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
                      , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
                      );
+         virtual void acquireOne();
          virtual void acquireResourcesIfNeeded();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
-         virtual void unblockThreads(std::vector<BaseThread*>);
          virtual void processMaskChanged();
    };
 

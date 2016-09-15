@@ -539,11 +539,6 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
       _submittedWDs = NULL;
    }
    _depsDomain->finalizeAllReductions();
-   // Ask for more resources once we have finished creating tasks
-   if ( sys.getPMInterface().isMalleable() ) {
-      sys.getThreadManager()->returnClaimedCpus();
-      sys.getThreadManager()->acquireResourcesIfNeeded();
-   }
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
@@ -553,7 +548,6 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
    removeAllTaskReductions();
 
    _depsDomain->clearDependenciesDomain();
-
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
@@ -586,7 +580,7 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
 					   p_reducer,
 					   p_size,
 					   p_el_size,
-					   myThread->getTeam()->getFinalSize(),
+					   sys.getThreadManager()->getMaxThreads(),
 					   myThread->getCurrentWD()->getDepth(),
 					   sys._lazyPrivatizationEnabled
 					   )
@@ -613,7 +607,7 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
 					p_reducer,
 					p_reducer_orig_var,
 					array_descriptor_size,
-					myThread->getTeam()->getFinalSize(),
+					sys.getThreadManager()->getMaxThreads(),
 					myThread->getCurrentWD()->getDepth(),
 					sys._lazyPrivatizationEnabled
 					)
