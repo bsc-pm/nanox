@@ -90,7 +90,7 @@ void Scheduler::_submit ( WD &wd, bool force_queue )
     * idle after the WD submission. */
    ThreadManager *const thread_manager = sys.getThreadManager();
    if ( thread_manager->isGreedy()
-         && mythread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+         && mythread->getTeam()->getSchedulePolicy().testDequeue() ) {
       thread_manager->acquireOne();
    }
 
@@ -345,7 +345,7 @@ inline void Scheduler::idleLoop ()
 
       // Trigger a wakeup if there's more WDs in the queue
       if ( next && thread->getTeam() != NULL && thread_manager->isGreedy()
-            && thread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+            && thread->getTeam()->getSchedulePolicy().testDequeue() ) {
          thread_manager->acquireOne();
       }
 
@@ -476,7 +476,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             // Trigger a wakeup if there's more WDs in the queue
             if ( next && thread->getTeam() != NULL && thread_manager->isGreedy()
-                  && thread->getTeam()->getSchedulePolicy().tryDequeue() ) {
+                  && thread->getTeam()->getSchedulePolicy().testDequeue() ) {
                thread_manager->acquireOne();
             }
 

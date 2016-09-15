@@ -110,7 +110,7 @@ namespace nanos {
 
          /*! \brief Returns true if an element can be dequeued
           */
-         bool tryDequeue() { return !empty(); }
+         bool testDequeue() { return !empty(); }
 
    };
 
@@ -173,7 +173,7 @@ namespace nanos {
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
          int getNumConcurrentWDs();
-         bool tryDequeue();
+         bool testDequeue();
 
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
@@ -413,7 +413,7 @@ namespace nanos {
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
          int getNumConcurrentWDs();
-         bool tryDequeue();
+         bool testDequeue();
    };
 
 

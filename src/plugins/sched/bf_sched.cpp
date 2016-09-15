@@ -217,10 +217,10 @@ namespace nanos {
                return tdata._readyQueue->getNumConcurrentWDs();
             }
 
-            bool tryDequeue()
+            bool testDequeue()
             {
                TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
-               return tdata._readyQueue->tryDequeue();
+               return tdata._readyQueue->testDequeue();
             }
 
             bool usingPriorities() const

@@ -360,7 +360,7 @@ inline int WDDeque::getNumConcurrentWDs()
    return num_wds;
 }
 
-inline bool WDDeque::tryDequeue()
+inline bool WDDeque::testDequeue()
 {
    if ( _dq.empty() )
       return false;
@@ -1022,7 +1022,7 @@ inline int WDPriorityQueue<T>::getNumConcurrentWDs()
 }
 
 template<typename T>
-inline bool WDPriorityQueue<T>::tryDequeue()
+inline bool WDPriorityQueue<T>::testDequeue()
 {
    if ( _dq.empty() )
       return false;

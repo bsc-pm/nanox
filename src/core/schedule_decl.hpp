@@ -351,7 +351,7 @@ namespace nanos {
           * Ideally we would like to do _readyTasks > 0, but we must take
           * commutative WD's into account
           */
-         virtual bool tryDequeue()
+         virtual bool testDequeue()
          {
             return false;
          }
