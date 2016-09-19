@@ -158,7 +158,7 @@ public:
    std::string getDeviceName();
    std::string getDeviceVendor();
    
-   
+   bool outOfOrderSupport(); 
 
 public:
    cl_int getDeviceType( cl_device_type &deviceType )

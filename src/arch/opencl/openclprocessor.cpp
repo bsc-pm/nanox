@@ -104,6 +104,12 @@ OpenCLAdapter::~OpenCLAdapter()
   }
 }
 
+bool OpenCLAdapter::outOfOrderSupport(){
+   cl_command_queue_properties ccp;
+   clGetDeviceInfo(_dev, CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), &ccp, NULL);
+   return (ccp & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) > 0;
+}
+
 void OpenCLAdapter::initialize(cl_device_id dev)
 {
    cl_int errCode;
@@ -135,14 +141,19 @@ void OpenCLAdapter::initialize(cl_device_id dev)
       if( errCode != CL_SUCCESS )
          fatal0( "Cannot create a command queue" );
    }
+ 
+
+   // Setting queue properties
+   cl_command_queue_properties queue_properties = outOfOrderSupport() ? CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE : 0;
+
    _currQueue=0;
-   _copyInQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
+   _copyInQueue = clCreateCommandQueue( _ctx, _dev, queue_properties , &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue for in transfers" );
-   _copyOutQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
+   _copyOutQueue = clCreateCommandQueue( _ctx, _dev, queue_properties, &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue" );
-   _profilingQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_PROFILING_ENABLE , &errCode );
+   _profilingQueue = clCreateCommandQueue( _ctx, _dev, queue_properties | CL_QUEUE_PROFILING_ENABLE , &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue for profiling" );
 
@@ -164,6 +175,19 @@ void OpenCLAdapter::setSynchronization( std::string &vendor )
 		_synchronize = true;
 	} else 	if ( vendor.find("ARM") != std::string::npos ) {
 		_synchronize = true;
+	}
+
+	//Altera FPGA return werid things in the vendor string
+	//Insted, we check that we are using Altera OpenCL
+	char* value;
+	size_t valueSize;
+	clGetDeviceInfo(_dev, CL_DEVICE_VERSION, 0, NULL, &valueSize);
+	value = (char*) malloc(valueSize);
+	clGetDeviceInfo(_dev, CL_DEVICE_VERSION, valueSize, value, NULL);
+	std::string oclVersion(value);
+	free(value);
+	if( oclVersion.find("Altera") !=std::string::npos ){
+	   _synchronize = true;
 	}
 }
 
@@ -789,14 +813,6 @@ void OpenCLAdapter::execKernel(void* oclKernel,
                                        NULL,
                                        &oclEvent->getCLEvent()
                                      );
-
-   if ( _synchronize )
-	   clWaitForEvents(1, &oclEvent->getCLEvent());
-
-   if ( currQueue == _currQueue ) {
-      _currQueue = ( _currQueue + 1 )  % nanos::ext::OpenCLConfig::getPrefetchNum();
-   }
-                                     
    if( errCode != CL_SUCCESS )
    {
       // Don't worry about exit code, we are cleaning an error.
@@ -805,6 +821,14 @@ void OpenCLAdapter::execKernel(void* oclKernel,
       oclEvent->setCLKernel(NULL);
       fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
    }
+
+   if ( _synchronize )
+	   clWaitForEvents(1, &oclEvent->getCLEvent());
+
+   if ( currQueue == _currQueue ) {
+      _currQueue = ( _currQueue + 1 )  % nanos::ext::OpenCLConfig::getPrefetchNum();
+   }
+                                     
 }
 
 void OpenCLAdapter::profileKernel(void* oclKernel,
