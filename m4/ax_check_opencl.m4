@@ -243,7 +243,7 @@ OpenCL 1.1 or greater is required.
 
 ])dnl with_opencl
 
-AS_IF([ test "$ac_cv_opencl_altera" = yes ],[opencl=yes],[opencl=no])
+AS_IF([test "$ac_cv_opencl_altera" = yes], [opencl=yes])
 
 AS_IF([test $opencl = yes],[
     ARCHITECTURES="$ARCHITECTURES opencl"
