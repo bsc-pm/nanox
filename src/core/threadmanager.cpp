@@ -297,12 +297,13 @@ void BlockingThreadManager::acquireOne()
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
 
    // Check first that we have some owned CPU not active
-   // and that we don't have reach the maximum number of threads
-   if ( mine_and_active != *_cpuProcessMask && _cpuActiveMask->size() < _maxThreads ) {
+   if ( mine_and_active != *_cpuProcessMask ) {
       // Iterate over default cpus not running and wake them up if needed
-      for ( unsigned int i=0; i<_maxThreads; ++i ) {
-         if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
-            new_active_cpus.set(i);
+      for ( CpuSet::const_iterator it=_cpuProcessMask->begin();
+            it!=_cpuProcessMask->end(); ++it ) {
+         int cpu = *it;
+         if ( !new_active_cpus.isSet(cpu) ) {
+            new_active_cpus.set(cpu);
             sys.setCpuActiveMask( new_active_cpus );
             break;
          }
@@ -340,9 +341,11 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
          if ( mine_and_active != *_cpuProcessMask ) {
             bool dirty = false;
             // Iterate over default cpus not running and wake them up if needed
-            for ( unsigned int i=0; i<_maxThreads; ++i ) {
-               if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
-                  new_active_cpus.set(i);
+            for ( CpuSet::const_iterator it=_cpuProcessMask->begin();
+                  it!=_cpuProcessMask->end(); ++it ) {
+               int cpu = *it;
+               if ( !new_active_cpus.isSet(cpu) ) {
+                  new_active_cpus.set(cpu);
                   dirty = true;
                   if ( --ready_tasks == 0 )
                      break;
