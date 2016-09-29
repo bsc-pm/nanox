@@ -29,16 +29,43 @@
 #include "compatibility.hpp"
 
 namespace nanos {
+
 class CpuSet
 {
+   public:
+      class CpuSetConstIterator
+      {
+         private:
+            const CpuSet &_cpuset;
+            size_t _pos;
+         public:
+            CpuSetConstIterator( const CpuSet &cpuset, size_t pos )
+               : _cpuset(cpuset), _pos(pos) {}
+            CpuSetConstIterator( const CpuSetConstIterator& it )
+               : _cpuset(it._cpuset), _pos(it._pos) {}
+            ~CpuSetConstIterator() {}
+
+            size_t operator*() const { return _pos; }
+            CpuSetConstIterator& operator++() { forward(); return *this; }
+            CpuSetConstIterator& operator--() { backward(); return *this; }
+
+            friend bool operator==(
+                  const CpuSetConstIterator& lhs, const CpuSetConstIterator& rhs );
+            friend bool operator!=(
+                  const CpuSetConstIterator& lhs, const CpuSetConstIterator& rhs );
+
+         private:
+            void forward();
+            void backward();
+      };
+
+      typedef CpuSetConstIterator const_iterator;
+
    private:
       cpu_set_t _mask;
    public:
       // Default constructor
-      CpuSet()
-      {
-         CPU_ZERO( &_mask );
-      }
+      CpuSet(): _mask() {}
 
       // Destructor
       ~CpuSet() {}
@@ -159,6 +186,12 @@ class CpuSet
 
       // verbose methods
       std::string toString() const;
+
+      // iterator
+      size_t first() const;
+      size_t last() const;
+      const_iterator begin() const { return const_iterator( *this, first() ); }
+      const_iterator end() const { return const_iterator( *this, last() ); }
 };
 
 
@@ -202,6 +235,16 @@ inline std::ostream& operator<<(std::ostream& os, const CpuSet& cpu_set)
 {
    os << cpu_set.toString();
    return os;
+}
+
+inline bool operator==( const CpuSet::const_iterator& lhs, const CpuSet::const_iterator& rhs )
+{
+   return (lhs._cpuset == rhs._cpuset) && (lhs._pos == rhs._pos);
+}
+
+inline bool operator!=( const CpuSet::const_iterator& lhs, const CpuSet::const_iterator& rhs )
+{
+   return !( rhs == lhs );
 }
 
 } // namespace nanos

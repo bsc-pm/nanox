@@ -37,13 +37,13 @@ std::string CpuSet::toString() const
 
    bool entry_made = false;
    size_t max = OS::getMaxProcessors();
-   for ( size_t i=0; i<max; i++ ) {
+   for ( size_t i=0; i<max; ++i ) {
       if ( isSet(i) ) {
 
          // Find range size
          size_t run = 0;
-         for ( size_t j=i+1; j<max; j++ ) {
-            if ( isSet(j) ) run++;
+         for ( size_t j=i+1; j<max; ++j ) {
+            if ( isSet(j) ) ++run;
             else break;
          }
 
@@ -59,7 +59,7 @@ std::string CpuSet::toString() const
             s << i;
          } else if ( run == 1 ) {
             s << i << "," << i+1;
-            i++;
+            ++i;
          } else {
             s << i << "-" << i+run;
             i+=run;
@@ -68,4 +68,55 @@ std::string CpuSet::toString() const
    }
 
    return s.str();
+}
+
+size_t CpuSet::first() const
+{
+   size_t first = 0;
+   if ( size() > 0 ) {
+      while ( !isSet(first) ) { ++first; }
+   }
+   return first;
+}
+
+size_t CpuSet::last() const
+{
+   size_t last = 0;
+   size_t remaining = size();
+   size_t max = OS::getMaxProcessors();
+   for ( size_t i=0; i<max && remaining>0; ++i ) {
+      if ( isSet(i) ) {
+         last = i+1;
+         --remaining;
+      }
+   }
+   return last;
+}
+
+void CpuSet::const_iterator::forward()
+{
+   // Do not go forward if _pos is not pointing to a set bit
+   if ( !_cpuset.isSet(_pos) ) return;
+
+   size_t i;
+   size_t max = OS::getMaxProcessors();
+   for ( i=_pos+1; i<max; ++i ) {
+      if ( _cpuset.isSet(i) ) {
+         break;
+      }
+   }
+   // Update if i is valid, otherwise last+1
+   _pos = (i<max) ? i : _pos + 1;
+}
+
+void CpuSet::const_iterator::backward()
+{
+   size_t i = _pos;
+   do {
+      --i;
+      if ( _cpuset.isSet(i) ) {
+         _pos = i;
+         break;
+      }
+   } while (i!=0);
 }
