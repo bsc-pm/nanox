@@ -72,25 +72,25 @@ std::string CpuSet::toString() const
 
 size_t CpuSet::first() const
 {
-   size_t first = 0;
+   size_t first_cpu = 0;
    if ( size() > 0 ) {
-      while ( !isSet(first) ) { ++first; }
+      while ( !isSet(first_cpu) ) { ++first_cpu; }
    }
-   return first;
+   return first_cpu;
 }
 
 size_t CpuSet::last() const
 {
-   size_t last = 0;
+   size_t last_cpu = 0;
    size_t remaining = size();
    size_t max = OS::getMaxProcessors();
    for ( size_t i=0; i<max && remaining>0; ++i ) {
       if ( isSet(i) ) {
-         last = i+1;
+         last_cpu = i+1;
          --remaining;
       }
    }
-   return last;
+   return last_cpu;
 }
 
 void CpuSet::const_iterator::forward()
