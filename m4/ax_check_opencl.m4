@@ -176,14 +176,20 @@ AS_IF([test "x$with_opencl" != xno],[
 	   ac_cv_opencl_device=$(cat conftest_device_version.out)
           ],
           [
-          AS_IF([ $(cat conftest_device_version.out | grep -q Altera) ],[
-             ac_cv_opencl_version=$(cat conftest.out),
-             ac_cv_opencl_device=$(cat conftest_device_version.out)
-          ],  
-             [AC_MSG_FAILURE([
-------------------------------
+            AS_IF([ $(cat conftest_device_version.out | grep -q Altera) ],[
+               ac_cv_opencl_version=$(cat conftest.out),
+               ac_cv_opencl_device=$(cat conftest_device_version.out)
+            ],
+            [
+               AS_IF([test "x$user_requested" = xyes],
+               [
+                  AC_MSG_FAILURE([
+------------------------------------
 OpenCL version test execution failed
-------------------------------])
+------------------------------------])
+               ],[
+                  opencl=no
+               ])
              ])
           ],
           [
