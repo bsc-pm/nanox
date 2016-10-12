@@ -170,8 +170,12 @@ namespace nanos {
 
            WD * atIdle ( BaseThread *thread, int numSteal )
            {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              return tdata._readyQueue->pop_front( thread );
+              WD * next = thread->getNextWD();
+              if (!next) {
+                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+                 next = tdata._readyQueue->pop_front( thread );
+              }
+              return next;
            }
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
