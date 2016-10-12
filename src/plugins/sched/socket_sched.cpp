@@ -669,13 +669,13 @@ namespace nanos {
 
             virtual WD * atIdle ( BaseThread *thread, int numSteal )
             {
+               WorkDescriptor * wd = thread->getNextWD();
+               if ( wd ) return wd;
+
                // If stealing has been enabled and its time to steal
                if ( numSteal && _steal )
                   // Try...
                   return stealWork( thread );
-               
-               // Otherwise, normal at idle operation
-               WD* wd = NULL;
                
                // Get the physical node of this thread
                unsigned node = thread->runningOn()->getNumaNode();

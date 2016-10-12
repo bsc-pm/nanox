@@ -179,7 +179,10 @@ namespace nanos {
        */
       WD * DistributedBFPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
-         WorkDescriptor * wd;
+         WorkDescriptor * wd = thread->getNextWD();
+
+         if ( wd ) return wd;
+
          WorkDescriptor * next = NULL; 
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
