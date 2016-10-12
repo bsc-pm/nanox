@@ -790,6 +790,9 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
       //! \note Getting Programming Model interface data
       WD &mainWD = *myThread->getCurrentWD();
+
+      mainWD.tieTo(*thread);
+
       if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
          char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
          sys.getPMInterface().initInternalData( data );
@@ -802,8 +805,16 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    void SMPPlugin::expelCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
    {
+      BaseThread *thread = getMyThreadSafe();
+
+      thread->lock();
+
+      thread->setLeaveTeam(true);
+      thread->leaveTeam( );
+      thread->unlock();
+
       if ( isWorker ) {
-         workers.erase( myThread->getId() );
+         workers.erase( thread->getId() );
       }
    }
 
