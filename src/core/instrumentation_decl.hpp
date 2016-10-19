@@ -726,7 +726,9 @@ namespace nanos {
           */
          void setDefaultLevel ( nanos_event_level_t level );
 
-         void printEventVerbosity ( void );
+         /*! \brief Get the list of enabled and disabled events
+          */
+         std::string getSummary();
 
          /*! \brief Enable/disable all events prefixed with prefix
           */

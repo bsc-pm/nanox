@@ -233,30 +233,6 @@ inline void InstrumentationDictionary::switchEventPrefix ( const char *prefix, n
    }
 }
 
-inline void InstrumentationDictionary::printEventVerbosity ( void )
-{
-   KeyMapIterator it = _keyMap.begin();
-
-   LockBlock lock( _lock );
-   std::cout << "MSG: [?] === Enabled events:"; 
-   int items = 0;
-   while ( it != _keyMap.end() ) {
-      if (items == 0 ) {items = 3; std::cout << std::endl; std::cout << "MSG: [?] ===  | ";}
-      if ( it->second->getId() ) {std::cout << it->first << "(" << it->second->getId() << "), "; items--; }
-      it++;
-   }
-   std::cout << std::endl; 
-
-   it = _keyMap.begin();
-   std::cout << "MSG: [?] === Disabled events:"; 
-   items = 0;
-   while ( it != _keyMap.end() ) {
-      if (items == 0 ) {items = 3; std::cout << std::endl; std::cout << "MSG: [?] ===  | ";}
-      if ( it->second->getId() == 0 ) { std::cout << it->first << ", "; items--; }
-      it++;
-   }
-   std::cout << std::endl; 
-}
 inline void InstrumentationDictionary::normalizeLevels ( void )
 {
    KeyMapIterator it = _keyMap.begin();

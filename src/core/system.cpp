@@ -1523,7 +1523,7 @@ void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads,
     }
 }
 
-void System::environmentSummary( void )
+void System::environmentSummary()
 {
    /* Get Prog. Model string */
    std::string prog_model;
@@ -1540,36 +1540,47 @@ void System::environmentSummary( void )
          break;
    }
 
-   message0( "========== Nanos++ Initial Environment Summary ==========" );
-   message0( "=== PID:                 " << getpid() );
-   message0( "=== Num. worker threads: " << _workers.size() );
-   message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
-   message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
-   message0( "=== Prog. Model:         " << prog_model );
-   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") << " / " << ( _defSchedulePolicy->usingPriorities() ? "enabled" : "disabled" ) );
+   std::ostringstream output;
+   output << "Nanos++ Initial Environment Summary" << std::endl;
+   output << "==========================================================" << std::endl;
+   output << "===================== Global Summary =====================" << std::endl;
+   output << "=== Nanos++ version:     " << PACKAGE_VERSION << std::endl;
+   output << "=== PID:                 " << getpid() << std::endl;
+   output << "=== Num. worker threads: " << _workers.size() << std::endl;
+   output << "=== System CPUs:         " << _smpPlugin->getBindingMaskString() << std::endl;
+   output << "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() << std::endl;
+   output << "=== Prog. Model:         " << prog_model << std::endl;
+   output << "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed")
+      << " / " << (_defSchedulePolicy->usingPriorities() ? "Enabled" : "Disabled") << std::endl;
 
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it ) {
-      message0( "=== Plugin:              " << (*it)->getName() );
-      message0( "===  | PEs:              " << (*it)->getNumPEs() );
-      message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it ) {
+      output << "=== Plugin:              " << (*it)->getName() << std::endl;
+      output << "===  | PEs:              " << (*it)->getNumPEs() << std::endl;
+      output << "===  | Worker Threads:   " << (*it)->getNumWorkers() << std::endl;
    }
 
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->getInstrumentationDictionary()->printEventVerbosity(); )
+   output << _mainTeam->getSchedulePolicy().getSummary();
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   output << sys.getInstrumentation()->getInstrumentationDictionary()->getSummary();
+#endif
 
-   message0( "=========================================================" );
+   output << "==========================================================" << std::endl;
+   message0 ( output.str() );
 
    // Get start time
    _summaryStartTime = time(NULL);
 }
 
-void System::executionSummary( void )
+void System::executionSummary()
 {
-   time_t seconds = time(NULL) -_summaryStartTime;
-   message0( "============ Nanos++ Final Execution Summary ============" );
-   message0( "=== Application ended in " << seconds << " seconds" );
-   message0( "=== " << getCreatedTasks() << " tasks have been executed" );
-   message0( "=========================================================" );
+   time_t seconds = time(NULL) - _summaryStartTime;
+   std::ostringstream output;
+   output << "Nanos++ Final Execution Summary" << std::endl;
+   output << "==========================================================" << std::endl;
+   output << "=== Application ended in " << seconds << " seconds" << std::endl;
+   output << "=== " << getCreatedTasks() << " tasks have been executed" << std::endl;
+   output << "==========================================================" << std::endl;
+   message0( output.str() );
 }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED

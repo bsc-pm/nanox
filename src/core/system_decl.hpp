@@ -269,10 +269,12 @@ namespace nanos {
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
 
-         //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
+         /*! \brief Prints the Environment Summary (resources, plugins, prog. model, etc.)
+          */
          void environmentSummary( void );
 
-         //* \brief Prints the Execution Summary (time, completed tasks, etc.) at the end of the execution
+         /*! \brief Prints the Execution Summary (time, completed tasks, etc.)
+          */
          void executionSummary( void );
 
       public:
@@ -372,8 +374,6 @@ namespace nanos {
 
          int nextThreadId ();
          unsigned int nextPEId ();
-
-         bool isSummaryEnabled() const;
 
          /*!
           * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.

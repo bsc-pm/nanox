@@ -370,6 +370,11 @@ namespace nanos {
          {
             return false;
          }
+
+         virtual std::string getSummary() const
+         {
+            return std::string();
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

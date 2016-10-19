@@ -502,6 +502,33 @@ Instrumentation::PtP::PtP ( bool start, nanos_event_domain_t domain, nanos_event
                      //      //}
                      //   }
                      //}
-                   }
+}
+
+std::string InstrumentationDictionary::getSummary()
+{
+   LockBlock lock( _lock );
+   std::ostringstream s;
+   s << "================ Instrumentation Summary =================" << std::endl;
+   s << "=== Enabled events:";
+   int items = 0;
+   KeyMapIterator it = _keyMap.begin();
+   while ( it != _keyMap.end() ) {
+      if ( items == 0 ) { items = 3; s << std::endl; s << "===  | "; }
+      if ( it->second->getId() ) { s << it->first << "(" << it->second->getId() << "), "; items--; }
+      it++;
+   }
+   s << std::endl;
+
+   s << "=== Disabled events:";
+   items = 0;
+   it = _keyMap.begin();
+   while ( it != _keyMap.end() ) {
+      if ( items == 0 ) { items = 3; s << std::endl; s << "===  | "; }
+      if ( it->second->getId() == 0 ) { s << it->first << ", "; items--; }
+      it++;
+   }
+   s << std::endl;
+   return s.str();
+}
 
 #endif
