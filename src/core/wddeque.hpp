@@ -373,7 +373,7 @@ inline bool WDDeque::testDequeue()
    LockBlock lock( _lock );
    for ( it = _dq.begin(); it != _dq.end(); ++it ) {
       const WD &wd = *(WD *)*it;
-      if ( wd.getConcurrencyLevel( comm_accesses ) > 1 )
+      if ( wd.getConcurrencyLevel( comm_accesses ) > 0 )
          return true;
    }
 
@@ -1036,7 +1036,7 @@ inline bool WDPriorityQueue<T>::testDequeue()
    LockBlock lock( _lock );
    for ( it = _dq.begin(); it != _dq.end(); ++it ) {
       const WD &wd = *(WD *)*it;
-      if ( wd.getConcurrencyLevel( comm_accesses ) > 1 )
+      if ( wd.getConcurrencyLevel( comm_accesses ) > 0 )
          return true;
    }
 

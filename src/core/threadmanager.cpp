@@ -289,9 +289,9 @@ void BlockingThreadManager::acquireOne()
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   if ( _cpuActiveMask->size() == _maxThreads ) return;
-
    LockBlock Lock( _lock );
+
+   if ( _cpuActiveMask->size() >= _maxThreads ) return;
 
    CpuSet new_active_cpus = *_cpuActiveMask;
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;

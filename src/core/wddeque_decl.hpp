@@ -110,8 +110,8 @@ namespace nanos {
 
          /*! \brief Returns true if an element can be dequeued
           */
-         bool testDequeue() { return !empty(); }
 
+         virtual bool testDequeue() { return !empty(); }
    };
 
    class WDDeque : public WDPool
