@@ -33,18 +33,15 @@ _switchStacks:
 	movq    %rsp, %rdx
 	movq    %rax, %rsp
 	
-	/* arguments in %rdi=arg1, %rsi=arg2, %rdx=new sp */
-	call	*%rcx
-	
 	popq	%rbx
 	popq	%r12
 	popq	%r13
 	popq	%r14
 	popq	%r15
 	popq    %rbp
-	
-	ret
-	hlt
+
+	/* arguments in %rdi=arg1, %rsi=arg2, %rdx=new sp */
+	jmp	*%rcx
 .Lfe0:
 	.size	switchStacks, .Lfe0-switchStacks
 	.size	switchStacks, .Lfe0-switchStacks
