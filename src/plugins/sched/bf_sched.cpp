@@ -215,12 +215,6 @@ namespace nanos {
                }
             }
 
-            int getNumConcurrentWDs()
-            {
-               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
-               return tdata._readyQueue->getNumConcurrentWDs();
-            }
-
             bool testDequeue()
             {
                TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();

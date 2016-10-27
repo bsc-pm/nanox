@@ -341,26 +341,6 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    _nelems -= decrement;
 }
 
-inline int WDDeque::getNumConcurrentWDs()
-{
-   if ( _dq.empty() )
-      return 0;
-
-   // Cumulative wd counter
-   int num_wds = 0;
-   // Auxiliary map to count successful commutative accesses
-   std::map<WD**, WD*> comm_accesses;
-   // ReadyQueue iterator
-   WDDeque::BaseContainer::const_iterator it;
-   LockBlock lock( _lock );
-   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      const WD &wd = *(WD *)*it;
-      num_wds += wd.getConcurrencyLevel( comm_accesses );
-   }
-
-   return num_wds;
-}
-
 inline bool WDDeque::testDequeue()
 {
    if ( _dq.empty() )
@@ -1000,27 +980,6 @@ inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks, int decrement 
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems -= decrement;
    fatal_cond( _dq.size() != _nelems, "List size does not match queue size (decrease)" );
-}
-
-template<typename T>
-inline int WDPriorityQueue<T>::getNumConcurrentWDs()
-{
-   if ( _dq.empty() )
-      return 0;
-
-   // Cumulative wd counter
-   int num_wds = 0;
-   // Auxiliary map to count successful commutative accesses
-   std::map<WD**, WD*> comm_accesses;
-   // ReadyQueue iterator
-   WDPQ::BaseContainer::const_iterator it;
-   LockBlock lock( _lock );
-   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      const WD &wd = *(WD *)*it;
-      num_wds += wd.getConcurrencyLevel( comm_accesses );
-   }
-
-   return num_wds;
 }
 
 template<typename T>

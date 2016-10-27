@@ -342,11 +342,6 @@ namespace nanos {
             return true;
          }
 
-         /*! \brief Returns the number of ready tasks that could be run simultaneously
-          * Tied and commutative WDs in the queue could decrease this number.
-          */
-         virtual int getNumConcurrentWDs();
-
          /*! \brief Returns true if there's some WD that can be dequeued.
           */
          virtual bool testDequeue();

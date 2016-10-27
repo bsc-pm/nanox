@@ -321,55 +321,15 @@ void BlockingThreadManager::acquireOne()
 
 void BlockingThreadManager::acquireResourcesIfNeeded()
 {
+   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+                              " before opening OpenMP parallels");
+
    if ( !_initialized ) return;
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
-
-   ThreadTeam *team = getMyThreadSafe()->getTeam();
-
-   if ( !team ) return;
-
+   LockBlock Lock( _lock );
    if ( _useDLB ) DLB_Update();
-
-   if ( _isMalleable ) {
-      /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
-      if ( ready_tasks > 1 ) {
-
-         NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
-
-         LockBlock Lock( _lock );
-
-         CpuSet new_active_cpus = *_cpuActiveMask;
-         CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-
-         // Check first that we have some owned CPU not active
-         if ( mine_and_active != *_cpuProcessMask ) {
-            bool dirty = false;
-            // Iterate over default cpus not running and wake them up if needed
-            for ( CpuSet::const_iterator it=_cpuProcessMask->begin();
-                  it!=_cpuProcessMask->end(); ++it ) {
-               int cpu = *it;
-               if ( !new_active_cpus.isSet(cpu) ) {
-                  new_active_cpus.set(cpu);
-                  dirty = true;
-                  if ( --ready_tasks == 0 )
-                     break;
-               }
-            }
-            if (dirty) {
-               sys.setCpuActiveMask( new_active_cpus );
-            }
-         }
-      }
-   } else {
-      /* OpenMP */
-      LockBlock Lock( _lock );
-      if ( *_cpuProcessMask != *_cpuActiveMask ) {
-         sys.setCpuActiveMask( *_cpuProcessMask );
-      }
+   if ( *_cpuProcessMask != *_cpuActiveMask ) {
+      sys.setCpuActiveMask( *_cpuProcessMask );
    }
 }
 
@@ -540,52 +500,16 @@ void BusyWaitThreadManager::acquireOne()
 
 void BusyWaitThreadManager::acquireResourcesIfNeeded ()
 {
+   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+                              " before opening OpenMP parallels");
+
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
+   if ( !myThread->isMainThread() ) return;
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
-
-   BaseThread *thread = getMyThreadSafe();
-   ThreadTeam *team = thread->getTeam();
-
-   if ( !thread->isMainThread() ) return;
-   if ( !team ) return;
-
+   LockBlock Lock( _lock );
    DLB_Update();
-
-   if ( _isMalleable ) {
-      /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
-      if ( ready_tasks > 0 ) {
-
-         NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
-
-         LockBlock Lock( _lock );
-
-         int needed_resources = ready_tasks - team->getFinalSize();
-         if ( needed_resources > 0 ) {
-            // If ready tasks > num threads I claim my cpus being used by someone else
-            CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-            if ( mine_and_active != *_cpuProcessMask ) {
-               // Only claim if some of my CPUs are not active
-               DLB_ClaimCpus( needed_resources );
-            }
-
-            // If ready tasks > num threads I check if there are available cpus
-            needed_resources = ready_tasks - team->getFinalSize();
-            if ( needed_resources > 0 ){
-               DLB_UpdateResources_max( needed_resources );
-            }
-         }
-      }
-
-   } else {
-      /* OpenMP */
-      LockBlock Lock( _lock );
-      DLB_UpdateResources();
-   }
+   DLB_UpdateResources();
 }
 
 void BusyWaitThreadManager::returnClaimedCpus()
@@ -758,49 +682,14 @@ void DlbThreadManager::acquireOne()
 
 void DlbThreadManager::acquireResourcesIfNeeded ()
 {
+   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+                              " before opening OpenMP parallels");
+
    if ( !_initialized ) return;
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
-
-   ThreadTeam *team = getMyThreadSafe()->getTeam();
-
-   if ( !team ) return;
-
+   LockBlock Lock( _lock );
    DLB_Update();
-
-   if ( _isMalleable ) {
-      /* OmpSs*/
-      int ready_tasks = team->getSchedulePolicy().getNumConcurrentWDs();
-      if ( ready_tasks > 0 ) {
-
-         NANOS_INSTRUMENT( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
-
-         LockBlock Lock( _lock );
-
-         int needed_resources = ready_tasks - team->getFinalSize();
-         if ( needed_resources > 0 ) {
-            // If ready tasks > num threads I claim my cpus being used by someone else
-            CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-            if ( mine_and_active != *_cpuProcessMask ) {
-               // Only claim if some of my CPUs are not active
-               DLB_ClaimCpus( needed_resources );
-            }
-
-            // If ready tasks > num threads I check if there are available cpus
-            needed_resources = ready_tasks - team->getFinalSize();
-            if ( needed_resources > 0 ){
-               DLB_UpdateResources_max( needed_resources );
-            }
-         }
-      }
-
-   } else {
-      /* OpenMP */
-      LockBlock Lock( _lock );
-      DLB_UpdateResources();
-   }
+   DLB_UpdateResources();
 }
 
 void DlbThreadManager::returnClaimedCpus() {

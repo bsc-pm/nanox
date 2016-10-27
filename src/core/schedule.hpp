@@ -165,11 +165,6 @@ inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t num
    }
 }
 
-inline int SchedulePolicy::getNumConcurrentWDs()
-{
-   return sys.getReadyNum();
-}
-
 inline bool SchedulePolicy::testDequeue()
 {
    // If a Scheduler does not define this method, we assume
