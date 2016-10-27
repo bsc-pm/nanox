@@ -263,19 +263,27 @@ void BlockingThreadManager::idle( int& yields
    BaseThread *thread = getMyThreadSafe();
 
    if ( yields > 0 ) {
-      NANOS_INSTRUMENT ( total_yields++; )
-      NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      total_yields++;
+      unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+#endif
       thread->yield();
-      NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-      NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+      time_yields += ( end_yield - begin_yield );
+#endif
       if ( _useBlock ) yields--;
    } else {
       if ( _useBlock && thread->canBlock() ) {
-         NANOS_INSTRUMENT ( total_blocks++; )
-         NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         total_blocks++;
+         unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+#endif
          blockThread( thread );
-         NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+         time_blocks += ( end_block - begin_block );
+#endif
          if ( _numYields != 0 ) yields = _numYields;
       }
    }
@@ -474,19 +482,27 @@ void BusyWaitThreadManager::idle( int& yields
    if ( _useDLB ) DLB_Update();
 
    if ( yields > 0 ) {
-      NANOS_INSTRUMENT ( total_yields++; )
-      NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      total_yields++;
+      unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+#endif
       thread->yield();
-      NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-      NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+      time_yields += ( end_yield - begin_yield );
+#endif
       if ( _useSleep ) yields--;
    } else {
       if ( _useSleep ) {
-         NANOS_INSTRUMENT ( total_blocks++; )
-         NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         total_blocks++;
+         unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+#endif
          OS::nanosleep( _sleepTime );
-         NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+         time_blocks += ( end_block - begin_block );
+#endif
          if ( _numYields != 0 ) yields = _numYields;
       }
    }
@@ -703,20 +719,20 @@ void DlbThreadManager::idle( int& yields
    BaseThread *thread = getMyThreadSafe();
 
    if ( yields > 0 ) {
-      NANOS_INSTRUMENT ( total_yields++; )
-      NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      total_yields++;
+      unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+#endif
       thread->yield();
-      NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-      NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  );
+      time_yields += ( end_yield - begin_yield );
+#endif
       yields--;
    } else {
       if ( thread->canBlock() ) {
          // blockThread only gives the sleep order, we can skip instrumentation
-         //NANOS_INSTRUMENT ( total_blocks++; )
-         //NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
          blockThread( thread );
-         //NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         //NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
       }
    }
