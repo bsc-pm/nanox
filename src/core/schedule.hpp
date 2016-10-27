@@ -170,6 +170,13 @@ inline int SchedulePolicy::getNumConcurrentWDs()
    return sys.getReadyNum();
 }
 
+inline bool SchedulePolicy::testDequeue()
+{
+   // If a Scheduler does not define this method, we assume
+   // that a WD can be pulled if the _readyTasks value is positive
+   return sys.getReadyNum() > 0;
+}
+
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )
 {
    _obj.successorFound( predecessor, successor );

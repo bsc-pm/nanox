@@ -111,6 +111,13 @@ namespace nanos {
             }
 
             virtual WD * atIdle ( BaseThread *thread, int numSteal );
+
+            virtual bool testDequeue()
+            {
+               // WorkFirst always switches to the submitted WD so we assume that
+               // at least some thread can switch to the user code
+               return true;
+            }
       };
 
       bool WorkFirst::_stealParent = true;

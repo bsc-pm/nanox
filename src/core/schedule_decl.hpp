@@ -348,13 +348,8 @@ namespace nanos {
          virtual int getNumConcurrentWDs();
 
          /*! \brief Returns true if there's some WD that can be dequeued.
-          * Ideally we would like to do _readyTasks > 0, but we must take
-          * commutative WD's into account
           */
-         virtual bool testDequeue()
-         {
-            return false;
-         }
+         virtual bool testDequeue();
 
          /*! \brief Returns if the scheduler needs WD run time */
          virtual bool isCheckingWDRunTime()

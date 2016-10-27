@@ -163,10 +163,16 @@ namespace nanos {
                   return true;
                }
             }
-            
+
             bool usingPriorities() const
             {
                return _usePriority || _useSmartPriority;
+            }
+
+            bool testDequeue()
+            {
+               ThreadData &data = ( ThreadData & ) *myThread->getTeamData()->getScheduleData();
+               return data._readyQueue->testDequeue();
             }
       };
 

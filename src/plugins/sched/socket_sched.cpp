@@ -852,6 +852,16 @@ namespace nanos {
             
             //! \brief Returns if scheduler uses priorities 
             bool usingPriorities() const { return true; }
+
+            bool testDequeue()
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               int num_queues = sys.getSMPPlugin()->getNumSockets()*2 + 1;
+               for ( int i=0; i<num_queues; ++i ) {
+                  if ( tdata._readyQueues[i].testDequeue() ) return true;
+               }
+               return false;
+            }
       };
 
       class SocketSchedPlugin : public Plugin

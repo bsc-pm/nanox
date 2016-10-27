@@ -1032,7 +1032,7 @@ inline bool WDPriorityQueue<T>::testDequeue()
    // Auxiliary map to count successful commutative accesses
    std::map<WD**, WD*> comm_accesses;
    // ReadyQueue iterator
-   WDDeque::BaseContainer::const_iterator it;
+   WDPQ::BaseContainer::const_iterator it;
    LockBlock lock( _lock );
    for ( it = _dq.begin(); it != _dq.end(); ++it ) {
       const WD &wd = *(WD *)*it;
