@@ -166,16 +166,7 @@ ThreadManager* ThreadManagerConf::create()
 
 bool ThreadManagerConf::canUntieMaster() const
 {
-   // If the user forces it, ignore everything else
-   if ( _forceTieMaster ) return false;
-
-   const char *lb_policy = OS::getEnvironmentVariable( "LB_POLICY" );
-   if ( !_useDLB || lb_policy == NULL ) return true;
-   else {
-      std::string dlb_policy( lb_policy );
-      // Currently auto_LeWI_mask is the only dlb policy that supports untied master
-      return (dlb_policy == "auto_LeWI_mask");
-   }
+   return !_forceTieMaster;
 }
 
 /**********************************/
