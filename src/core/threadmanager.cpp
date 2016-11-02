@@ -374,9 +374,11 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
 
+   ThreadTeam *team = myThread->getTeam();
+   fatal_cond( team == NULL, "Cannot unblock another thread from a teamless thread" );
+
    thread->lock();
-   ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
-   thread->wakeup();
+   thread->tryWakeUp( team );
    thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
@@ -578,9 +580,11 @@ void BusyWaitThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
 
+   ThreadTeam *team = myThread->getTeam();
+   fatal_cond( team == NULL, "Cannot unblock another thread from a teamless thread" );
+
    thread->lock();
-   ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
-   thread->wakeup();
+   thread->tryWakeUp( team );
    thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }

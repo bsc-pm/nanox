@@ -738,19 +738,20 @@ void System::finish ()
    //! \note waiting for remaining tasks
    myThread->getCurrentWD()->waitCompletion( true );
 
-   //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
-   if ( _workers[0]->isSleeping() ) {
-      if ( !_workers[0]->hasTeam() ) {
-         acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
-      }
-      _workers[0]->wakeup();
-   }
-   getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
-   Scheduler::switchToThread(_workers[0]);
-   BaseThread *mythread = getMyThreadSafe();
-   mythread->getTeam()->getSchedulePolicy().atShutdown();
+   //! \note finalizing scheduler
+   myThread->getTeam()->getSchedulePolicy().atShutdown();
 
-   ensure( mythread->isMainThread(), "Main thread is not finishing the application!");
+   //! \note switching main work descriptor (current) to the main thread to shut down the runtime
+   if ( !myThread->isMainThread() ) {
+      BaseThread *master_thread = _workers[0];
+      master_thread->lock();
+      master_thread->tryWakeUp( _mainTeam );
+      master_thread->unlock();
+      myThread->getCurrentWD()->tied().tieTo( *master_thread );
+      Scheduler::switchToThread( master_thread );
+   }
+   BaseThread *mythread = getMyThreadSafe();
+   ensure( mythread->isMainThread(), "Main thread is not finishing the application!" );
 
    ThreadTeam* team = mythread->getTeam();
    while ( !(team->isStable()) ) memoryFence();
