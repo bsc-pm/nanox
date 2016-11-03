@@ -799,6 +799,15 @@ void OpenCLAdapter::execKernel(void* oclKernel,
       currQueue = curdd.getOpenCLStreamIdx();
    }
 
+   // We may need to adjust the local and global sizes
+   for ( int i = 0; i < workDim; ++i )
+   {
+      if ( ndrGlobalSize[i] < ndrLocalSize[i] )
+         ndrLocalSize[i] = ndrGlobalSize[i];
+      else if ( ndrGlobalSize[i] % ndrLocalSize[i] != 0 )
+         ndrGlobalSize[i] += ndrLocalSize[i] - (ndrGlobalSize[i] % ndrLocalSize[i]);
+   }
+
    debug( " [OpenCL] global size: x=" + toString(ndrGlobalSize[0]) + ", y=" + toString(ndrGlobalSize[1]) + ", z=" + toString(ndrGlobalSize[2]) );
    debug( " [OpenCL] local size: x=" + toString(ndrLocalSize[0]) + ", y=" + toString(ndrLocalSize[1]) + ", z=" + toString(ndrLocalSize[2]) );
 
