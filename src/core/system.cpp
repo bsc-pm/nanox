@@ -742,16 +742,15 @@ void System::finish ()
    myThread->getTeam()->getSchedulePolicy().atShutdown();
 
    //! \note switching main work descriptor (current) to the main thread to shut down the runtime
-   if ( !myThread->isMainThread() ) {
-      BaseThread *master_thread = _workers[0];
-      master_thread->lock();
-      master_thread->tryWakeUp( _mainTeam );
-      master_thread->unlock();
-      myThread->getCurrentWD()->tied().tieTo( *master_thread );
-      Scheduler::switchToThread( master_thread );
-   }
+   BaseThread *master_thread = _workers[0];
+   master_thread->lock();
+   master_thread->tryWakeUp( _mainTeam );
+   master_thread->unlock();
+   myThread->getCurrentWD()->tied().tieTo( *master_thread );
+   Scheduler::switchToThread( master_thread );
+
    BaseThread *mythread = getMyThreadSafe();
-   ensure( mythread->isMainThread(), "Main thread is not finishing the application!" );
+   fatal_cond( !mythread->isMainThread(), "Main thread is not finishing the application!" );
 
    ThreadTeam* team = mythread->getTeam();
    while ( !(team->isStable()) ) memoryFence();
