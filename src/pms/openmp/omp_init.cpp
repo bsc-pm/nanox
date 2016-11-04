@@ -98,8 +98,9 @@ namespace nanos
          int max_workers = sys.getSMPPlugin()->getNumWorkers();
 
          if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
-            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
-                  "value (" << _numThreadsOMP << ") differ. The value of OMP_NUM_THREADS will be used.");
+            warning0( "Option --smp-workers value (" << requested_workers << "), and "
+                  "OMP_NUM_THREADS value (" << _numThreadsOMP << ") differ. "
+                  "The value of OMP_NUM_THREADS will be used.");
          }
 
          // In OpenMP, OMP_NUM_THREADS takes precedence over --smp-workers
@@ -303,16 +304,15 @@ namespace nanos
          int max_workers = sys.getSMPPlugin()->getNumWorkers();
 
          if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
-            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
-                  "value (" << _numThreadsOMP << ") differ. The value of --smp-workers will be used.");
+            warning0( "Option --smp-workers value (" << requested_workers << "), "
+                  "and OMP_NUM_THREADS value (" << _numThreadsOMP << ") differ. "
+                  "The value of --smp-workers will be used.");
          }
 
          // In OmpSs, --smp-workers takes precedence over OMP_NUM_THREADS
          if ( requested_workers > 0 ) {
             _numThreads = requested_workers;
          } else if ( _numThreadsOMP > 0 ) {
-            warning0( "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recommended "
-                  "way to set the number of worker smp threads is using the flag --smp-workers." );
             _numThreads = _numThreadsOMP;
          } else {
             _numThreads = max_workers;
