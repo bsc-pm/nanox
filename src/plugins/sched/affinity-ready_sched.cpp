@@ -635,7 +635,7 @@ namespace nanos {
             virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
-            virtual WD *atAfterExit ( BaseThread *thread, WD *current, bool steal )
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current, int  numStealDummy )
             {
                return atBlock(thread, current );
             }
