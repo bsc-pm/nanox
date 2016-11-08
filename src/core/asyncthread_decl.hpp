@@ -94,7 +94,7 @@ namespace nanos {
 
          virtual void yield() { this->idle(); }
 
-         virtual void idle();
+         virtual void idle( bool dummy = false );
 
          virtual void processTransfers ();
 
