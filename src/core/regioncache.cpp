@@ -445,7 +445,8 @@ void AllocatedChunk::setRegionVersion( reg_t reg, unsigned int version, WD const
       *myThread->_file << " not found, this is chunk " << (void*)this << " w/hAddr " << (void*) this->getHostAddress() << " - " << (void*)(this->getHostAddress() +this->getSize() ) << " wd " << wd.getId() << " idx " << copyIdx << std::endl;
       *myThread->_file << "Regions contained: "  << std::endl;
       for ( CacheRegionDictionaryIterator it = _newRegions->begin(); it != _newRegions->end(); it++) {
-         *myThread->_file << "Region: " << it->first << " "; _newRegions->printRegion( *myThread->_file, it->first ); *myThread->_file << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
+         *myThread->_file << "Region: " << it->first << " "; _newRegions->printRegion( *myThread->_file, it->first );
+         *myThread->_file << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : (unsigned int)-1)<< std::endl;
       }
       *myThread->_file << "End of regions contained: "  << std::endl;
    }
@@ -561,7 +562,8 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, LockedObjects &srcReg
                      for ( CacheRegionDictionary::citerator pit = _newRegions->begin(); pit != _newRegions->end(); pit++ ) {
                         NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_allocatedRegion.key), pit->first );
                         CachedRegionStatus *c = ( CachedRegionStatus * ) _newRegions->getRegionData( pit->first );
-                        *myThread->_file << " reg " << pit->first << " "; key->printRegion( *myThread->_file, pit->first); *myThread->_file << " has entry " << (void *) &pit->second << " CaheVersion: "<< (int)( c!=NULL ? c->getVersion() : -1) ;
+                        *myThread->_file << " reg " << pit->first << " "; key->printRegion( *myThread->_file, pit->first);
+                        *myThread->_file << " has entry " << (void *) &pit->second << " CaheVersion: "<< (int)( c!=NULL ? c->getVersion() : (unsigned int)-1) ;
                         if ( d ) *myThread->_file << *d << std::endl;
                         else *myThread->_file << " n/a " << std::endl;
                      }
@@ -967,7 +969,8 @@ DeviceOps *AllocatedChunk::getDeviceOps( global_reg_t const &reg, WD const *wd, 
       reg.key->printRegion(*myThread->_file, reg.id); *myThread->_file << std::endl;
       printBt(*(myThread->_file) );
       for ( CacheRegionDictionaryIterator it = _newRegions->begin(); it != _newRegions->end(); it++) {
-         o << "Region: " << it->first << " "; _newRegions->printRegion( o, it->first ); o << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
+         o << "Region: " << it->first << " "; _newRegions->printRegion( o, it->first );
+         o << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : (unsigned int)-1)<< std::endl;
       }
    }
    ensure(entry != NULL, "CacheEntry not found!");
