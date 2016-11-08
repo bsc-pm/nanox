@@ -35,9 +35,8 @@ inline void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned 
    RegionDirectory::__getLocation( reg.key, reg.id, locations, version);
 }
 
-inline void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
-   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd, &wd );
-   //reg.id = reg.key->obtainRegionId( cd, wd, idx );
+inline void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const *wd, unsigned int idx ) {
+   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd, wd );
 }
 
 } // namespace nanos

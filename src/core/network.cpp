@@ -937,7 +937,7 @@ void Network::notifyRegionMetaData( CopyData *cd, unsigned int seq ) {
       }
       //std::cerr << " processing " << __FUNCTION__ << " " << seq << std::endl;
    }
-   sys.getHostMemory().getRegionId( *cd, reg, *(myThread->getCurrentWD()), 0 );
+   sys.getHostMemory().getRegionId( *cd, reg, myThread->getCurrentWD(), 0 );
 
    reg_t master_id = cd->getHostRegionId();
 
