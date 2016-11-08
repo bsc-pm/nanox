@@ -287,7 +287,7 @@ void * Network::malloc ( unsigned int remoteNode, std::size_t size )
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
       while ( __atomic_load_n( &request.complete, __ATOMIC_ACQUIRE) == 0 )
 #else
-      while ( ( (volatile int) request.complete ) == 0 )
+      while ( ( (int) request.complete ) == 0 )
 #endif
       {
          poll( /*myThread->getId()*/0 );
@@ -316,7 +316,7 @@ void Network::mallocSlaves ( void **addresses, std::size_t size )
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
          while ( __atomic_load_n( &request[ index ].complete, __ATOMIC_ACQUIRE) == 0 )
 #else
-         while ( ( (volatile int) request[ index ].complete ) == 0 )
+         while ( ( (int) request[ index ].complete ) == 0 )
 #endif
          {
             poll( /*myThread->getId()*/0 );
