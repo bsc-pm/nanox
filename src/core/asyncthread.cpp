@@ -82,7 +82,7 @@ bool AsyncThread::inlineWorkDependent( WD &work )
 }
 
 
-void AsyncThread::idle()
+void AsyncThread::idle( bool dummy )
 {
    NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT );
