@@ -515,7 +515,7 @@ WD * AsyncThread::getNextWD ()
    return NULL;
 }
 
-bool AsyncThread::hasNextWD ()
+bool AsyncThread::hasNextWD () const
 {
    //if ( canGetWork() ) return BaseThread::hasNextWD();
    return false;
