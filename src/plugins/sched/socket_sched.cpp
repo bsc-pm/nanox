@@ -848,6 +848,10 @@ namespace nanos {
                }
             }
             
+            virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {
+                fatal( "This method is not implemented yet" );
+            }
+
             //! \brief Enables or disables stealing
             virtual void setStealing( bool value ) { _steal = value; }
             
