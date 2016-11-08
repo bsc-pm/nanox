@@ -294,6 +294,11 @@ namespace nanos {
                 return;
             }
 
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal( "This method is not implemented yet" );
+            }
+
             void updateBottomLevels( BotLevDOData *dodata, int botLev )
             {
                std::vector<BotLevDOData *> stack;

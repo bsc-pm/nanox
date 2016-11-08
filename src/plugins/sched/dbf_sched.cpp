@@ -131,6 +131,11 @@ namespace nanos {
                 data._readyQueue->push_front ( &wd );
             }
 
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal( "This method is not implemented yet" );
+            }
+
             /*!
             *  \brief Function called when a new task must be created: the new created task
             *          is directly queued (Breadth-First policy)
