@@ -285,7 +285,7 @@ inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKe
    return getRegionDictionary( addr );
 }
 
-inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version )
 {
    dict->lockObject();
    dict->registerRegion( reg, missingParts, version );

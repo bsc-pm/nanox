@@ -1694,7 +1694,7 @@ void System::_distributeObject( global_reg_t &reg, unsigned int start_node, std:
       fragmented_reg.key->addFixedRegion( fragmented_reg.id );
       unsigned int version = 0;
       NewLocationInfoList missing_parts;
-      RegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
+      RegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version );
       memory_space_id_t loc = 0;
       for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
          if ( *it != NULL ) {
