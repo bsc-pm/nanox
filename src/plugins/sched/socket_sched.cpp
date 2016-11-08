@@ -536,6 +536,11 @@ namespace nanos {
             {
                socketQueue( thread, wd, false );
             }
+
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal( "This method is not implemented yet" );
+            }
             
             /*!
              *  \brief Queues a work descriptor in a readyQueue.
