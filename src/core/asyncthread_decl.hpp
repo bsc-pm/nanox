@@ -138,7 +138,7 @@ namespace nanos {
          // Additional checkings for next WDs
          void addNextWD ( WD *next );
          WD * getNextWD ();
-         bool hasNextWD ();
+         bool hasNextWD () const;
 
          // Set whether the thread will schedule WDs or not used by getImmediateSuccessor()
          // If so, WD's dependencies should be kept till WD is finished
