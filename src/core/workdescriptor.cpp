@@ -694,11 +694,11 @@ int WorkDescriptor::getConcurrencyLevel( std::map<WD**, WD*> &comm_accesses ) co
    if ( _slicer != NULL ) {
       nanos_loop_info_t *loop_info;
       loop_info = ( nanos_loop_info_t* ) _data;
-      int _chunk = loop_info->chunk;
-      int _lower = loop_info->lower;
-      int _upper = loop_info->upper;
-      int _step  = loop_info->step;
-      int _niters = (((_upper - _lower) / _step ) + 1 );
+      int64_t _chunk = loop_info->chunk;
+      int64_t _lower = loop_info->lower;
+      int64_t _upper = loop_info->upper;
+      int64_t _step  = loop_info->step;
+      int64_t _niters = (((_upper - _lower) / _step ) + 1 );
 
       if ( _chunk == 0 ) {
          num_wds = 1;

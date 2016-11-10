@@ -47,7 +47,7 @@ void SlicerGuidedFor::submit ( WorkDescriptor &work )
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
 
    //! Normalize Chunk size,
-   nli->chunk = std::max(1, nli->chunk);
+   nli->chunk = (1 > nli->chunk)? 1 : nli->chunk;
 
    //! get team size,
    ThreadTeam *team = myThread->getTeam();
@@ -70,9 +70,9 @@ bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor**
 
    nanos_loop_info_t *nli = ( nanos_loop_info_t * ) wd->getData();
 
-   int _niters = ((( nli->upper - nli->lower) / nli->step ) + 1 );
-   int _chunk = std::max( _niters / ( 2 * nli->threads ), nli->chunk );
-   int _upper = nli->lower + _chunk * nli->step ;
+   int64_t _niters = ((( nli->upper - nli->lower) / nli->step ) + 1 );
+   int64_t _chunk = std::max( _niters / ( 2 * nli->threads ), nli->chunk );
+   int64_t _upper = nli->lower + _chunk * nli->step ;
 
    //! Computing empty iteration spaces to avoid infinite task generation
    bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;

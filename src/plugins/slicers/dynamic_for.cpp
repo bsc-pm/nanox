@@ -47,7 +47,7 @@ void SlicerDynamicFor::submit ( WorkDescriptor &work )
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
 
    //! Normalize Chunk size
-   nli->chunk = std::max(1, nli->chunk);
+   nli->chunk = (1 > nli->chunk)? 1 : nli->chunk;
 
    work.untie();
    Scheduler::submit ( work );
@@ -60,7 +60,7 @@ bool SlicerDynamicFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor*
    nanos_loop_info_t *nli = ( nanos_loop_info_t * ) wd->getData();
 
    //! Compute next (chunk) lower bound
-   int _upper = nli->lower + nli->chunk * nli->step - nli->step;
+   int64_t _upper = nli->lower + nli->chunk * nli->step - nli->step;
 
    //! Computing empty iteration spaces in order to avoid infinite task generation
    bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;
