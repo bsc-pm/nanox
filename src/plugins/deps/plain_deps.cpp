@@ -137,11 +137,15 @@ namespace nanos {
                   ensure(!depObj.waits(), "Commutative & concurrent should not wait" );
                   submitDependableObjectCommutativeDataAccess( depObj, target, accessType, status, callback );
                } else if ( accessType.output ) {
-                  if ( accessType.input ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
-                  else submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
-                  if ( !depObj.waits() ) depObj.addWriteTarget( target );
+                  if ( accessType.input ) {
+                     submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+                     if ( !depObj.waits() ) depObj.addReadTarget( target );
+                  } else {
+                     submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
+                  }
+                  // FIXME if ( !depObj.waits() ) depObj.addWriteTarget( target );
                } else if ( accessType.input ) {
-                  if ( accessType.output ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+                  if ( !accessType.output ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
                   else submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
                   if ( !depObj.waits() ) depObj.addReadTarget( target );
                } else {

@@ -60,8 +60,32 @@ class InstrumentationPrintTrace: public Instrumentation
       void disable( void ) {}
       void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {
-         fprintf(stderr,"NANOS++: (WD's) Resuming task %d in thread %d\n",w.getId(), myThread->getId());
+         fprintf(stderr,"NANOS++: (WD's) Resuming task %d in thread %d",w.getId(), myThread->getId());
+
+         if (w.isImplicit() || w.getId() <= sys.getNumThreads() + 1) {
+            fprintf( stderr,"\n" );
+            return;
+         }
+
+         DOSubmit * doS = w.getDOSubmit();
+         DependableObject::TargetVector::const_iterator it;
+
+         if (doS != NULL) {
+            const DependableObject::TargetVector &rt = doS->getReadTargets();
+            fprintf( stderr,"; reads = " );
+            for ( it = rt.begin(); it != rt.end(); ++it ) {
+               fprintf(stderr,"%p, ",((*it)->getAddress()));
+            }
+
+            const DependableObject::TargetVector &wt = doS->getWrittenTargets();
+            fprintf( stderr,"; writes = " );
+            for (it = wt.begin(); it != wt.end(); ++it) {
+               fprintf(stderr,"%p, ",((*it)->getAddress()));
+            }
+         }
+         fprintf( stderr,"\n" );
       }
+
       void addSuspendTask( WorkDescriptor &w, bool last ) {
          fprintf(stderr,"NANOS++: (WD's) %s task %d in thread %d\n",last?"Finishing":"Suspending",w.getId(), myThread->getId());
       }
