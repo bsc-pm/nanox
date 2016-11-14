@@ -99,7 +99,7 @@ namespace nanos {
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
          TargetVector             _outputObjects;   /**< List of output objects */
          TargetVector             _readObjects;     /**< List of read objects */
-         Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
+         mutable Lock             _objectLock;      /**< Lock to do exclusive use of the DependableObject */
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
          bool                     _submitted;
 #else
@@ -125,10 +125,7 @@ namespace nanos {
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
-         DependableObject ( const DependableObject &depObj )
-            : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _predecessors ( depObj._predecessors ), _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
-              _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( depObj._wd ), _schedulerData(NULL), _num( depObj._num ), _lss( depObj._lss ) {}
+         DependableObject ( const DependableObject &depObj );
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject

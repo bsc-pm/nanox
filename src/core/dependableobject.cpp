@@ -222,14 +222,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      succ.insert( std::make_pair( wdId, found ) );
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
-                     if(sys.getPredecessorLists()) {
-                        int  numPred = --_numPredecessors;
-                        found->decreasePredecessorsInLock( this, numPred );
-                      //  sys.getDefaultSchedulePolicy()->atSuccessor( *found, this );
-                     }
-                     else
-                        --_numPredecessors;
-//                     found->decreasePredecessorsInLock( this, numPred );
+                     found->decreasePredecessors( NULL, this, true, false );
                   }
 
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<

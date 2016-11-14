@@ -50,9 +50,28 @@ inline DependableObject::~DependableObject ( )
    std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
 }
 
+inline DependableObject::DependableObject ( const DependableObject &depObj )
+   : _id(), _numPredecessors(), _references(), _predecessors(), _successors(), _domain(),
+   _outputObjects(), _readObjects(), _objectLock(), _submitted( false ),
+   _needsSubmission( false ), _wd(), _schedulerData( NULL ), _num(), _lss()
+{
+   LockBlock lock( depObj._objectLock );
+   _id = depObj._id;
+   _numPredecessors = depObj._numPredecessors;
+   _references = depObj._references;
+   _predecessors = depObj._predecessors;
+   _successors = depObj._successors;
+   _domain = depObj._domain;
+   _wd = depObj._wd;
+   _num = depObj._num;
+   _lss = depObj._lss;
+}
+
 inline const DependableObject & DependableObject::operator= ( const DependableObject &depObj )
 {
-   if ( this == &depObj ) return *this; 
+   if ( this == &depObj ) return *this;
+
+   DoubleLockBlock lock( _objectLock, depObj._objectLock );
    _id = depObj._id;
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
@@ -164,11 +183,9 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    // Avoiding create cycles in dependence graph
    if ( this == &depObj ) return false;
 
-   bool inserted = false;
-   {
-      SyncLockBlock lock( this->getLock() );
-      inserted = _predecessors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
-   }
+   bool inserted = _predecessors.insert (
+         std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj)
+         ).second;
 
    return inserted;
 }
