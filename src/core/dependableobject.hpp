@@ -121,17 +121,17 @@ inline int DependableObject::increasePredecessors ( )
    return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
-      bool batchRelease, bool blocking )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps,
+      DependableObject * finishedPred, bool batchRelease, bool blocking )
 {
-   int  numPred = --_numPredecessors;
-//   DependableObject &depObj = *this;
-//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred );
-   if(sys.getPredecessorLists())
-   {
-      SyncLockBlock lock( this->getLock() );
+   int numPred;
 
+   if ( sys.getPredecessorLists() ) {
+      LockBlock lock( _objectLock );
+      numPred = --_numPredecessors;
       decreasePredecessorsInLock( finishedPred, numPred );
+   } else {
+      numPred = --_numPredecessors;
    }
 
    if ( numPred == 0 && !batchRelease ) {

@@ -291,10 +291,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    NANOS_INSTRUMENT ( } )
 
    // Add the Commutation object as successor of the current DO (depObj)
-   {
-      LockBlock lock_commDO ( commDO->getLock() );
-      depObj.addSuccessor( *commDO );
-   }
+   depObj.addSuccessor( *commDO );
 
    // assumes no new readers added concurrently
    dependOnLastWriter( depObj, status, target, callback, accessType );

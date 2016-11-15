@@ -269,7 +269,8 @@ bool DependableObject::addSuccessor ( DependableObject &depObj )
    }
 
    //Maintain the list of predecessors
-   if(sys.getPredecessorLists()) {
+   if ( sys.getPredecessorLists() ) {
+      SyncLockBlock lock( depObj._objectLock );
       depObj.addPredecessor( *this );
    }
 

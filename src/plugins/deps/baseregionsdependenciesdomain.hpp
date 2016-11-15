@@ -129,10 +129,7 @@ inline void BaseRegionsDependenciesDomain::submitDependableObjectCommutativeData
    CommutationDO *commDO = setUpTargetCommutationDependableObject( target, accessType, targetStatus );
    
    // Add the Commutation object as successor of the current DO (depObj)
-   {
-      LockBlock lock_commDO ( commDO->getLock() );
-      depObj.addSuccessor( *commDO );
-   }
+   depObj.addSuccessor( *commDO );
    
    // assumes no new readers added concurrently
    BaseDependenciesDomain::dependOnLastWriter( depObj, targetStatus, target, callback, accessType );
