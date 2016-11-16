@@ -26,7 +26,8 @@ ACLOCAL_AMFLAGS=-I m4
 # We use an install hook to remove old deprecated libraries, which are not tracked
 # anymore by Automake so they need to be removed manually
 REMOVE_LIBS = \
-	      libnanox-ss\
+	      libnanox-ss \
+	      libnanox-sched-affinity-smartpriority \
 	      $(END)
 
 remove-old-libraries:
