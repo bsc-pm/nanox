@@ -78,7 +78,7 @@ debug_LTLIBRARIES=debug/libnanox-c.la
 
 debug_libnanox_c_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes)
 debug_libnanox_c_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs)
+debug_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
 debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
 debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
@@ -89,7 +89,7 @@ instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
 instrumentation_debug_libnanox_c_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes)
 instrumentation_debug_libnanox_c_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs)
+instrumentation_debug_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
 instrumentation_debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 instrumentation_debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
@@ -100,7 +100,7 @@ instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
 
 instrumentation_libnanox_c_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes)
 instrumentation_libnanox_c_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs)
+instrumentation_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
 instrumentation_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
 instrumentation_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
@@ -111,7 +111,7 @@ performance_LTLIBRARIES=performance/libnanox-c.la
 
 performance_libnanox_c_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes)
 performance_libnanox_c_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs)
+performance_libnanox_c_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
 performance_libnanox_c_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
 performance_libnanox_c_la_SOURCES=$(nanos_c_sources)
 performance_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la
