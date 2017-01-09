@@ -48,12 +48,13 @@ namespace nanos {
          // destructor
          ~Queue() {}
 
-         void push( T data );
-         T    pop ( void );
-         bool try_pop ( T& result );
+         void   push ( T data );
+         T      pop ( void );
+         bool   try_pop ( T& result );
+         size_t size ();
+         bool   empty ();
    };
 
 } // namespace nanos
 
 #endif
-
