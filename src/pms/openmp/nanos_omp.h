@@ -24,7 +24,6 @@
 #include "nanos_reduction.h"
 #include "nanos_atomic.h"
 
-typedef void * nanos_cpu_set_t;
 
 typedef enum nanos_omp_sched_t {
    nanos_omp_sched_static = 1,
