@@ -42,15 +42,15 @@ NANOS_API_DEF(void, nanos_omp_get_process_mask, ( nanos_cpu_set_t cpu_set ))
    process_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
 }
 
-NANOS_API_DEF(int, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(int, nanos_omp_set_process_mask, ( const_nanos_cpu_set_t cpu_set ))
 {
-   bool b = sys.getPMInterface().setCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
+   bool b = sys.getPMInterface().setCpuProcessMask( static_cast<const cpu_set_t*>(cpu_set) );
    return (b) ? 0 : -1;
 }
 
-NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const_nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().addCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
+   sys.getPMInterface().addCpuProcessMask( static_cast<const cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
@@ -59,15 +59,15 @@ NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
    active_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
 }
 
-NANOS_API_DEF(int, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(int, nanos_omp_set_active_mask, ( const_nanos_cpu_set_t cpu_set ))
 {
-   bool b = sys.getPMInterface().setCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
+   bool b = sys.getPMInterface().setCpuActiveMask( static_cast<const cpu_set_t*>(cpu_set) );
    return (b) ? 0 : -1;
 }
 
-NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const_nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().addCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
+   sys.getPMInterface().addCpuActiveMask( static_cast<const cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )

@@ -171,6 +171,8 @@ typedef struct {
 } nanos_constraint_t;
 
 typedef void * nanos_cpu_set_t;
+typedef const void * const_nanos_cpu_set_t;
+
 //! \}
 
 #ifdef __cplusplus
