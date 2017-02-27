@@ -263,7 +263,6 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
     do { \
         old.val = (*x); \
         new_.val = NANOS_CAS_BIN_OP_##op(old.val, y); \
-        __sync_synchronize(); \
     } while (!__sync_bool_compare_and_swap((atomic_int_t*)x, old.v, new_.v)); \
 }
 
