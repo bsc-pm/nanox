@@ -611,7 +611,7 @@ namespace nanos {
                      }
                      for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
                         //FIXME : maybe this should iterate workers, not PEs.
-                        for ( PEList::const_iterator pit = sys.getPEs().begin(); pit != sys.getPEs().end(); pit++ ) {
+                        for ( PEMap::const_iterator pit = sys.getPEs().begin(); pit != sys.getPEs().end(); pit++ ) {
                            _thdsPerQueue[__i] += (*_queueToMemSpace)[__i] == pit->second->getMemorySpaceId();
                         }
                      }

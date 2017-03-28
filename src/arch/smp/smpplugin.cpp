@@ -365,7 +365,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
    }
 
-   void SMPPlugin::addPEs( PEList &pes ) const
+   void SMPPlugin::addPEs( PEMap &pes ) const
    {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             pes.insert( std::make_pair( (*it)->getId(), *it ) );

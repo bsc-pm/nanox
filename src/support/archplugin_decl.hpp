@@ -29,9 +29,7 @@
 #include <iostream>
 
 namespace nanos {
-
-   typedef TR1::unordered_map<unsigned int, ProcessingElement *> PEList;
-
+   
    /** \brief Base class for specific architecture plugins
     */
    class ArchPlugin : public Plugin
@@ -39,7 +37,7 @@ namespace nanos {
       public:
          /** \brief Constructs the plugin and registers itself in System. */
          ArchPlugin( const char *name, int version );
-         
+
          /** \brief Returns the number of helper PEs this plugin requires.
           * This number is added to the number of SMP PEs.
           * For instance, the synchronous version of the CUDA GPU plugin
@@ -51,12 +49,12 @@ namespace nanos {
          /** \brief Number of PEs to be used by this architecture.
           */
          virtual unsigned getNumPEs() const = 0;
-        
+
          /** \brief Returns the maximum number of threads.
           *  This will be used to compute System::_targetThreads.
           */
-         virtual unsigned getNumThreads() const = 0; 
-         
+         virtual unsigned getNumThreads() const = 0;
+
          /** \brief Instructs the plugin to fill the PE binding list.
           * Plugins which need helper PEs (e.g. CUDA GPU) will use their own binding list
           * instead the one available in System.
@@ -78,7 +76,7 @@ namespace nanos {
 
          virtual void initialize();
          virtual void finalize();
-         virtual void addPEs( PEList &pes ) const;
+         virtual void addPEs( PEMap &pes ) const;
          virtual void addDevices( DeviceList &devices ) const;
          virtual void startSupportThreads();
          virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers );
