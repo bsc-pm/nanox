@@ -80,23 +80,23 @@ class RemoteSpawn {
 		{
 			return _threads.front() == &thread;
 		}
-			
+
 		std::vector<mpi::request> getPendingTaskEndRequests() {
 			std::vector<mpi::request> pendingTaskEnd;
 			pendingTaskEnd.reserve( _remotes.size() );
-		
+
 			std::vector<ext::MPIProcessor*>::iterator peIterator;
 			for( peIterator = _remotes.begin(); peIterator != _remotes.end(); ++peIterator ) {
 				pendingTaskEnd.push_back( (*peIterator)->getTaskEndRequest() );
 			}
-		
+
 			return pendingTaskEnd;
 		}
 
 		void registerTaskInit() {
 			_runningWDs++;
 		}
-	
+
 		std::vector<int> waitFinishedTasks() {
 			UniqueLock<Lock> guard( _lock, nanos::try_to_lock );
 			std::vector<int> finishedTaskEndIds;
@@ -112,24 +112,24 @@ class RemoteSpawn {
 					std::vector<int>::iterator taskEndIdIter;
 					for( taskEndIdIter = finishedTaskEndIds.begin();
 						 taskEndIdIter != finishedTaskEndIds.end(); ++taskEndIdIter ) {
-	
+
 						ext::MPIProcessor* finishedPE = _remotes.at( *taskEndIdIter );
 						myThread->setRunningOn(finishedPE);
-	
+
 						WD* finishedWD = finishedPE->freeCurrExecutingWd();
 						if( finishedWD != NULL ) { // PE already released?
 							_runningWDs--;
-	
+
 							//Finish the wd, finish work
 							WD* previousWD = myThread->getCurrentWD();
 							myThread->setCurrentWD( *finishedWD );
-	
+
 							finishedWD->releaseInputDependencies();
 							finishedWD->finish();
 							Scheduler::finishWork( finishedWD, true );
-	
+
 							myThread->setCurrentWD(*previousWD);
-	
+
 							// Destroy wd
 							finishedWD->~WorkDescriptor();
 							delete[] (char *)finishedWD;
@@ -148,7 +148,7 @@ class RemoteSpawn {
 			int rank = MPI_PROC_NULL;
 			MPI_Comm_rank( _communicator, &rank );
 			MPI_Barrier( _communicator );
-					
+
 			//De-spawn threads
 			std::vector<ext::MPIThread*>::iterator itThread;
 			for( itThread = _threads.begin(); itThread != _threads.end(); ++itThread ) {
@@ -158,7 +158,7 @@ class RemoteSpawn {
 				mpiThread->join();
 				mpiThread->unlock();
 			}
-			
+
 			std::vector<ext::MPIProcessor*>::iterator itRemote;
 			for( itRemote = _remotes.begin(); itRemote != _remotes.end() ; ++itRemote) {
 				ext::MPIProcessor* remote = *itRemote;
@@ -167,7 +167,7 @@ class RemoteSpawn {
 					mpi::command::Finish::Requestor finishCommand( *remote );
 					finishCommand.dispatch();
 				}
-				
+
 				//If im the root do all the automatic control file work ONCE (first remote node), this time free the hosts
 				if( remote->getRank()==0 && rank == 0 && !ext::MPIProcessor::getMpiControlFile().empty() ) {
 					//PPH List is the list of hosts which were consumed by the spawn of these ranks, lets "free" them
@@ -176,7 +176,7 @@ class RemoteSpawn {
 						std::string controlName = ext::MPIProcessor::getMpiControlFile();
 						FileMutex mutex( const_cast<char*>(controlName.c_str()) );
 						mutex.lock();
-						
+
 						FILE* file = fdopen( mutex.native_handle(), "r+" );
 						size_t num_bytes=0;
 						for ( int i=0; pph_list[i] != -1 ; ++i ) {
@@ -188,13 +188,13 @@ class RemoteSpawn {
 							num_bytes+=2;
 						}
 						fclose( file );
-						
+
 						remote->setPphList( NULL );
 						delete[] pph_list;
 						mutex.unlock();
 					}
 				}
-				sys.getPEList().erase( remote->getId() );
+				sys.getPEs().erase( remote->getId() );
 				delete remote;
 			}
 #ifdef OPEN_MPI

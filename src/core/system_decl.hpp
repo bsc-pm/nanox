@@ -602,9 +602,7 @@ namespace nanos {
          //std::list<GraphEntry *> *getGraphRepList();
 
          RegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
-         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
-
-         PEMap& getPEList();
+         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );
 
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
 
@@ -716,7 +714,7 @@ namespace nanos {
          bool usePredecessorCopyInfo() const;
          bool invalControlEnabled() const;
          std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
-         PEMap const &getPEs() const;
+         PEMap& getPEs();
          void allocLock();
          void allocUnlock();
          bool useFineAllocLock() const;
