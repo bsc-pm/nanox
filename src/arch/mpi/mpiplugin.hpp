@@ -62,7 +62,7 @@ class MPIPlugin : public ArchPlugin {
 
     virtual void createBindingList();
        
-    virtual void addPEs( PEList &pes ) const;
+    virtual void addPEs( PEMap &pes ) const;
 
     virtual void addDevices( DeviceList &devices ) const;
 

@@ -302,7 +302,7 @@ void ClusterPlugin::finalize() {
 }
 
 
-void ClusterPlugin::addPEs( PEList &pes ) const {
+void ClusterPlugin::addPEs( PEMap &pes ) const {
    if ( _remoteNodes ) {
       std::vector<ClusterNode *>::const_iterator it = _remoteNodes->begin();
       //NOT ANYMORE: it++; //position 0 is null, node 0 does not have a ClusterNode object

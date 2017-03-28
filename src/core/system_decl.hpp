@@ -151,7 +151,7 @@ namespace nanos {
          ArchitecturePlugins  _archs;
 
 
-         PEList               _pes;
+         PEMap                _pes;
          ThreadList           _workers;
 
          //! List of all supported architectures by _pes
@@ -394,7 +394,7 @@ namespace nanos {
           * \param[in] parallel Identifies the type of team, parallel code or single executor.
           */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
-         
+
          ThreadList::iterator getWorkersBegin();
          ThreadList::iterator getWorkersEnd();
 
@@ -600,12 +600,10 @@ namespace nanos {
          //Lock _graphRepListsLock;
       public:
          //std::list<GraphEntry *> *getGraphRepList();
-         
-         RegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
-         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
-         PEList& getPEList();
-         
+         RegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
+         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );
+
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
 
          /*! \brief Registers a plugin option. Depending on whether nanox --help
@@ -716,7 +714,7 @@ namespace nanos {
          bool usePredecessorCopyInfo() const;
          bool invalControlEnabled() const;
          std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
-         PEList const &getPEs() const;
+         PEMap& getPEs();
          void allocLock();
          void allocUnlock();
          bool useFineAllocLock() const;

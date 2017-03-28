@@ -20,9 +20,13 @@
 #ifndef _NANOS_PROCESSING_ELEMENT_FWD_H
 #define _NANOS_PROCESSING_ELEMENT_FWD_H
 
+#include<compatibility.hpp>
+
 namespace nanos {
 
    class ProcessingElement;
+
+   typedef TR1::unordered_map<unsigned int, ProcessingElement *> PEMap;
 
 } // namespace nanos
 

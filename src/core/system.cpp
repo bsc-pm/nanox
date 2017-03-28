@@ -564,7 +564,7 @@ void System::start ()
       (*it)->startWorkerThreads( _workers );
    }   
 
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       if ( it->second->isActive() ) {
          _clusterNodes.insert( it->second->getClusterNode() );
          // If this PE is in a NUMA node and has workers
@@ -636,7 +636,7 @@ void System::start ()
 #if 0 /* _defDeviceName and _defDevice seem unused */
    if ( !_defDeviceName.empty() ) 
    {
-       PEList::iterator it;
+       PEMap::iterator it;
        for ( it = _pes.begin() ; it != _pes.end(); it++ )
        {
            PE *pe = it->second;
@@ -757,7 +757,7 @@ void System::finish ()
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
@@ -846,7 +846,7 @@ void System::finish ()
    delete team;
 
    //! \note deleting processing elements (but main pe)
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       if ( it->first != (unsigned int)mythread->runningOn()->getId() ) {
          delete it->second;
       }
