@@ -13,7 +13,7 @@ AC_DEFUN([AX_CHECK_DLB],
    AC_MSG_CHECKING([for DLB])
    AC_ARG_WITH([dlb],
       [AS_HELP_STRING([--with-dlb@<:@=DIR@:>@], [build with DLB library support])],
-      [], dnl Implicit: with_mpi=$withvalue
+      [], dnl Implicit: with_dlb=$withvalue
       [with_dlb=no]
    )
    AC_MSG_RESULT([$with_dlb])
@@ -27,7 +27,7 @@ AC_DEFUN([AX_CHECK_DLB],
       ### DLB INCLUDES
       AC_LANG_PUSH([C++])
       AX_VAR_PUSHVALUE([CPPFLAGS], [$dlbcppflags])
-      AC_CHECK_HEADERS([DLB_interface.h], [
+      AC_CHECK_HEADERS([dlb.h], [
          # header found, do nothing
       ], [
          AS_IF([test "x$with_dlb" != xcheck], [AC_MSG_ERROR([Cannot find DLB headers])])
