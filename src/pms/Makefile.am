@@ -62,17 +62,17 @@ debug_LTLIBRARIES+=\
  debug/libnanox-ompss.la\
  debug/libnanox-ompss-stubs.la
 
-debug_libnanox_omp_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes) # @cudainc@
+debug_libnanox_omp_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes) @dlbcppflags@ # @cudainc@
 debug_libnanox_omp_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-debug_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
+debug_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+debug_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la @dlblibs@
 debug_libnanox_omp_la_SOURCES=$(omp_sources)
 debug_libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
 
-debug_libnanox_ompss_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT # @cudainc@
+debug_libnanox_ompss_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT @dlbcppflags@ # @cudainc@
 debug_libnanox_ompss_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-debug_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
+debug_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+debug_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la @dlblibs@
 debug_libnanox_ompss_la_SOURCES=$(omp_sources)
 debug_libnanox_ompss_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
 
@@ -96,17 +96,17 @@ instrumentation_debug_LTLIBRARIES+=\
  instrumentation-debug/libnanox-ompss.la\
  instrumentation-debug/libnanox-ompss-stubs.la
 
-instrumentation_debug_libnanox_omp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes) # @cudainc@
+instrumentation_debug_libnanox_omp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes) @dlbcppflags@ # @cudainc@
 instrumentation_debug_libnanox_omp_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-instrumentation_debug_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
+instrumentation_debug_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+instrumentation_debug_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la @dlblibs@
 instrumentation_debug_libnanox_omp_la_SOURCES=$(omp_sources)
 instrumentation_debug_libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 
-instrumentation_debug_libnanox_ompss_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT # @cudainc@
+instrumentation_debug_libnanox_ompss_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT @dlbcppflags@ # @cudainc@
 instrumentation_debug_libnanox_ompss_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-instrumentation_debug_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
+instrumentation_debug_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+instrumentation_debug_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la @dlblibs@
 instrumentation_debug_libnanox_ompss_la_SOURCES=$(omp_sources)
 instrumentation_debug_libnanox_ompss_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 
@@ -130,17 +130,17 @@ instrumentation_LTLIBRARIES+=\
  instrumentation/libnanox-ompss.la\
  instrumentation/libnanox-ompss-stubs.la
 
-instrumentation_libnanox_omp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes) # @cudainc@
+instrumentation_libnanox_omp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes) @dlbcppflags@ # @cudainc@
 instrumentation_libnanox_omp_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-instrumentation_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
+instrumentation_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+instrumentation_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la @dlblibs@
 instrumentation_libnanox_omp_la_SOURCES=$(omp_sources)
 instrumentation_libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
 
-instrumentation_libnanox_ompss_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT # @cudainc@
+instrumentation_libnanox_ompss_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT @dlbcppflags@ # @cudainc@
 instrumentation_libnanox_ompss_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-instrumentation_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
+instrumentation_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+instrumentation_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la @dlblibs@
 instrumentation_libnanox_ompss_la_SOURCES=$(omp_sources)
 instrumentation_libnanox_ompss_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
 
@@ -164,17 +164,17 @@ performance_LTLIBRARIES+=\
  performance/libnanox-ompss.la\
  performance/libnanox-ompss-stubs.la
 
-performance_libnanox_omp_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes) # @cudainc@
+performance_libnanox_omp_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes) @dlbcppflags@ # @cudainc@
 performance_libnanox_omp_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-performance_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
+performance_libnanox_omp_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+performance_libnanox_omp_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la @dlblibs@
 performance_libnanox_omp_la_SOURCES=$(omp_sources)
 performance_libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la
 
-performance_libnanox_ompss_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT # @cudainc@
+performance_libnanox_ompss_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes) -DNANOX_SS_SUPPORT @dlbcppflags@ # @cudainc@
 performance_libnanox_ompss_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags)
-performance_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
+performance_libnanox_ompss_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) @dlbldflags@
+performance_libnanox_ompss_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la @dlblibs@
 performance_libnanox_ompss_la_SOURCES=$(omp_sources)
 performance_libnanox_ompss_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la
 
