@@ -51,8 +51,8 @@ namespace nanos {
          void   push ( T data );
          T      pop ( void );
          bool   try_pop ( T& result );
-         size_t size ();
-         bool   empty ();
+         size_t size () const;
+         bool   empty () const;
    };
 
 } // namespace nanos

@@ -84,13 +84,13 @@ bool Queue<T>::try_pop ( T& result )
    return found;
 }
 template<typename T>
-size_t Queue<T>::size ()
+size_t Queue<T>::size () const
 {
    return _q.size();
 }
 
 template<typename T>
-bool Queue<T>::empty ()
+bool Queue<T>::empty () const
 {
    return size() == 0;
 }
