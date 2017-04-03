@@ -70,6 +70,26 @@ NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const_nanos_cpu_set_t cpu_set )
    sys.getPMInterface().addCpuActiveMask( static_cast<const cpu_set_t*>(cpu_set) );
 }
 
+NANOS_API_DEF(int, nanos_omp_enable_cpu, ( int cpuid ))
+{
+   try {
+      sys.getPMInterface().enableCpu( cpuid );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(int, nanos_omp_disable_cpu, ( int cpuid ))
+{
+   try {
+      sys.getPMInterface().disableCpu( cpuid );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
 NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )
 {
    return nanos::OS::getMaxProcessors();

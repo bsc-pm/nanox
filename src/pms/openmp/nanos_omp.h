@@ -60,6 +60,9 @@ NANOS_API_DECL(void, nanos_omp_get_active_mask,( nanos_cpu_set_t cpu_set ));
 NANOS_API_DECL(int, nanos_omp_set_active_mask,(  const_nanos_cpu_set_t cpu_set ));
 NANOS_API_DECL(void, nanos_omp_add_active_mask,( const_nanos_cpu_set_t cpu_set ));
 
+NANOS_API_DECL(int, nanos_omp_enable_cpu, ( int cpuid ));
+NANOS_API_DECL(int, nanos_omp_disable_cpu, ( int cpuid ));
+
 NANOS_API_DECL(int, nanos_omp_get_max_processors,( void ));
 
 #ifdef __cplusplus

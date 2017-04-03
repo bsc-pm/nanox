@@ -56,6 +56,8 @@ class SMPBasePlugin : public ArchPlugin {
       virtual const CpuSet& getCpuActiveMask() const = 0 ;
       virtual bool setCpuActiveMask( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void addCpuActiveMask( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void enableCpu( int cpuid, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void disableCpu( int cpuid, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void forceMaxThreadCreation( std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;

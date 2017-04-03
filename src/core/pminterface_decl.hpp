@@ -76,6 +76,8 @@ namespace nanos {
          virtual const CpuSet& getCpuActiveMask() const = 0;
          virtual bool setCpuActiveMask( const CpuSet& cpu_set ) { return false; }
          virtual void addCpuActiveMask( const CpuSet& cpu_set ) {}
+         virtual void enableCpu( int cpuid ) {}
+         virtual void disableCpu( int cpuid ) {}
 
          //! By default, OmpSs is assumed (required for the bare run in system.cpp)
          virtual Interfaces getInterface() const { return PMInterface::OmpSs; }

@@ -447,6 +447,18 @@ namespace nanos {
          void addCpuActiveMask( const CpuSet& mask );
 
          /*!
+          * \brief Enable one CPU in the active cpu mask
+          * \param[in] cpuid CPU id to enable
+          */
+         void enableCpu( int cpuid );
+
+         /*!
+          * \brief Disable one CPU in the active cpu mask
+          * \param[in] cpuid CPU id to disable
+          */
+         void disableCpu( int cpuid );
+
+         /*!
           * \brief Force the creation of at least 1 thread per PE, which are blocked afterwards
           */
          void forceMaxThreadCreation();

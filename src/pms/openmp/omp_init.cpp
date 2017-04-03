@@ -280,6 +280,30 @@ namespace nanos
       }
 
       /*!
+       * \brief Enable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to enable
+       */
+      void OpenMPInterface::enableCpu( int cpuid )
+      {
+         sys.enableCpu( cpuid );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Disable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to disable
+       */
+      void OpenMPInterface::disableCpu( int cpuid )
+      {
+         sys.disableCpu( cpuid );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
        * \brief Returns the identifier of the interface, OpenMP
        */
       PMInterface::Interfaces OpenMPInterface::getInterface() const
@@ -463,6 +487,34 @@ namespace nanos
          LockBlock Lock( _lock );
 
          sys.addCpuActiveMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Enable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to enable
+       */
+      void OmpSsInterface::enableCpu( int cpuid )
+      {
+         LockBlock Lock( _lock );
+
+         sys.enableCpu( cpuid );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Disable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to disable
+       */
+      void OmpSsInterface::disableCpu( int cpuid )
+      {
+         LockBlock Lock( _lock );
+
+         sys.disableCpu( cpuid );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
