@@ -26,6 +26,10 @@
 #include "nanos_omp.h"
 #include "plugin.hpp"
 
+#ifdef DLB
+#include <dlb.h>
+#endif
+
 using namespace nanos;
 //using namespace nanos::OpenMP;
 
@@ -302,6 +306,29 @@ namespace nanos
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
       }
+
+#ifdef DLB
+      /*!
+       * \brief Register Nanos++ interface in DLB
+       */
+      void OpenMPInterface::registerCallbacks() const
+      {
+         DLB_CallbackSet( dlb_callback_set_num_threads,
+               (dlb_callback_t)nanos_omp_set_num_threads );
+         DLB_CallbackSet( dlb_callback_set_active_mask,
+               (dlb_callback_t)nanos_omp_set_active_mask );
+         DLB_CallbackSet( dlb_callback_set_process_mask,
+               (dlb_callback_t)nanos_omp_set_process_mask );
+         DLB_CallbackSet( dlb_callback_add_active_mask,
+               (dlb_callback_t)nanos_omp_add_active_mask );
+         DLB_CallbackSet( dlb_callback_add_process_mask,
+               (dlb_callback_t)nanos_omp_add_process_mask );
+         DLB_CallbackSet( dlb_callback_enable_cpu,
+               (dlb_callback_t)nanos_omp_enable_cpu );
+         DLB_CallbackSet( dlb_callback_disable_cpu,
+               (dlb_callback_t)nanos_omp_disable_cpu );
+      }
+#endif
 
       /*!
        * \brief Returns the identifier of the interface, OpenMP

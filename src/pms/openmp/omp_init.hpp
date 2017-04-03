@@ -67,6 +67,9 @@ namespace nanos {
             virtual void addCpuActiveMask( const CpuSet& cpu_set );
             virtual void enableCpu( int cpuid );
             virtual void disableCpu( int cpuid );
+#ifdef DLB
+            virtual void registerCallbacks() const;
+#endif
 
          public:
             nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
