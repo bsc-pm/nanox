@@ -219,11 +219,16 @@ extern "C"
 
    NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
-      sys.getThreadManager()->acquireResourcesIfNeeded();
-
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       if ( threads_requested <= 0 ) {
-         threads_requested = data->icvs()->getNumThreads();
+         int avail_cpus = sys.getThreadManager()->borrowResources();
+         if ( avail_cpus <= 0 ) {
+            // If ThreadManager is disabled (default) and the user did not specify nthreads:
+            threads_requested = data->icvs()->getNumThreads();
+         } else {
+            // ThreadManager is enabled:
+            threads_requested = avail_cpus;
+         }
       }
 
       int num_threads = 0;

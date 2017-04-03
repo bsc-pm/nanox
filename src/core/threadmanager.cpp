@@ -25,38 +25,7 @@
 #include "os.hpp"
 
 #ifdef DLB
-#include <DLB_interface.h>
-#else
-extern "C" {
-   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
-   void DLB_UpdateResources( void ) __attribute__(( weak ));
-   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-   int DLB_ReleaseCpu ( int cpu ) __attribute__(( weak ));
-   int DLB_ReturnClaimedCpu ( int cpu ) __attribute__(( weak ));
-   void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
-   int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
-   void DLB_Init ( void ) __attribute__(( weak ));
-   void DLB_Finalize ( void ) __attribute__(( weak ));
-   int DLB_Is_auto( void ) __attribute__(( weak ));
-   void DLB_Update( void ) __attribute__(( weak ));
-   void DLB_AcquireCpu( int cpu ) __attribute__(( weak ));
-   void DLB_AcquireCpus( cpu_set_t* mask ) __attribute__(( weak ));
-   void DLB_NotifyProcessMaskChangeTo(const cpu_set_t* mask) __attribute__(( weak ));
-}
-#define DLB_SYMBOLS_DEFINED ( \
-         DLB_UpdateResources_max && \
-         DLB_UpdateResources && \
-         DLB_ReleaseCpu && \
-         DLB_ReturnClaimedCpus && \
-         DLB_ReturnClaimedCpu && \
-         DLB_ClaimCpus && \
-         DLB_CheckCpuAvailability && \
-         DLB_Init && \
-         DLB_Finalize && \
-         DLB_AcquireCpu && \
-         DLB_AcquireCpus && \
-         DLB_NotifyProcessMaskChangeTo && \
-         DLB_Update )
+#include <dlb.h>
 #endif
 
 using namespace nanos;
@@ -141,10 +110,10 @@ ThreadManager* ThreadManagerConf::create()
       warning0( "Thread Manager: Block, sleep, yield or dlb options are ignored when you explicitly choose --thread-manager=none" );
    }
 #ifndef DLB
-   if ( _useDLB  || _tm == TM_DLB ) {
-      fatal_cond0( !DLB_SYMBOLS_DEFINED,
-            "Thread Manager: Some DLB option was enabled but DLB symbols were not found. "
-            "Either add DLB support at configure time or link your application against DLB libraries." );
+   if ( _useDLB ) { /*|| _tm == TM_DLB ) {*/
+      fatal0(
+            "Thread Manager: Some DLB option was enabled but DLB library is not configured. "
+            "Add DLB support at configure time." );
    }
 #endif
 
@@ -186,7 +155,6 @@ void ThreadManager::init()
    _cpuProcessMask = &sys.getCpuProcessMask();
    _cpuActiveMask = &sys.getCpuActiveMask();
    _maxThreads = sys.getSMPPlugin()->getRequestedWorkers();
-   _initialized = true;
 }
 
 bool ThreadManager::lastActiveThread( void )
@@ -231,7 +199,7 @@ void BlockingThreadManager::init()
    ThreadManager::init();
    _isMalleable = sys.getPMInterface().isMalleable();
    _maxThreads = _useDLB ? OS::getMaxProcessors() : sys.getSMPPlugin()->getRequestedWorkers();
-   if ( _useDLB ) DLB_Init();
+   if ( _useDLB ) DLB_Init( 0, _cpuProcessMask, NULL );
 }
 
 bool BlockingThreadManager::isGreedy()
@@ -249,7 +217,7 @@ void BlockingThreadManager::idle( int& yields
 {
    if ( !_initialized ) return;
 
-   if ( _useDLB ) DLB_Update();
+   if ( _useDLB ) DLB_PollDROM_Update();
 
    BaseThread *thread = getMyThreadSafe();
 
@@ -312,18 +280,20 @@ void BlockingThreadManager::acquireOne()
    }
 }
 
-void BlockingThreadManager::acquireResourcesIfNeeded()
+int BlockingThreadManager::borrowResources()
 {
-   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+   fatal_cond( _isMalleable, "borrowResources function should only be called"
                               " before opening OpenMP parallels");
 
-   if ( !_initialized ) return;
+   if ( !_initialized ) return -1;
 
    LockBlock Lock( _lock );
-   if ( _useDLB ) DLB_Update();
+   if ( _useDLB ) DLB_PollDROM_Update();
    if ( *_cpuProcessMask != *_cpuActiveMask ) {
       sys.setCpuActiveMask( *_cpuProcessMask );
    }
+
+   return _cpuActiveMask->size();
 }
 
 void BlockingThreadManager::returnClaimedCpus()
@@ -337,7 +307,7 @@ void BlockingThreadManager::returnClaimedCpus()
    CpuSet mine_or_active = *_cpuProcessMask | *_cpuActiveMask;
    if ( mine_or_active.size() > _cpuProcessMask->size() ) {
       // Only return if I am using external CPUs
-      DLB_ReturnClaimedCpus();
+      DLB_Return();
    }
 }
 
@@ -387,8 +357,9 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
 
 void BlockingThreadManager::processMaskChanged()
 {
-   if ( _useDLB )
-      DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
+   // deprecate
+   //if ( _useDLB )
+      //DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
 }
 
 /**********************************/
@@ -412,7 +383,16 @@ void BusyWaitThreadManager::init()
    ThreadManager::init();
    _isMalleable = sys.getPMInterface().isMalleable();
    _maxThreads = _useDLB ? OS::getMaxProcessors() : sys.getSMPPlugin()->getRequestedWorkers();
-   if ( _useDLB ) DLB_Init();
+
+#ifdef DLB
+   if ( _useDLB ) {
+      DLB_Init( 0, _cpuProcessMask, NULL );
+      sys.getPMInterface().registerCallbacks();
+   }
+#endif
+
+   // This must be the last field
+   _initialized = true;
 }
 
 bool BusyWaitThreadManager::isGreedy()
@@ -434,7 +414,7 @@ void BusyWaitThreadManager::idle( int& yields
 
    BaseThread *thread = getMyThreadSafe();
 
-   if ( _useDLB ) DLB_Update();
+   if ( _useDLB ) DLB_PollDROM_Update();
 
    if ( yields > 0 ) {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -478,37 +458,23 @@ void BusyWaitThreadManager::acquireOne()
    if ( !thread->isMainThread() ) return;
    if ( !team ) return;
 
-   // Acquire CPUs is a best effort optimization within the critical path,
-   // do not wait for a lock release if the lock is busy
-   if ( _lock.tryAcquire() ) {
-      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-      size_t previous_mine_and_active = mine_and_active.size();
-      if ( mine_and_active != *_cpuProcessMask ) {
-         // Only claim if some of my CPUs are not active
-         DLB_ClaimCpus( 1 );
-      }
-
-      mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-      if ( previous_mine_and_active == mine_and_active.size() ) {
-         // Only ask if DLB_ClaimCpus didn't give us anything
-         DLB_UpdateResources_max( 1 );
-      }
-      _lock.release();
-   }
+   DLB_AcquireCpus( 1 );
 }
 
-void BusyWaitThreadManager::acquireResourcesIfNeeded ()
+int BusyWaitThreadManager::borrowResources ()
 {
-   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+   fatal_cond( _isMalleable, "borrowResources function should only be called"
                               " before opening OpenMP parallels");
 
-   if ( !_initialized ) return;
-   if ( !_useDLB ) return;
-   if ( !myThread->isMainThread() ) return;
+   if ( !_initialized ) return -1;
+   if ( !_useDLB ) return -1;
+   if ( !myThread->isMainThread() ) return -1;
 
    LockBlock Lock( _lock );
-   DLB_Update();
-   DLB_UpdateResources();
+   DLB_PollDROM_Update();
+   DLB_Borrow();
+
+   return _cpuActiveMask->size();
 }
 
 void BusyWaitThreadManager::returnClaimedCpus()
@@ -522,7 +488,7 @@ void BusyWaitThreadManager::returnClaimedCpus()
    CpuSet mine_or_active = *_cpuProcessMask | *_cpuActiveMask;
    if ( mine_or_active.size() > _cpuProcessMask->size() ) {
       // Only return if I am using external CPUs
-      DLB_ReturnClaimedCpus();
+      DLB_Return();
    }
 }
 
@@ -560,13 +526,13 @@ void BusyWaitThreadManager::blockThread(BaseThread *thread)
    /* Do not release master thread if master WD is tied*/
    if ( thread->isMainThread() && !sys.getUntieMaster() ) return;
 
-   int my_cpu = thread->getCpuId();
+   int cpuid = thread->getCpuId();
 
    LockBlock Lock( _lock );
 
    // Do not release if this CPU is the last active within the process_mask
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
+   if ( mine_and_active.size() == 1 && mine_and_active.isSet(cpuid) )
       return;
 
    thread->lock();
@@ -574,17 +540,26 @@ void BusyWaitThreadManager::blockThread(BaseThread *thread)
       // Sleep teamless threads only if the PE has been deactivated
       thread->setNextTeam(NULL);
       thread->sleep();
+      if ( _useDLB )
+         DLB_LendCpu(cpuid);
+
+   } else if ( /* WIP omp+dlb */ !thread->hasTeam() ) {
+      if ( _useDLB ) {
+         thread->sleep();
+         DLB_LendCpu(cpuid);
+      }
    }
    thread->unlock();
 
    // FIXME: this call causes a bug when in OpenMP
    // Clear CPU from active mask when all threads of a process are blocked
-   // sys.getSMPPlugin()->updateCpuStatus( my_cpu );
+   sys.getSMPPlugin()->updateCpuStatus( cpuid );
 }
 
 void BusyWaitThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
 
    ThreadTeam *team = myThread->getTeam();
    fatal_cond( team == NULL, "Cannot unblock another thread from a teamless thread" );
@@ -597,8 +572,9 @@ void BusyWaitThreadManager::unblockThread( BaseThread* thread )
 
 void BusyWaitThreadManager::processMaskChanged()
 {
-   if ( _useDLB )
-      DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
+   // deprecate
+   //if ( _useDLB )
+      //DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
 }
 
 /**********************************/
@@ -620,7 +596,7 @@ void DlbThreadManager::init()
    ThreadManager::init();
    _isMalleable = sys.getPMInterface().isMalleable();
    _maxThreads = OS::getMaxProcessors();
-   DLB_Init();
+   DLB_Init( 0, _cpuProcessMask, NULL );
 }
 
 bool DlbThreadManager::isGreedy()
@@ -639,7 +615,7 @@ void DlbThreadManager::idle( int& yields
 {
    if ( !_initialized ) return;
 
-   DLB_Update();
+   DLB_PollDROM_Update();
 
    BaseThread *thread = getMyThreadSafe();
 
@@ -669,35 +645,21 @@ void DlbThreadManager::acquireOne()
    if ( !_isMalleable ) return;
    if ( _cpuActiveMask->size() >= _maxThreads ) return;
 
-   ThreadTeam *team = getMyThreadSafe()->getTeam();
-   if ( !team ) return;
-
-   // Acquire CPUs is a best effort optimization within the critical path,
-   // do not wait for a lock release if the lock is busy
-   if ( _lock.tryAcquire() ) {
-//      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-//      if ( mine_and_active != *_cpuProcessMask ) {
-//         // We claim if some of our CPUs is lent
-//         DLB_ClaimCpus( 1 );
-//      } else {
-//         // Otherwise, just ask for 1 cpu
-         DLB_UpdateResources_max( 1 );
-
-//      }
-      _lock.release();
-   }
+   DLB_AcquireCpus( 1 );
 }
 
-void DlbThreadManager::acquireResourcesIfNeeded ()
+int DlbThreadManager::borrowResources ()
 {
-   fatal_cond( _isMalleable, "acquireResourcesIfNeeded function should only be called"
+   fatal_cond( _isMalleable, "borrowResources function should only be called"
                               " before opening OpenMP parallels");
 
-   if ( !_initialized ) return;
+   if ( !_initialized ) return -1;
 
    LockBlock Lock( _lock );
-   DLB_Update();
-   DLB_UpdateResources();
+   DLB_PollDROM_Update();
+   DLB_Acquire();
+
+   return _cpuActiveMask->size();
 }
 
 void DlbThreadManager::returnClaimedCpus() {
@@ -717,7 +679,9 @@ void DlbThreadManager::returnMyCpuIfClaimed()
 
    if ( !thread->isSleeping() ) {
       LockBlock Lock( _lock );
-      DLB_ReturnClaimedCpu( my_cpu );
+      if ( DLB_ReturnCpu( my_cpu ) == DLB_SUCCESS ) {
+         // disable_cpu ?
+      }
    }
 }
 
@@ -759,7 +723,7 @@ void DlbThreadManager::blockThread( BaseThread *thread )
    if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
       return;
 
-   DLB_ReleaseCpu( my_cpu );
+   DLB_LendCpu( my_cpu );
 }
 
 void DlbThreadManager::unblockThread( BaseThread* thread )
@@ -774,5 +738,6 @@ void DlbThreadManager::unblockThread( BaseThread* thread )
 
 void DlbThreadManager::processMaskChanged()
 {
-   DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
+   // deprecate
+   //DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
 }

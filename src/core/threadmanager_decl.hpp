@@ -64,7 +64,7 @@ namespace nanos {
 #endif
                      ) {}
          virtual void acquireOne() {}
-         virtual void acquireResourcesIfNeeded() {}
+         virtual int  borrowResources() { return -1; }
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
@@ -102,7 +102,7 @@ namespace nanos {
 #endif
                      );
          virtual void acquireOne();
-         virtual void acquireResourcesIfNeeded();
+         virtual int  borrowResources();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
@@ -141,7 +141,7 @@ namespace nanos {
 #endif
                      );
          virtual void acquireOne();
-         virtual void acquireResourcesIfNeeded();
+         virtual int  borrowResources();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
@@ -175,7 +175,7 @@ namespace nanos {
 #endif
                      );
          virtual void acquireOne();
-         virtual void acquireResourcesIfNeeded();
+         virtual int  borrowResources();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();

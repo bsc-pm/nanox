@@ -670,7 +670,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             success = true;
          }
          applyCpuMask( workers );
-         sys.getThreadManager()->processMaskChanged();
       }
       return success;
    }
@@ -680,7 +679,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       _cpuProcessMask.add( mask );
       _cpuActiveMask.add( mask );
       applyCpuMask( workers );
-      sys.getThreadManager()->processMaskChanged();
    }
 
    const CpuSet& SMPPlugin::getCpuActiveMask () const
