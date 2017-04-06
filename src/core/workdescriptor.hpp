@@ -146,6 +146,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.is_implicit = wd._flags.is_implicit;
                                     _flags.is_recoverable = wd._flags.is_recoverable;
                                     _flags.is_invalid = false;
+                                    _flags.is_runtime_task = wd._flags.is_runtime_task;
 
                                     _mcontrol.preInit();
                                     for (unsigned int __i=0; __i<8;__i+=1) {
@@ -486,7 +487,14 @@ inline void WorkDescriptor::setImplicit( bool b )
    }
 }
 
-inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; } 
+inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; }
+
+inline void WorkDescriptor::setRuntimeTask( bool b )
+{
+  _flags.is_runtime_task = b;
+}
+
+inline bool WorkDescriptor::isRuntimeTask( void ) const { return _flags.is_runtime_task; }
 
 inline const char * WorkDescriptor::getDescription ( void ) const  { return _description; }
 
