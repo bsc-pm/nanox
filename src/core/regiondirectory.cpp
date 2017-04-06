@@ -391,7 +391,7 @@ void RegionDirectory::synchronize( WD &wd, void *addr ) {
                   if ( _VERBOSE_CACHE ) {
                      *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                      if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                     else *myThread->_file << " nil " << std::endl; 
+                     else *myThread->_file << " nil " << std::endl;
                   }
                   //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
                   outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
@@ -428,7 +428,7 @@ void RegionDirectory::synchronize( WD &wd, void *addr ) {
                   if ( _VERBOSE_CACHE ) {
                      *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                      if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                     else *myThread->_file << " nil " << std::endl; 
+                     else *myThread->_file << " nil " << std::endl;
                   }
                   //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
                   outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
@@ -463,7 +463,7 @@ void RegionDirectory::synchronize( WD &wd, void *addr ) {
    //o << "++++ DONE ++++ WaitOn synchronize, w addr " << addr << std::endl;
 }
 
-void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data ) 
+void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAccess *data )
 {
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
 
@@ -471,8 +471,8 @@ void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAcce
 
    for ( std::size_t idx = 0; idx < numDataAccesses; idx += 1 ) {
 
-      uint64_t objectAddr = (uint64_t) data[idx].getAddress(); //FIXME: make sure this is the host base address
-      GlobalRegionDictionary *dict = getRegionDictionary( objectAddr, true ); 
+      uint64_t objectAddr = (uint64_t) data[idx].getDepAddress(); //NOTE: Using the region base address in the host
+      GlobalRegionDictionary *dict = getRegionDictionary( objectAddr, true );
       if ( dict == NULL ) continue;
 
       std::list< std::pair< reg_t, reg_t > > missingParts;
@@ -495,7 +495,7 @@ void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAcce
                      if ( _VERBOSE_CACHE ) {
                         *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                         if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                        else *myThread->_file << " nil " << std::endl; 
+                        else *myThread->_file << " nil " << std::endl;
                      }
                      outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
                      outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
@@ -522,7 +522,7 @@ void RegionDirectory::synchronize( WD &wd, std::size_t numDataAccesses, DataAcce
                      if ( _VERBOSE_CACHE ) {
                         *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                         if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                        else *myThread->_file << " nil " << std::endl; 
+                        else *myThread->_file << " nil " << std::endl;
                      }
                      outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
                      outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
@@ -672,7 +672,7 @@ void RegionDirectory::synchronize( WD &wd ) {
                            if ( _VERBOSE_CACHE ) {
                               *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
                               if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                              else *myThread->_file << " nil " << std::endl; 
+                              else *myThread->_file << " nil " << std::endl;
                            }
                            //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
                            outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
@@ -710,7 +710,7 @@ void RegionDirectory::synchronize( WD &wd ) {
                            if ( _VERBOSE_CACHE ) {
                               *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
                               if ( entry ) *myThread->_file << " " << *entry << std::endl;
-                              else *myThread->_file << " nil " << std::endl; 
+                              else *myThread->_file << " nil " << std::endl;
                            }
                            //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
                            outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
@@ -773,7 +773,7 @@ void RegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId
 
 void RegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
    //allocate dimensions
-   nanos_region_dimension_internal_t *dimensions = 
+   nanos_region_dimension_internal_t *dimensions =
       NEW nanos_region_dimension_internal_t[obj->dimension_count];
 
    ::memcpy(dimensions, obj->dimensions,
@@ -862,4 +862,3 @@ void RegionDirectory::unregisterObject(void *baseAddr) {
 }
 
 } // namespace nanos
-
