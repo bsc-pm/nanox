@@ -529,13 +529,7 @@ void Scheduler::wakeUp ( WD *wd )
          BaseThread *thread = wd->isTied()? wd->isTiedTo(): getMyThreadSafe();
          ThreadTeam *myTeam = thread->getTeam();
 
-         // FIXME: We need this to work for an extern application
-         //if ( myTeam ) next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
-         //else fatal("Trying to wake up a WD from a thread without team.");
-
-         // Falling back to Main Team as a workaround
-         fatal_cond ( myTeam, "Trying to wake up a WD from a thread without team." );
-
+         ensure( myTeam, "Trying to wake up a WD from a thread without team." );
          next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
       }
 
