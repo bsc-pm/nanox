@@ -113,7 +113,7 @@ System::System () :
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
-      _predecessorLists( true ), _throttlePolicy ( NULL ),
+      _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -564,7 +564,7 @@ void System::start ()
       (*it)->startWorkerThreads( _workers );
    }   
 
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       if ( it->second->isActive() ) {
          _clusterNodes.insert( it->second->getClusterNode() );
          // If this PE is in a NUMA node and has workers
@@ -636,7 +636,7 @@ void System::start ()
 #if 0 /* _defDeviceName and _defDevice seem unused */
    if ( !_defDeviceName.empty() ) 
    {
-       PEList::iterator it;
+       PEMap::iterator it;
        for ( it = _pes.begin() ; it != _pes.end(); it++ )
        {
            PE *pe = it->second;
@@ -742,23 +742,22 @@ void System::finish ()
    myThread->getTeam()->getSchedulePolicy().atShutdown();
 
    //! \note switching main work descriptor (current) to the main thread to shut down the runtime
-   if ( !myThread->isMainThread() ) {
-      BaseThread *master_thread = _workers[0];
-      master_thread->lock();
-      master_thread->tryWakeUp( _mainTeam );
-      master_thread->unlock();
-      myThread->getCurrentWD()->tied().tieTo( *master_thread );
-      Scheduler::switchToThread( master_thread );
-   }
+   BaseThread *master_thread = _workers[0];
+   master_thread->lock();
+   master_thread->tryWakeUp( _mainTeam );
+   master_thread->unlock();
+   myThread->getCurrentWD()->tied().tieTo( *master_thread );
+   Scheduler::switchToThread( master_thread );
+
    BaseThread *mythread = getMyThreadSafe();
-   ensure( mythread->isMainThread(), "Main thread is not finishing the application!" );
+   fatal_cond( !mythread->isMainThread(), "Main thread is not finishing the application!" );
 
    ThreadTeam* team = mythread->getTeam();
    while ( !(team->isStable()) ) memoryFence();
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
@@ -847,7 +846,7 @@ void System::finish ()
    delete team;
 
    //! \note deleting processing elements (but main pe)
-   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+   for ( PEMap::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       if ( it->first != (unsigned int)mythread->runningOn()->getId() ) {
          delete it->second;
       }
@@ -1652,7 +1651,7 @@ global_reg_t System::_registerMemoryChunk(void *addr, std::size_t len) {
    cd.setDimensions( &dim );
    cd.setNumDimensions( 1 );
    global_reg_t reg;
-   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   getHostMemory().getRegionId( cd, reg, NULL, 0 );
    return reg;
 }
 
@@ -1669,7 +1668,7 @@ global_reg_t System::_registerMemoryChunk_2dim(void *addr, std::size_t rows, std
    cd.setDimensions( &dim[0] );
    cd.setNumDimensions( 2 );
    global_reg_t reg;
-   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   getHostMemory().getRegionId( cd, reg, NULL, 0 );
    return reg;
 }
 
@@ -1690,12 +1689,12 @@ void System::_distributeObject( global_reg_t &reg, unsigned int start_node, std:
       dims[ num_dims-1 ].accessed_length = size_per_node + (node_idx < rest_size);
       assigned_size += size_per_node + (node_idx < rest_size);
       global_reg_t fragmented_reg;
-      getHostMemory().getRegionId( cd, fragmented_reg, *((WD *) 0), 0 );
+      getHostMemory().getRegionId( cd, fragmented_reg, NULL, 0 );
       std::cerr << "fragment " << node_idx << " is "; fragmented_reg.key->printRegion(std::cerr, fragmented_reg.id); std::cerr << std::endl;
       fragmented_reg.key->addFixedRegion( fragmented_reg.id );
       unsigned int version = 0;
       NewLocationInfoList missing_parts;
-      RegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
+      RegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version );
       memory_space_id_t loc = 0;
       for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
          if ( *it != NULL ) {
@@ -1738,7 +1737,7 @@ void System::stickToProducer(void *addr, std::size_t len) {
       cd.setDimensions( &dim );
       cd.setNumDimensions( 1 );
       global_reg_t reg;
-      getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+      getHostMemory().getRegionId( cd, reg, NULL, 0 );
       reg.key->setKeepAtOrigin( true );
    }
 }

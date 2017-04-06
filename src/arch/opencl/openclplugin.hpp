@@ -66,7 +66,7 @@ public:
    virtual unsigned getNumThreads() const;
    virtual void createBindingList();
    virtual PE* createPE( unsigned id, unsigned uid );
-   virtual void addPEs( PEList &pes ) const;
+   virtual void addPEs( PEMap &pes ) const;
    virtual void addDevices( DeviceList &devices ) const;
    virtual void startSupportThreads();
    virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers );

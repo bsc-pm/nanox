@@ -55,9 +55,23 @@ class OpenCLCache
 {
   friend class OpenCLProcessor;
   
+private:
+   cl_mem               _mainBuffer;
+   size_t               _devCacheSize;
+
+   SimpleAllocator      _devAllocator;
+
+   OpenCLAdapter       &_openclAdapter;
+   OpenCLProcessor     *_processor;      //!< Processor "owner" of this Cache
+
+   Atomic<size_t>       _bytesIn;
+   Atomic<size_t>       _bytesOut;
+   Atomic<size_t>       _bytesDevice;
+
 public:
-  OpenCLCache(OpenCLAdapter &openclAdapter, OpenCLProcessor* processor) : _devCacheSize( 0 ),
-                                     _openclAdapter( openclAdapter ), _processor( processor ) { }
+  OpenCLCache(OpenCLAdapter &openclAdapter, OpenCLProcessor* processor) : 
+             _mainBuffer(), _devCacheSize( 0 ), _devAllocator(), _openclAdapter( openclAdapter ), 
+             _processor( processor ), _bytesIn(0), _bytesOut(0), _bytesDevice(0) { }
 
   OpenCLCache( const OpenCLCache &cache ); // Do not implement.
   const OpenCLCache &operator=( const OpenCLCache &cache ); // Do not implement.
@@ -100,19 +114,6 @@ public:
        return _devAllocator;
    }
 
-private:   
-   cl_mem _mainBuffer;    
-   size_t _devCacheSize;
-
-   SimpleAllocator _devAllocator;
-
-   OpenCLAdapter &_openclAdapter;
-   //Processor "owner" of this Cache
-   OpenCLProcessor *_processor;
-  
-   Atomic<size_t>    _bytesIn;
-   Atomic<size_t>    _bytesOut;
-   Atomic<size_t>    _bytesDevice;
 };
 
 } // namespace ext

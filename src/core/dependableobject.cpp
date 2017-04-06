@@ -222,14 +222,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      succ.insert( std::make_pair( wdId, found ) );
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
-                     if(sys.getPredecessorLists()) {
-                        int  numPred = --_numPredecessors;
-                        found->decreasePredecessorsInLock( this, numPred );
-                      //  sys.getDefaultSchedulePolicy()->atSuccessor( *found, this );
-                     }
-                     else
-                        --_numPredecessors;
-//                     found->decreasePredecessorsInLock( this, numPred );
+                     found->decreasePredecessors( NULL, this, true, false );
                   }
 
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<
@@ -252,35 +245,4 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
       }
    }
    return found;
-}
-bool DependableObject::addSuccessor ( DependableObject &depObj )
-{
-   // Avoiding create cycles in dependence graph
-   if ( this == &depObj ) return false;
-
-   if (depObj._num < _num + 1) {
-      depObj._num = _num + 1;
-
-      if(sys.getPredecessorLists()) {
-         for ( DependableObjectVector::const_iterator it = depObj._predecessors.begin();
-               it != depObj._predecessors.end(); it++ ) {
-            int value = (it->second->_lss == -1 ) ? depObj._num - 1 : (it->second->_lss < depObj._num - 1 ? depObj._num - 1 : it->second->_lss );
-            it->second->_lss = value;
-         }
-      }
-   }
-   if ( _lss == -1 ) {
-      _lss = depObj._num - 1;
-   } else if ( depObj._num < _lss ) {
-      _lss = depObj._num - 1;
-   }
-
-   //Maintain the list of predecessors
-   if(sys.getPredecessorLists()) {
-      depObj.addPredecessor( *this );
-   }
-
-   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
-
-   return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
 }

@@ -410,6 +410,11 @@ inline void WDLFQueue::push_front ( WorkDescriptor *wd )
    fatal0("Calling push_front method is not allowed using WDLFQueue's"); /*XXX*/
 }
 
+inline void WDLFQueue::push_front ( WorkDescriptor **wd, size_t numElems )
+{
+   fatal0("Calling push_front method is not allowed using WDLFQueue's"); /*XXX*/
+}
+
 inline void WDLFQueue::push_back( WorkDescriptor *wd )
 {
    volatile WDNode *tail;
@@ -431,6 +436,11 @@ inline void WDLFQueue::push_back( WorkDescriptor *wd )
    }
    /* int tasks = */ ++( sys.getSchedulerStats()._readyTasks );
    compareAndSwap( (void **) &_tail, (void *) tail, (void *) NANOS_ABA_COMPOSE(node,tail) );
+}
+
+inline void WDLFQueue::push_back ( WorkDescriptor **wd, size_t numElems )
+{
+   fatal0("Calling push_back method is not implemented yet but it should"); /*XXX*/
 }
 
 inline void WDLFQueue::push_back_node ( WDNode *node )

@@ -63,13 +63,22 @@ void SMPDD::workWrapper ( WD &wd )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+   NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateEvent ( NANOS_RUNTIME ) );
+   NANOS_INSTRUMENT ( } else { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+   NANOS_INSTRUMENT ( } );
 #endif
 
    dd.execute(wd);
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
+   NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( } else { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
+   NANOS_INSTRUMENT ( } );
 #endif
 }
 

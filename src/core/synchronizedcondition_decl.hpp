@@ -356,10 +356,6 @@ namespace nanos {
          typedef std::vector<WorkDescriptor*> WorkDescriptorList; /**< type vector of workdescriptors. */
          WorkDescriptorList _waiters; /**< List of WDs that wait on the condition. */
 
-      private:
-         /*! \brief MultipleSyncCond default constructor (disabled)
-          */
-         MultipleSyncCond ();
       public:
          /*! \brief MultipleSyncCond constructor
           *

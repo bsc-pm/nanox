@@ -128,7 +128,7 @@ namespace ext {
       return NULL;
    }
 
-   void OpenCLPlugin::addPEs( PEList &pes ) const {
+   void OpenCLPlugin::addPEs( PEMap &pes ) const {
       for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls.begin(); it != _opencls.end(); it++ ) {
          pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }

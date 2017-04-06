@@ -248,7 +248,7 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void 
 
 NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
 {
-
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->incrementMaxThreads(); )
    try {
        sys.admitCurrentThread( true );
    } catch ( nanos_err_t e) {
@@ -260,7 +260,6 @@ NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
 
 NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 {
-
    try {
        sys.expelCurrentThread( true );
    } catch ( nanos_err_t e) {

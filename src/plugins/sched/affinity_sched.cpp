@@ -611,7 +611,7 @@ namespace nanos {
                      }
                      for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
                         //FIXME : maybe this should iterate workers, not PEs.
-                        for ( PEList::const_iterator pit = sys.getPEs().begin(); pit != sys.getPEs().end(); pit++ ) {
+                        for ( PEMap::const_iterator pit = sys.getPEs().begin(); pit != sys.getPEs().end(); pit++ ) {
                            _thdsPerQueue[__i] += (*_queueToMemSpace)[__i] == pit->second->getMemorySpaceId();
                         }
                      }
@@ -1348,6 +1348,11 @@ namespace nanos {
 #endif
             }
 
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal( "This method is not implemented yet" );
+            }
+
             /*!
             *  \brief Function called when a new task must be created: the new created task
             *          is directly queued (Breadth-First policy)
@@ -1365,7 +1370,7 @@ namespace nanos {
             virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
-            virtual WD *atAfterExit ( BaseThread *thread, WD *current )
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current, int numStealDummy )
             {
                return atBlock(thread, current );
             }

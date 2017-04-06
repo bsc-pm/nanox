@@ -239,6 +239,8 @@ namespace nanos {
          void push_back( WorkDescriptor *wd );
          void push_back_node ( WDNode *node );
 
+         void push_front( WD** wds, size_t numElems );
+         void push_back( WD** wds, size_t numElems );
          WorkDescriptor * pop_front ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
 

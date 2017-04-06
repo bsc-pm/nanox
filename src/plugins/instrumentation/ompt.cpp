@@ -414,15 +414,18 @@ namespace nanos
                switch ( e.getType() ) {
                   case NANOS_POINT:
                      if ( e.getKey( ) == create_wd_ptr && ompt_nanos_event_task_begin )
-                     { 
+                     {
                         WorkDescriptor *wd = (WorkDescriptor *) e.getValue();
                         if ( !wd->isImplicit() ) {
-                           ompt_nanos_event_task_begin(
-                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
-                                 NULL,  // FIXME: task frame
-                                 (ompt_task_id_t) wd->getId(),
-                                 (void *) wd->getActiveDevice().getWorkFct()
-                                 );
+                           //Add an event for each task implementation
+                           for ( unsigned int j = 0; j < wd->getNumDevices(); j++) {
+                              ompt_nanos_event_task_begin(
+                                    (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                                    NULL,  // FIXME: task frame
+                                    (ompt_task_id_t) wd->getId(),
+                                    (void*)wd->getDevices()[j]->getWorkFct()
+                                    );
+                           }
                         }
                      }
                      if ( e.getKey() == dependence && ompt_nanos_event_dependence ) {

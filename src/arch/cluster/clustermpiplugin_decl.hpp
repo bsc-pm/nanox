@@ -72,7 +72,7 @@ class ClusterMPIPlugin : public ArchPlugin
 
       virtual ProcessingElement * createPE( unsigned id, unsigned uid );
       virtual unsigned getNumThreads() const; 
-      void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+      void addPEs( PEMap &pes ) const;
       virtual void addDevices( DeviceList &devices ) const {}
       virtual unsigned int getNumPEs() const;
       virtual unsigned int getMaxPEs() const;

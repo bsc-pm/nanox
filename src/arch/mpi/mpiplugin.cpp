@@ -118,7 +118,7 @@ void MPIPlugin::createBindingList()
 //        }
 }
 
-void MPIPlugin::addPEs( PEList &pes ) const {
+void MPIPlugin::addPEs( PEMap &pes ) const {
 }
 
 void MPIPlugin::addDevices( DeviceList &devices ) const {}

@@ -536,6 +536,11 @@ namespace nanos {
             {
                socketQueue( thread, wd, false );
             }
+
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal( "This method is not implemented yet" );
+            }
             
             /*!
              *  \brief Queues a work descriptor in a readyQueue.
@@ -844,6 +849,10 @@ namespace nanos {
                }
             }
             
+            virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {
+                fatal( "This method is not implemented yet" );
+            }
+
             //! \brief Enables or disables stealing
             virtual void setStealing( bool value ) { _steal = value; }
             

@@ -187,13 +187,13 @@ typedef struct {
 
 // SlicerFor data structure
 typedef struct {
-   int lower;
-   int upper;
-   int step;
+   int64_t lower;
+   int64_t upper;
+   int64_t step;
    bool last;
    bool wait;
-   int chunk;
-   int stride;
+   int64_t chunk;
+   int64_t stride;
    int thid;
    int threads;
    void *args;

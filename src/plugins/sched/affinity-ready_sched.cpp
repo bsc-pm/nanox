@@ -536,6 +536,11 @@ namespace nanos {
             }
 
 
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal ( "This method is not implemented yet" );
+            }
+
             /*!
              *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
              *  \param thread pointer to the thread to which readyQueue the task must be appended
@@ -630,7 +635,7 @@ namespace nanos {
             virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
-            virtual WD *atAfterExit ( BaseThread *thread, WD *current, bool steal )
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current, int  numStealDummy )
             {
                return atBlock(thread, current );
             }

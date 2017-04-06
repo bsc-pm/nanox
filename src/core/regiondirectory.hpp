@@ -30,8 +30,8 @@ inline DirectoryEntryData::DirectoryEntryData() : Version( 1 )
    , _ops()
    , _location()
    , _pes()
-   , _rooted( -1 )
-   , _home( -1 )
+   , _rooted( (memory_space_id_t) -1 )
+   , _home( (memory_space_id_t) -1 )
    , _setLock() 
    , _firstWriterPE( NULL )
    , _baseAddress( 0 )
@@ -44,7 +44,7 @@ inline DirectoryEntryData::DirectoryEntryData( memory_space_id_t home ) : Versio
    , _ops()
    , _location()
    , _pes()
-   , _rooted( -1 )
+   , _rooted( (memory_space_id_t) -1 )
    , _home( home )
    , _setLock() 
    , _firstWriterPE( NULL )
@@ -285,7 +285,7 @@ inline RegionDirectory::RegionDirectoryKey RegionDirectory::getRegionDirectoryKe
    return getRegionDictionary( addr );
 }
 
-inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+inline void RegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version )
 {
    dict->lockObject();
    dict->registerRegion( reg, missingParts, version );

@@ -55,22 +55,6 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
 AC_SUBST([DEB_RELEASE])
 
-# Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
-AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])])
-AC_MSG_RESULT([$enable_allocator])
-AS_IF([test "$enable_allocator" = yes],[
-	AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled or not])
-])
-
-# Memtracker support
-AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
-AC_ARG_ENABLE([memtracker],[AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])])
-AC_MSG_RESULT([$enable_memtracker])
-AS_IF([test "$enable_memtracker" = xyes],[
-	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
-])
-
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
@@ -272,6 +256,26 @@ AC_SUBST([MCXX])
 # Build versions
 AX_BUILD_VERSIONS
 
+# Allocator support
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
+AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])],
+      [], dnl Implicit: enable_allocator=$enableval
+      [enable_allocator="no"])
+AC_MSG_RESULT([$enable_allocator])
+AS_IF([test "$enable_allocator" = yes],[
+      AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled])
+])
+
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
+AC_ARG_ENABLE([memtracker], [AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])],
+      [], dnl Implicit: enable_memtracker=$enableval
+      [enable_memtracker="no"])
+AC_MSG_RESULT([$enable_memtracker])
+AS_IF([test "$enable_memtracker" = xyes],[
+      AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled])
+])
+
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
 AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])],
@@ -343,11 +347,11 @@ AS_IF([test "$new_gcc_builtins" = yes],[
 ])
 
 AC_DEFUN([ax_check_enabled],[
-  AS_IF([test -n "$1"],[
+  AS_IF([test x$1 == xyes],[
     echo -n "enabled"
   ],[
     echo -n "disabled"
-  ])  
+  ])
 ])
 
 AS_ECHO(["
@@ -360,9 +364,9 @@ Configured architectures: $ARCHITECTURES
 Configured versions:      $VERSIONS
 Extra options:            $OPTIONS
 GCC atomics:              $gcc_builtins_used
-Memory tracker:           $(ax_check_enabled $enable_memtracker)
-Memory allocator:         $(ax_check_enabled $enable_allocator)
-Task resiliency:          $(ax_check_enabled $resiliency)"])
+Memory tracker:           $(ax_check_enabled([$enable_memtracker]))
+Memory allocator:         $(ax_check_enabled([$enable_allocator]))
+Task resiliency:          $(ax_check_enabled([$enable_resiliency]))"])
 
 AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\

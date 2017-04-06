@@ -50,9 +50,28 @@ inline DependableObject::~DependableObject ( )
    std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
 }
 
+inline DependableObject::DependableObject ( const DependableObject &depObj )
+   : _id(), _numPredecessors(), _references(), _predecessors(), _successors(), _domain(),
+   _outputObjects(), _readObjects(), _objectLock(), _submitted( false ),
+   _needsSubmission( false ), _wd(), _schedulerData( NULL ), _num(), _lss()
+{
+   LockBlock lock( depObj._objectLock );
+   _id = depObj._id;
+   _numPredecessors = depObj._numPredecessors;
+   _references = depObj._references;
+   _predecessors = depObj._predecessors;
+   _successors = depObj._successors;
+   _domain = depObj._domain;
+   _wd = depObj._wd;
+   _num = depObj._num;
+   _lss = depObj._lss;
+}
+
 inline const DependableObject & DependableObject::operator= ( const DependableObject &depObj )
 {
-   if ( this == &depObj ) return *this; 
+   if ( this == &depObj ) return *this;
+
+   DoubleLockBlock lock( _objectLock, depObj._objectLock );
    _id = depObj._id;
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
@@ -102,17 +121,17 @@ inline int DependableObject::increasePredecessors ( )
    return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
-      bool batchRelease, bool blocking )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps,
+      DependableObject * finishedPred, bool batchRelease, bool blocking )
 {
-   int  numPred = --_numPredecessors;
-//   DependableObject &depObj = *this;
-//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred );
-   if(sys.getPredecessorLists())
-   {
-      SyncLockBlock lock( this->getLock() );
+   int numPred;
 
+   if ( sys.getPredecessorLists() ) {
+      LockBlock lock( _objectLock );
+      numPred = --_numPredecessors;
       decreasePredecessorsInLock( finishedPred, numPred );
+   } else {
+      numPred = --_numPredecessors;
    }
 
    if ( numPred == 0 && !batchRelease ) {
@@ -164,55 +183,48 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    // Avoiding create cycles in dependence graph
    if ( this == &depObj ) return false;
 
-   bool inserted = false;
-   {
-      SyncLockBlock lock( this->getLock() );
-      inserted = _predecessors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
-   }
+   bool inserted = _predecessors.insert (
+         std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj)
+         ).second;
 
    return inserted;
 }
 
-// inline bool DependableObject::addSuccessor ( DependableObject &depObj )
-// {
-//    // Avoiding create cycles in dependence graph
-//    if ( this == &depObj ) return false;
-// 
-//    //Maintain the list of predecessors
-//    if(sys.getPredecessorLists())
-//       depObj.addPredecessor( *this );
-// 
-//    sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
-// 
-//    return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
-// }
-//inline bool DependableObject::addSuccessor ( DependableObject &depObj )
-//{
-//   // Avoiding create cycles in dependence graph
-//   if ( this == &depObj ) return false;
-//
-//   if (depObj._num < _num + 1) {
-//      depObj._num = _num + 1;
-//      if(sys.getPredecessorLists()) {
-//         std::cerr << "UPDATE LSS " << std::endl;
-//         for ( DependableObjectVector::const_iterator it = depObj._predecessors.begin();
-//               it != depObj._predecessors.end(); it++ ) {
-//            int value = ((*it)->_lss == -1 ) ? depObj._num - 1 : ( (*it)->_lss <= depObj._num - 1 ? (*it)->_lss : depObj._num - 1 );
-//            std::cerr << "set value " << value << " for wd " << (*it)->getWD()->getId() << std::endl;
-//            (*it)->_lss = value;
-//         }
-//      }
-//   }
-//
-//   //Maintain the list of predecessors
-//   if(sys.getPredecessorLists()) {
-//      std::cerr << "added predecessor " << depObj.addPredecessor( *this ) << std::endl;
-//   }
-//
-//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
-//
-//   return _successors.insert ( &depObj ).second;
-//}
+inline bool DependableObject::addSuccessor ( DependableObject &depObj )
+{
+   // Avoiding create cycles in dependence graph
+   if ( this == &depObj ) return false;
+
+   if ( sys._preSchedule ) {
+      if (depObj._num < _num + 1) {
+         depObj._num = _num + 1;
+
+         if ( sys.getPredecessorLists() ) {
+            SyncLockBlock lock( depObj._objectLock );
+            for ( DependableObjectVector::const_iterator it = depObj._predecessors.begin();
+                  it != depObj._predecessors.end(); it++ ) {
+               int value = (it->second->_lss == -1 ) ? depObj._num - 1 : (it->second->_lss < depObj._num - 1 ? depObj._num - 1 : it->second->_lss );
+               it->second->_lss = value;
+            }
+         }
+      }
+      if ( _lss == -1 ) {
+         _lss = depObj._num - 1;
+      } else if ( depObj._num < _lss ) {
+         _lss = depObj._num - 1;
+      }
+   }
+
+   //Maintain the list of predecessors
+   if ( sys.getPredecessorLists() ) {
+      SyncLockBlock lock( depObj._objectLock );
+      depObj.addPredecessor( *this );
+   }
+
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
+
+   return _successors.insert ( std::make_pair( depObj.getWD() == NULL ? 0 : depObj.getWD()->getId(), &depObj ) ).second;
+}
 
 inline bool DependableObject::deleteSuccessor ( DependableObject *depObj )
 {

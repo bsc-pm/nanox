@@ -68,7 +68,7 @@ bool Queue<T>::try_pop ( T& result )
 
    if ( _q.empty() ) return false;
 
-   memory_fence();
+   memoryFence();
 
    {
       LockBlock lock( _qLock );
@@ -83,8 +83,18 @@ bool Queue<T>::try_pop ( T& result )
 
    return found;
 }
+template<typename T>
+size_t Queue<T>::size ()
+{
+   return _q.size();
+}
+
+template<typename T>
+bool Queue<T>::empty ()
+{
+   return size() == 0;
+}
 
 } // namespace nanos
 
 #endif
-

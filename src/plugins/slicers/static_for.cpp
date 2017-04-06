@@ -43,7 +43,7 @@ class SlicerStaticFor: public Slicer
 static void staticLoop ( void *arg )
 {
    debug ( "Executing static loop wrapper");
-   int _upper, _stride, _chunk;
+   int64_t _upper, _stride, _chunk;
 
    nanos_loop_info_t * loop_info = (nanos_loop_info_t *) arg;
 
@@ -134,16 +134,16 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    loop_info->args = ( void * ) dd.getWorkFct();
    dd = SMPDD(staticLoop);
 
-   int _chunk = loop_info->chunk;
-   int _lower = loop_info->lower;
-   int _upper = loop_info->upper;
-   int _step  = loop_info->step;
+   int64_t _chunk = loop_info->chunk;
+   int64_t _lower = loop_info->lower;
+   int64_t _upper = loop_info->upper;
+   int64_t _step  = loop_info->step;
 
    if ( _chunk == 0 ) {
 
       // Compute chunk and adjustment
-      int _niters = (((_upper - _lower) / _step ) + 1 );
-      int _adjust = _niters % valid_threads;
+      int64_t _niters = (((_upper - _lower) / _step ) + 1 );
+      int64_t _adjust = _niters % valid_threads;
       _chunk = ((_niters / valid_threads) ) * _step;
       // Computing specific loop boundaries for WorkDescriptor 0
       loop_info->chunk = _chunk + (( _adjust > 0 ) ? _step : 0);
@@ -174,7 +174,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    } else {
       // Computing offset between threads
       int _sign = ( _step < 0 ) ? -1 : +1;
-      int _offset = _chunk * _step;
+      int64_t _offset = _chunk * _step;
       // setting new arguments
       loop_info = (nanos_loop_info_t *) work.getData();
       loop_info->lower = _lower;

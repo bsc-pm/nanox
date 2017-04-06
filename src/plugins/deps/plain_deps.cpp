@@ -131,23 +131,27 @@ namespace nanos {
                TrackableObject &status = *lookupDependency( target );
 
                if ( status.getLastWriter() == &depObj ) return;
-               
+
                if ( accessType.concurrent || accessType.commutative ) {
                   ensure(accessType.input && accessType.output,"Commutative & concurrent must be inout");
                   ensure(!depObj.waits(), "Commutative & concurrent should not wait" );
                   submitDependableObjectCommutativeDataAccess( depObj, target, accessType, status, callback );
+               } else if ( accessType.output && accessType.input ) {
+                  submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+                  // We don't add as write target depObj.addWriteTarget(), due this op is done internally
+                  // in basedependencyregion as part of finding a writer. This same mechanism will be
+                  // used by commutative and concurrent access to summarize dependences
+                  if ( !depObj.waits() ) depObj.addReadTarget( target );
                } else if ( accessType.output ) {
-                  if ( accessType.input ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
-                  else submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
-                  if ( !depObj.waits() ) depObj.addWriteTarget( target );
-               } else if ( accessType.input ) {
-                  if ( accessType.output ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
-                  else submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
+                  // We don't add as write target depObj.addWriteTarget(), see comment above
+                  submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
+               } else if ( accessType.input  ) {
+                  submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
                   if ( !depObj.waits() ) depObj.addReadTarget( target );
                } else {
                   fatal( "Invalid data access" );
                }
-               
+
             }
             
             inline void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target )

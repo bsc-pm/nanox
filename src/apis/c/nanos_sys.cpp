@@ -56,10 +56,10 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_get_binding, ( cpu_set_t *mask ))
+NANOS_API_DEF(nanos_err_t, nanos_get_binding, ( nanos_cpu_set_t *mask ))
 {
    try {
-      sys.getSMPPlugin()->getCpuProcessMask().copyTo( mask );
+      sys.getSMPPlugin()->getCpuProcessMask().copyTo( (cpu_set_t *) mask );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

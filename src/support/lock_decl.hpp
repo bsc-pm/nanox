@@ -64,6 +64,10 @@ namespace nanos {
          void operator++ ( int val );
 
          void operator-- ( int val );
+
+         friend bool operator== ( const Lock& lhs, const Lock& rhs );
+
+         friend bool operator!= ( const Lock& lhs, const Lock& rhs );
    };
 
    class LockBlock
@@ -107,6 +111,20 @@ namespace nanos {
      public:
        SyncLockBlock ( Lock & lock );
        ~SyncLockBlock ( );
+   };
+
+   class DoubleLockBlock
+   {
+      private:
+         Lock & _lock1;
+         Lock & _lock2;
+
+         // disable copy-constructor
+         explicit DoubleLockBlock ( const DoubleLockBlock & );
+
+      public:
+         DoubleLockBlock ( Lock & lock1, Lock & lock2 );
+         ~DoubleLockBlock ( );
    };
 
 } // namespace nanos

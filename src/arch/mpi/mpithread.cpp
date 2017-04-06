@@ -52,9 +52,13 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     wd.start(WD::IsNotAUserLevelThread);
 
     MPIDD &dd = (MPIDD &) wd.getActiveDevice();
-    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code"));
-    NANOS_INSTRUMENT(nanos_event_value_t val = wd.getId());
-    NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenStateAndBurst(NANOS_RUNNING, key, val));
+    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
+    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
+    NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+    NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateEvent ( NANOS_RUNTIME ) );
+    NANOS_INSTRUMENT ( } else { );
+    NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+    NANOS_INSTRUMENT ( } );
 
     // Set up MPIProcessor and issue taskEnd message
     // reception.
@@ -68,7 +72,11 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     getSpawnGroup().registerTaskInit();
     getSpawnGroup().waitFinishedTasks();
 
-    NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseStateAndBurst(key, val));
+    NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+    NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateEvent() );
+    NANOS_INSTRUMENT ( } else { );
+    NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
+    NANOS_INSTRUMENT ( } );
     return false;
 }
 

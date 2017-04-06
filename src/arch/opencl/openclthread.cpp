@@ -56,11 +56,23 @@ bool OpenCLThread::runWDDependent( WD &wd, GenericEvent * evt ) {
 
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
       
-   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
+   NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
+   NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateEvent ( NANOS_RUNTIME ) );
+   NANOS_INSTRUMENT ( } else { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+   NANOS_INSTRUMENT ( } );
    ( dd.getWorkFct() )( wd.getData() );
    _currKernelEvent=NULL;
    
    NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+
+   NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( } else { );
+   NANOS_INSTRUMENT (    sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
+   NANOS_INSTRUMENT ( } );
    return false;
 }
 

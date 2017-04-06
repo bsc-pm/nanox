@@ -86,7 +86,6 @@ debug_LTLIBRARIES +=\
  debug/libnanox-sched-affinity.la\
  debug/libnanox-sched-affinity-ready.la\
  debug/libnanox-sched-versioning.la\
- debug/libnanox-sched-affinity-smartpriority.la\
  debug/libnanox-sched-socket.la\
  debug/libnanox-sched-botlev.la
 
@@ -125,11 +124,6 @@ debug_libnanox_sched_versioning_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_sched_versioning_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 debug_libnanox_sched_versioning_la_SOURCES=$(versioning_sources)
 
-debug_libnanox_sched_affinity_smartpriority_la_CPPFLAGS=$(common_debug_CPPFLAGS)
-debug_libnanox_sched_affinity_smartpriority_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_sched_affinity_smartpriority_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
-debug_libnanox_sched_affinity_smartpriority_la_SOURCES=$(affinity_smartpriority_sources)
-
 debug_libnanox_sched_socket_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libnanox_sched_socket_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_sched_socket_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
@@ -150,7 +144,6 @@ instrumentation_debug_LTLIBRARIES +=\
  instrumentation-debug/libnanox-sched-affinity.la\
  instrumentation-debug/libnanox-sched-affinity-ready.la\
  instrumentation-debug/libnanox-sched-versioning.la\
- instrumentation-debug/libnanox-sched-affinity-smartpriority.la\
  instrumentation-debug/libnanox-sched-socket.la\
  instrumentation-debug/libnanox-sched-botlev.la
 
@@ -189,11 +182,6 @@ instrumentation_debug_libnanox_sched_versioning_la_CXXFLAGS=$(common_instrumenta
 instrumentation_debug_libnanox_sched_versioning_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 instrumentation_debug_libnanox_sched_versioning_la_SOURCES=$(versioning_sources)
 
-instrumentation_debug_libnanox_sched_affinity_smartpriority_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
-instrumentation_debug_libnanox_sched_affinity_smartpriority_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_sched_affinity_smartpriority_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
-instrumentation_debug_libnanox_sched_affinity_smartpriority_la_SOURCES=$(affinity_smartpriority_sources)
-
 instrumentation_debug_libnanox_sched_socket_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
 instrumentation_debug_libnanox_sched_socket_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libnanox_sched_socket_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
@@ -214,7 +202,6 @@ instrumentation_LTLIBRARIES +=\
  instrumentation/libnanox-sched-affinity.la\
  instrumentation/libnanox-sched-affinity-ready.la\
  instrumentation/libnanox-sched-versioning.la\
- instrumentation/libnanox-sched-affinity-smartpriority.la\
  instrumentation/libnanox-sched-socket.la\
  instrumentation/libnanox-sched-botlev.la
 
@@ -253,11 +240,6 @@ instrumentation_libnanox_sched_versioning_la_CXXFLAGS=$(common_instrumentation_C
 instrumentation_libnanox_sched_versioning_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 instrumentation_libnanox_sched_versioning_la_SOURCES=$(versioning_sources)
 
-instrumentation_libnanox_sched_affinity_smartpriority_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
-instrumentation_libnanox_sched_affinity_smartpriority_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_sched_affinity_smartpriority_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
-instrumentation_libnanox_sched_affinity_smartpriority_la_SOURCES=$(affinity_smartpriority_sources)
-
 instrumentation_libnanox_sched_socket_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libnanox_sched_socket_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libnanox_sched_socket_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
@@ -278,7 +260,6 @@ performance_LTLIBRARIES +=\
  performance/libnanox-sched-affinity.la\
  performance/libnanox-sched-affinity-ready.la\
  performance/libnanox-sched-versioning.la\
- performance/libnanox-sched-affinity-smartpriority.la\
  performance/libnanox-sched-socket.la\
  performance/libnanox-sched-botlev.la
 
@@ -316,11 +297,6 @@ performance_libnanox_sched_versioning_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libnanox_sched_versioning_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libnanox_sched_versioning_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 performance_libnanox_sched_versioning_la_SOURCES=$(versioning_sources)
-
-performance_libnanox_sched_affinity_smartpriority_la_CPPFLAGS=$(common_performance_CPPFLAGS)
-performance_libnanox_sched_affinity_smartpriority_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_sched_affinity_smartpriority_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
-performance_libnanox_sched_affinity_smartpriority_la_SOURCES=$(affinity_smartpriority_sources)
 
 performance_libnanox_sched_socket_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libnanox_sched_socket_la_CXXFLAGS=$(common_performance_CXXFLAGS)

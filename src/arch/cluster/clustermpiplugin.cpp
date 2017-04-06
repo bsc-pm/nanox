@@ -298,7 +298,7 @@ void ClusterMPIPlugin::finalize() {
 }
 
 
-void ClusterMPIPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+void ClusterMPIPlugin::addPEs( PEMap &pes ) const {
    if ( _nodes ) {
       std::vector<ClusterNode *>::const_iterator it = _nodes->begin();
       //NOT ANYMORE it++; //position 0 is null, node 0 does not have a ClusterNode object

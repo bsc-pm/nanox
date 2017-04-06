@@ -146,6 +146,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.is_implicit = wd._flags.is_implicit;
                                     _flags.is_recoverable = wd._flags.is_recoverable;
                                     _flags.is_invalid = false;
+                                    _flags.is_runtime_task = wd._flags.is_runtime_task;
 
                                     _mcontrol.preInit();
                                     for (unsigned int __i=0; __i<8;__i+=1) {
@@ -172,7 +173,7 @@ inline WorkDescriptor::~WorkDescriptor()
     union { char* p; intptr_t i; } u = { (char*)_wdData };
     bool internalDataOwned = (u.i & 1);
     // Clear the own status if set
-    u.i &= ((~(intptr_t)0) << 1);
+    u.i &= ~(intptr_t)1;
 
     if (internalDataOwned
             && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
@@ -296,7 +297,7 @@ inline void * WorkDescriptor::getInternalData () const {
     union { void* p; intptr_t i; } u = { _wdData };
 
     // Clear the own status if set
-    u.i &= ((~(intptr_t)0) << 1);
+    u.i &= ~(intptr_t)1;
 
     return u.p;
 }
@@ -315,7 +316,7 @@ inline ScheduleWDData * WorkDescriptor::getSchedulerData () const {
     union {ScheduleWDData* p; intptr_t i; } u = { _scheduleData };
 
     // Clear the own status if set
-    u.i &= ((~(intptr_t)0) << 1);
+    u.i &= ~(intptr_t)1;
 
     return u.p;
 }
@@ -486,7 +487,14 @@ inline void WorkDescriptor::setImplicit( bool b )
    }
 }
 
-inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; } 
+inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; }
+
+inline void WorkDescriptor::setRuntimeTask( bool b )
+{
+  _flags.is_runtime_task = b;
+}
+
+inline bool WorkDescriptor::isRuntimeTask( void ) const { return _flags.is_runtime_task; }
 
 inline const char * WorkDescriptor::getDescription ( void ) const  { return _description; }
 
