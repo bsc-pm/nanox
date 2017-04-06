@@ -534,8 +534,8 @@ void Scheduler::wakeUp ( WD *wd )
          //else fatal("Trying to wake up a WD from a thread without team.");
 
          // Falling back to Main Team as a workaround
-         ensure( myTeam, "Trying to wake up a WD from a thread without team." );
-         myTeam = (myTeam)? myTeam : sys.getMainTeam();
+         fatal_cond ( myTeam, "Trying to wake up a WD from a thread without team." );
+
          next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
       }
 
