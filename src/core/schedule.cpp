@@ -495,7 +495,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                thread = getMyThreadSafe();
                supportULT = thread->runningOn()->supportsUserLevelThreads();
                thread->step();
-            } else condition->unlock();
+            } else {
+               condition->unlock();
+               thread->atBlock();
+            }
          } else condition->unlock();
          checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
       } 
