@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.12a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.12], [pm-tools@bsc.es])
 AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
