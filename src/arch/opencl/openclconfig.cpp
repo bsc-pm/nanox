@@ -22,6 +22,13 @@
 #include "system.hpp"
 #include <dlfcn.h>
 
+// This symbol is used to detect that a specific feature of OmpSs is used in an application
+// (i.e. Mercurium explicitly defines this symbol when a OCL task is defined)
+extern "C"
+{
+   __attribute__((weak)) void nanos_needs_opencl_fun(void);
+}
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -143,16 +150,22 @@ void OpenCLConfig::prepare( Config &cfg )
 void OpenCLConfig::apply(const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices) {
     std::string devTyStr = devTypeIn;
     _devicesPtr = devices;
-    
-    //ompss_uses_opencl pointer will be null if the compiler did not fill it (#1050)
+
     void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
-    bool mercuriumHasTasks = dlsym(myself, "ompss_uses_opencl") != NULL;
+
+   bool mercurium_has_tasks;
+   //For more information see  #1214
+   if ((mercurium_has_tasks = dlsym(myself, "ompss_uses_opencl"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   mercurium_has_tasks = mercurium_has_tasks || nanos_needs_opencl_fun;
+
     dlclose( myself );
-    
+
     //Auto-enable CUDA if it was not done before
     if (!_enableOpenCL) {
-        
-        _enableOpenCL = mercuriumHasTasks;
+        _enableOpenCL = mercurium_has_tasks;
     }
     if (_forceDisableOpenCL || !_enableOpenCL)
         return;
@@ -261,7 +274,7 @@ void OpenCLConfig::apply(const std::string devTypeIn, std::map<cl_device_id, cl_
     _currNumDevices = _devicesPtr->size();
     
     if ( _currNumDevices == 0 ) {
-       if ( mercuriumHasTasks ) {
+       if ( mercurium_has_tasks ) {
           message0( " OpenCL tasks were compiled and no OpenCL devices were found, execution"
                   " could have unexpected behavior and can even hang" );
        } else {

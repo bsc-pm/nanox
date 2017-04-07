@@ -107,6 +107,15 @@ namespace PMInterfaceType
 }
 }
 
+
+// This symbol is used to detect that a specific feature of OmpSs is used in an application
+// (i.e. Mercurium explicitly defines this symbol if priorities are used)
+extern "C"
+{
+   __attribute__((weak)) void nanos_needs_priorities_fun(void);
+}
+
+
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ), _SMP("SMP"),
@@ -476,9 +485,13 @@ void System::config ()
    // Open the own executable
    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
-   // Check if the compiler marked myself as requiring priorities (#1041)
-   _compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_need_priorities_") != NULL;
-   
+   //For more information see  #1214
+   if ((_compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_needs_priorities_"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   _compilerSuppliedFlags.prioritiesNeeded = _compilerSuppliedFlags.prioritiesNeeded || nanos_needs_priorities_fun;
+
    // Close handle to myself
    dlclose( myself );
 }

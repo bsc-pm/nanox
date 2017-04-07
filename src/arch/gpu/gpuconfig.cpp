@@ -26,6 +26,14 @@
 
 #include <cuda_runtime.h>
 
+// These symbols are used to detect that a specific feature of OmpSs is used in an application
+// (i.e. Mercurium explicitly defines one of these symbols if they are used)
+extern "C"
+{
+   __attribute__((weak)) void nanos_needs_cuda_fun(void);
+   __attribute__((weak)) void nanos_needs_cublas_fun(void);
+}
+
 namespace nanos {
 namespace ext {
 
@@ -152,22 +160,36 @@ void GPUConfig::apply()
 {
    //Auto-enable CUDA if it was not done before (#1050)
    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
-   bool mercuriumHasTasks = dlsym(myself, "ompss_uses_cuda") != NULL;
-   
-   // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
-   _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
-   
+
+   //For more information see  #1214
+   bool mercurium_has_tasks;
+   if ((mercurium_has_tasks = dlsym(myself, "ompss_uses_cuda"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   mercurium_has_tasks = mercurium_has_tasks || nanos_needs_cuda_fun;
+
+   //For more information see  #1214
+   bool automatic_cublas_init;
+   if ((automatic_cublas_init = dlsym(myself, "gpu_cublas_init"))) {
+      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
+            " deprecated soon, we recommend you to update your OmpSs installation.");
+   }
+   automatic_cublas_init = automatic_cublas_init || nanos_needs_cublas_fun;
+   _initCublas = _initCublas || automatic_cublas_init;
+
    // CuSparse is only detected via flags
    _initCuSparse = _initCuSparse;
+
    dlclose( myself );
-   
+
    if ( !_enableCUDA ) {
       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
-      _enableCUDA = mercuriumHasTasks;
+      _enableCUDA = mercurium_has_tasks;
    }
 
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      if ( mercuriumHasTasks ) {
+      if ( mercurium_has_tasks ) {
          message0( " CUDA tasks were compiled and CUDA was disabled, execution"
                " could have unexpected behavior and can even hang, check configuration parameters" );
       }
@@ -297,7 +319,7 @@ void GPUConfig::apply()
       }
       
       if ( _numGPUs == 0 ) {
-         if ( mercuriumHasTasks ) {
+         if ( mercurium_has_tasks ) {
             message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
                     " could have unexpected behavior and can even hang" );
          } else {
