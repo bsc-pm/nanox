@@ -156,9 +156,9 @@ void GPUConfig::apply()
    
    // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
    _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
-   // Init cuSPARSE if it wasn't manually enabled, but detected in the binary (#1050)
-   _initCuSparse = _initCuSparse || ( dlsym(myself, "gpu_sparse_init") != NULL );
    
+   // CuSparse is only detected via flags
+   _initCuSparse = _initCuSparse;
    dlclose( myself );
    
    if ( !_enableCUDA ) {
