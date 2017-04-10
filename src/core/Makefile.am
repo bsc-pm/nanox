@@ -300,7 +300,7 @@ instr_sources = \
 	$(END)
 
 common_core_cppflags = @dlbinc@
-common_core_ldflags = $(AM_LDFLAGS) $(version_flags) @dlblib@
+common_core_ldflags = $(AM_LDFLAGS) $(version_flags) @dlblib@ -Wl,-enable-new-dtags
 
 debug_LTLIBRARIES=
 instrumentation_LTLIBRARIES=
