@@ -1328,9 +1328,6 @@ void System::endTeam ( ThreadTeam *team )
    
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
 
-   // For OpenMP applications at the end of the parallel return the claimed cpus
-   _threadManager->returnClaimedCpus();
-   
    delete team;
 }
 
