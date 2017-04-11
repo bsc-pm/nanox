@@ -327,15 +327,15 @@ AC_CONFIG_FILES([
                  src/utils/Makefile
                  scripts/offload_slave_launch.sh
                  tests/Makefile
-                 tests/gens/Makefile
-                 tests/gens/api-generator
-                 tests/gens/api-omp-generator
-                 tests/gens/core-generator
-                 tests/gens/mcc-openmp-generator
-                 tests/gens/mcc-ompss-generator
-                 tests/gens/opencl-generator
-                 tests/gens/resiliency-generator
        ])
+
+AC_CONFIG_FILES([tests/gens/api-generator], [chmod +x tests/gens/api-generator])
+AC_CONFIG_FILES([tests/gens/api-omp-generator], [chmod +x tests/gens/api-omp-generator])
+AC_CONFIG_FILES([tests/gens/core-generator], [chmod +x tests/gens/core-generator])
+AC_CONFIG_FILES([tests/gens/mcc-openmp-generator], [chmod +x tests/gens/mcc-openmp-generator])
+AC_CONFIG_FILES([tests/gens/mcc-ompss-generator], [chmod +x tests/gens/mcc-ompss-generator])
+AC_CONFIG_FILES([tests/gens/opencl-generator], [chmod +x tests/gens/opencl-generator])
+AC_CONFIG_FILES([tests/gens/resiliency-generator], [chmod +x tests/gens/resiliency-generator])
 
 AC_OUTPUT
 
