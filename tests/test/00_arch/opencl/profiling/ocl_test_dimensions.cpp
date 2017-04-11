@@ -109,3 +109,6 @@ int main()
 
   return 0;
 }
+
+// Enable OpenCL automatic detection
+__attribute__((weak)) void nanos_needs_opencl_fun(void) {}
