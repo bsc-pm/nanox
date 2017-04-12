@@ -21,6 +21,8 @@ CLEANFILES=
 
 CLEANFILES+=tests.log
 
+EXTRA_DIST = gens/config.py
+
 check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 
