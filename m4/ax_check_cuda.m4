@@ -189,4 +189,10 @@ CUDA 5 or greater is required.
   AC_SUBST([cudalibs])
 
   AM_CONDITIONAL([GPU_SUPPORT],[test x$cuda = xyes])
+
+  AS_IF([test x$cuda = xyes], [
+    AC_SUBST([HAVE_CUDA], [GPU_DEV])
+  ], [
+    AC_SUBST([HAVE_CUDA], [NO_GPU_DEV])
+  ])
 ])dnl AX_CHECK_CUDA

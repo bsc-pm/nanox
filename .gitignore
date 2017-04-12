@@ -41,3 +41,4 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 nbproject
 ar-lib
+nanox-config.h

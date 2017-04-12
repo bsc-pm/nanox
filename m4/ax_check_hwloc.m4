@@ -177,7 +177,9 @@ AS_IF([test "$hwloc" = yes],[
   OPTIONS="$OPTIONS hwloc"
   AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
   AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
+  AC_SUBST([HAVE_HWLOC], [HWLOC])
 ],[
+  AC_SUBST([HAVE_HWLOC], [NO_HWLOC])
   hwlocinc=
   hwloclib=
   hwloclibs=

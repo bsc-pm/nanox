@@ -107,5 +107,11 @@ AC_SUBST([xdmalib])
 AC_SUBST([xdmalibs])
 AM_CONDITIONAL([XDMA_SUPPORT],[test "$xdma" = yes])
 
+AS_IF([test "$xdma" = yes], [
+   AC_SUBST([HAVE_XDMA], [FPGA_DEV])
+], [
+   AC_SUBST([HAVE_XDMA], [NO_FPGA_DEV])
+])
+
 ])dnl AX_CHECK_XDMA
 
