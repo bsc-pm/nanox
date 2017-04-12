@@ -42,6 +42,9 @@ namespace nanos {
 
          //! \brief Returns dependency base address
          virtual void * getAddress () const = 0;
+
+         //! \brief Returns the size of the dependency object.
+         virtual size_t size() const { return 1; }
                   
         /*! \brief Check if two dependencies overlap/collide.
          */

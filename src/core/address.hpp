@@ -27,6 +27,7 @@ namespace nanos {
 inline const Address & Address::operator= ( const Address &obj )
 {
    _address = obj._address;
+   _size = obj._size;
    return *this;
 }
 
@@ -59,6 +60,16 @@ inline BaseDependency* Address::clone() const
 inline void * Address::getAddress () const
 {
    return _address;
+}
+
+inline size_t Address::size() const
+{
+  return _size;
+}
+
+inline void Address::size ( size_t s )
+{
+  _size = s;
 }
 
 } // namespace nanos
