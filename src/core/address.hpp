@@ -44,7 +44,10 @@ inline bool Address::operator== ( const Address &obj ) const
 inline bool Address::overlap ( const BaseDependency &obj ) const
 {
    const Address& address( static_cast<const Address&>( obj ) );
-   return _address == address._address;
+   if ( _address <= address._address )
+      return address._address < reinterpret_cast<const void *>( reinterpret_cast<const char *>( _address ) + _size );
+   
+   return _address < reinterpret_cast<const void *>( reinterpret_cast<const char *>( address._address ) + address._size);
 }
 
 inline bool Address::operator< ( const Address &obj ) const
