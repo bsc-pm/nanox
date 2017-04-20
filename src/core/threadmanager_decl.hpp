@@ -81,7 +81,6 @@ class ThreadManagerConf
    private:
       unsigned int         _numYields;       //!< Number of yields before block
       unsigned int         _sleepTime;       //!< Number of nanoseconds to sleep
-      bool                 _useYield;        //!< Yield is enabled
       bool                 _useSleep;        //!< Sleep is enabled
       bool                 _useBlock;        //!< Block is enabled
       bool                 _useDLB;          //!< DLB library will be used
@@ -93,9 +92,7 @@ class ThreadManagerConf
       static const unsigned int DEFAULT_YIELDS;
 
       ThreadManagerConf();
-
-      unsigned int getNumYields ( void ) const { return _useYield ? _numYields : 0; }
-
+      unsigned int getNumYields ( void ) const { return _numYields; }
       void config( Config &cfg );
       ThreadManager* create();
       bool canUntieMaster() const { return !_forceTieMaster; }

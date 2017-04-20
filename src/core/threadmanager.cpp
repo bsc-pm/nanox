@@ -330,7 +330,6 @@ const unsigned int ThreadManagerConf::DEFAULT_YIELDS = 10;
 ThreadManagerConf::ThreadManagerConf() :
    _numYields( DEFAULT_YIELDS ),
    _sleepTime( DEFAULT_SLEEP_NS ),
-   _useYield( false ),
    _useSleep( false ),
    _useBlock( false ),
    _useDLB( false ),
@@ -350,10 +349,6 @@ void ThreadManagerConf::config( Config &cfg )
    cfg.registerConfigOption( "enable-sleep", NEW Config::FlagOption( _useSleep, true ),
          "Thread sleep on idle and condition waits" );
    cfg.registerArgOption( "enable-sleep", "enable-sleep" );
-
-   cfg.registerConfigOption( "enable-yield", NEW Config::FlagOption( _useYield, true ),
-         "Thread yield on idle and condition waits" );
-   cfg.registerArgOption( "enable-yield", "enable-yield" );
 
    std::ostringstream sleep_sstream;
    sleep_sstream << "Set the amount of time (in nsec) in each sleeping phase (default = "
