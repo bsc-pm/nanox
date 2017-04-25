@@ -57,7 +57,7 @@ inline bool Address::operator< ( const Address &obj ) const
 
 inline BaseDependency* Address::clone() const
 {
-   return new Address( _address );
+   return new Address( _address, _size );
 }
 
 inline void * Address::getAddress () const
