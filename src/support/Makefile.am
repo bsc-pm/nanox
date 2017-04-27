@@ -103,6 +103,8 @@ devinclude_HEADERS = \
 	smartpointer.hpp \
 	memory/memoryaddress.hpp \
 	concurrent_queue.hpp \
+	depsregion.hpp \
+	depsregion_decl.hpp \
 	$(END) 
 
 support_sources = \
@@ -224,7 +226,7 @@ gpu_support_sources = \
 	pinnedallocator.cpp \
         $(END)
 endif
-	
+
 
 noinst_LTLIBRARIES =
 
