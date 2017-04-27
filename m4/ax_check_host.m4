@@ -145,7 +145,9 @@ AS_IF([test "$ult_support" = yes dnl
          -a "$enable_ult"  = yes],[
   ult_support=yes
   AC_DEFINE([SMP_SUPPORTS_ULT],[],[Indicates support for user level threads])
+  AC_SUBST([SMP_SUPPORTS_ULT], [SMP_SUPPORTS_ULT])
 ],[
+  AC_SUBST([SMP_SUPPORTS_ULT], [NO_SMP_SUPPORTS_ULT])
   ult_support=no
 ])
 

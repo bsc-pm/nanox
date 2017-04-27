@@ -1,0 +1,62 @@
+/*************************************************************************************/
+/*      Copyright 2017 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
+/* Devices */
+#ifndef @HAVE_CUDA@
+#define @HAVE_CUDA@
+#endif
+
+#ifndef @HAVE_OPENCL@
+#define @HAVE_OPENCL@
+#endif
+
+#ifndef @HAVE_GASNET@
+#define @HAVE_GASNET@
+#endif
+
+#ifndef @HAVE_XDMA@
+#define @HAVE_XDMA@
+#endif
+
+/* External libraries */
+#ifndef @HAVE_HWLOC@
+#define @HAVE_HWLOC@
+#endif
+
+#ifndef @HAVE_DLB@
+#define @HAVE_DLB@
+#endif
+
+/* Internal features */
+#ifndef @NANOS_MEMTRACKER_ENABLED@
+#define @NANOS_MEMTRACKER_ENABLED@
+#endif
+
+#ifndef @NANOS_RESILIENCY_ENABLED@
+#define @NANOS_RESILIENCY_ENABLED@
+#endif
+
+/* Architecture */
+#ifndef @HAVE_NEW_GCC_ATOMIC_OPS@
+#define @HAVE_NEW_GCC_ATOMIC_OPS@
+#endif
+
+#ifndef @SMP_SUPPORTS_ULT@
+#define @SMP_SUPPORTS_ULT@
+#endif

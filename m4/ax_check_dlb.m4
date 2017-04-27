@@ -134,6 +134,12 @@ AC_SUBST([dlb_dbg])
 AC_SUBST([dlb_instr])
 AC_SUBST([dlb_instr_dbg])
 
+AS_IF([test "$dlb_check" = yes], [
+  AC_SUBST([HAVE_DLB], [DLB])
+], [
+  AC_SUBST([HAVE_DLB], [NO_DLB])
+])
+
 ])dnl AX_CHECK_DLB
 
 # _AX_CHECK_DLB_LIB_VERSION(version)

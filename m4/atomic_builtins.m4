@@ -40,7 +40,13 @@ AC_DEFUN([AC_CHECK_GXX_NEW_ATOMIC_BUILTINS], [
     else
        AC_MSG_RESULT([disabled])
     fi
-  ])
+
+    AS_IF([test "$new_gcc_builtins" = yes], [
+       AC_SUBST([HAVE_NEW_GCC_ATOMIC_OPS], [HAVE_NEW_GCC_ATOMIC_OPS])
+    ], [
+       AC_SUBST([HAVE_NEW_GCC_ATOMIC_OPS], [NO_HAVE_NEW_GCC_ATOMIC_OPS])
+    ])
+])
 
 AC_DEFUN([AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS], [
    AC_MSG_CHECKING([for legacy atomic builtins in GCC])

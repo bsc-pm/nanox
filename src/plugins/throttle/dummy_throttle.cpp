@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2017 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -22,60 +22,66 @@
 #include "system.hpp"
 
 namespace nanos {
-   namespace ext {
+namespace ext {
 
-      class DummyThrottle: public ThrottlePolicy
-      {
+   class DummyThrottle: public ThrottlePolicy
+   {
 
-         private:
-            /*!
-             * we decide once if all new tasks are to be created during the execution
-             * if _createTasks is true, then we have the maximum number of tasks else we have only one task (sequential comp.)
-             */
-            bool _createTasks;
-            static const bool _default;
+      private:
+         /*!
+          * we decide once if all new tasks are to be created during the execution
+          * if _createTasks is true, then we have the maximum number of tasks else we have only one task (sequential comp.)
+          */
+         bool _createTasks;
 
-            DummyThrottle ( const DummyThrottle & );
-            const DummyThrottle & operator= ( const DummyThrottle & );
+         DummyThrottle ( const DummyThrottle & );
+         const DummyThrottle & operator= ( const DummyThrottle & );
 
-         public:
-            DummyThrottle() : _createTasks( _default ) {}
+      public:
+         DummyThrottle( bool ct ) : _createTasks( ct ) {}
 
-            void setCreateTask( bool ct ) { _createTasks = ct; }
+         void setCreateTask( bool ct ) { _createTasks = ct; }
 
-            bool throttleIn();
+         bool throttleIn();
 
-            ~DummyThrottle() {};
-      };
+         ~DummyThrottle() {};
+   };
 
-      const bool DummyThrottle::_default = true;
-
-      bool DummyThrottle::throttleIn()
-      {
-         return _createTasks;
-      }
-
-      //factory
-      DummyThrottle * createDummyThrottle();
-
-      DummyThrottle * createDummyThrottle()
-      {
-         return NEW DummyThrottle();
-      }
-
-     class DummyThrottlePlugin : public Plugin
-     {
-       public:
-         DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
-
-         virtual void config( Config& cfg ) {}
-
-         virtual void init() {
-           sys.setThrottlePolicy( createDummyThrottle() );
-         }
-     };
-
+   bool DummyThrottle::throttleIn()
+   {
+      return _createTasks;
    }
-}
+
+   //factory
+   DummyThrottle * createDummyThrottle( bool createTasks );
+
+   DummyThrottle * createDummyThrottle( bool createTasks )
+   {
+      return NEW DummyThrottle( createTasks );
+   }
+
+   class DummyThrottlePlugin : public Plugin
+   {
+      private:
+         bool  _createTasks; //<! Default value is 'true'
+
+      public:
+         DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ), _createTasks( true ) {}
+
+         virtual void config( Config& cfg )
+         {
+            cfg.setOptionsSection( "Dummy throttle", "Scheduling throttle policy based on fixed behaviour" );
+            cfg.registerConfigOption ( "throttle-create-tasks", NEW Config::FlagOption( _createTasks ), "Throttle decides to create all tasks (default: enabled)" );
+            cfg.registerArgOption( "throttle-create-tasks", "throttle-create-tasks" );
+         }
+
+         virtual void init()
+         {
+            sys.setThrottlePolicy( createDummyThrottle( _createTasks ) );
+         }
+   };
+
+} /* namespace ext */
+} /* namespace nanos */
 
 DECLARE_PLUGIN("throttle-dummy",nanos::ext::DummyThrottlePlugin);
