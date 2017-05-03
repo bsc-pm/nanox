@@ -162,7 +162,7 @@ void ThreadManager::blockThread( BaseThread *thread )
 
    int my_cpu = thread->getCpuId();
 
-   LockBlock Lock( _lock );
+   LockBlock lock( _lock );
 
    // Do not release if this CPU is the last active within the process_mask
    CpuSet mine_and_active = _cpuProcessMask & _cpuActiveMask;
@@ -200,6 +200,8 @@ void ThreadManager::unblockThread( BaseThread* thread )
    ThreadTeam *team = myThread->getTeam();
    fatal_cond( team == NULL, "Cannot unblock another thread from a teamless thread" );
 
+   LockBlock lock( _lock );
+
 #ifdef DLB
    if ( _useDLB ) {
       int cpuid = thread->getCpuId();
@@ -226,7 +228,7 @@ void ThreadManager::acquireOne()
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   LockBlock Lock( _lock );
+   LockBlock lock( _lock );
 
    if ( _cpuActiveMask.size() >= _maxThreads ) return;
 
@@ -274,7 +276,7 @@ int ThreadManager::borrowResources()
    if ( !_useDLB ) return -1;
    if ( !myThread->isMainThread() ) return -1;
 
-   LockBlock Lock( _lock );
+   LockBlock lock( _lock );
    DLB_PollDROM_Update();
    DLB_Borrow();
 
@@ -296,6 +298,7 @@ void ThreadManager::returnMyCpuIfClaimed()
    if ( _cpuProcessMask.isSet(my_cpu) ) return;
 
    if ( !thread->isSleeping() ) {
+      LockBlock lock( _lock );
       DLB_ReturnCpu( my_cpu );
    }
 #endif
