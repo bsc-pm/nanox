@@ -308,7 +308,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
-         if ( init_yields != 0 ) yields = init_yields;
+         yields = init_yields;
 
       }//thread going to sleep, thread waiking up
 
@@ -392,6 +392,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
+         yields = init_yields;
          /* gmiranda: If a WD was returned (either by a normal getWD or
           * by a steal operation, reset the num_steals counter */
          num_steals = 0;
