@@ -224,45 +224,48 @@ void ThreadManager::acquireOne()
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
+   if ( _cpuActiveMask.size() >= _maxThreads ) return;
 
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   LockBlock lock( _lock );
+   // Acquire CPUs is a best effort optimization within the critical path,
+   // do not wait for a lock release if the lock is busy
+   if ( _lock.tryAcquire() ) {
 
-   if ( _cpuActiveMask.size() >= _maxThreads ) return;
-
-   // If we have DLB support, we ask first for any available CPU
-   bool done = false;
+      // If we have DLB support, we ask first for any available CPU
+      bool done = false;
 #ifdef DLB
-   if ( _useDLB ) {
-      done = DLB_BorrowCpus( 1 ) == DLB_SUCCESS;
-   }
+      if ( _useDLB ) {
+         done = DLB_BorrowCpus( 1 ) == DLB_SUCCESS;
+      }
 #endif
 
-   // Otherwise, we acquire one CPU from our process mask
-   if (!done) {
-      CpuSet new_active_cpus = _cpuActiveMask;
-      CpuSet mine_and_active = _cpuProcessMask & _cpuActiveMask;
+      // Otherwise, we acquire one CPU from our process mask
+      if (!done) {
+         CpuSet new_active_cpus = _cpuActiveMask;
+         CpuSet mine_and_active = _cpuProcessMask & _cpuActiveMask;
 
-      // Check first that we have some owned CPU not active
-      if ( mine_and_active != _cpuProcessMask ) {
-         // Iterate over default cpus not running and wake them up if needed
-         for ( CpuSet::const_iterator it=_cpuProcessMask.begin();
-               it!=_cpuProcessMask.end(); ++it ) {
-            int cpu = *it;
-            if ( !new_active_cpus.isSet(cpu) ) {
+         // Check first that we have some owned CPU not active
+         if ( mine_and_active != _cpuProcessMask ) {
+            // Iterate over default cpus not running and wake them up if needed
+            for ( CpuSet::const_iterator it=_cpuProcessMask.begin();
+                  it!=_cpuProcessMask.end(); ++it ) {
+               int cpu = *it;
+               if ( !new_active_cpus.isSet(cpu) ) {
 #ifdef DLB
-               if ( _useDLB ) {
-                  DLB_AcquireCpu(cpu);
+                  if ( _useDLB ) {
+                     DLB_AcquireCpu(cpu);
+                  }
+#endif
+                  new_active_cpus.set(cpu);
+                  sys.setCpuActiveMask( new_active_cpus );
+                  break;
                }
-#endif
-               new_active_cpus.set(cpu);
-               sys.setCpuActiveMask( new_active_cpus );
-               break;
             }
          }
       }
+      _lock.release();
    }
 }
 
