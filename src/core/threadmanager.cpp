@@ -284,29 +284,31 @@ void BlockingThreadManager::acquireOne()
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
+   if ( _cpuActiveMask->size() >= _maxThreads ) return;
 
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   LockBlock Lock( _lock );
+   // Acquire CPUs is a best effort optimization within the critical path,
+   // do not wait for a lock release if the lock is busy
+   if ( _lock.tryAcquire() ) {
+      CpuSet new_active_cpus = *_cpuActiveMask;
+      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
 
-   if ( _cpuActiveMask->size() >= _maxThreads ) return;
-
-   CpuSet new_active_cpus = *_cpuActiveMask;
-   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-
-   // Check first that we have some owned CPU not active
-   if ( mine_and_active != *_cpuProcessMask ) {
-      // Iterate over default cpus not running and wake them up if needed
-      for ( CpuSet::const_iterator it=_cpuProcessMask->begin();
-            it!=_cpuProcessMask->end(); ++it ) {
-         int cpu = *it;
-         if ( !new_active_cpus.isSet(cpu) ) {
-            new_active_cpus.set(cpu);
-            sys.setCpuActiveMask( new_active_cpus );
-            break;
+      // Check first that we have some owned CPU not active
+      if ( mine_and_active != *_cpuProcessMask ) {
+         // Iterate over default cpus not running and wake them up if needed
+         for ( CpuSet::const_iterator it=_cpuProcessMask->begin();
+               it!=_cpuProcessMask->end(); ++it ) {
+            int cpu = *it;
+            if ( !new_active_cpus.isSet(cpu) ) {
+               new_active_cpus.set(cpu);
+               sys.setCpuActiveMask( new_active_cpus );
+               break;
+            }
          }
       }
+      _lock.release();
    }
 }
 
@@ -468,6 +470,7 @@ void BusyWaitThreadManager::acquireOne()
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
    if ( !_useDLB ) return;
+   if ( _cpuActiveMask->size() >= _maxThreads ) return;
 
    BaseThread *thread = getMyThreadSafe();
    ThreadTeam *team = thread->getTeam();
@@ -475,19 +478,22 @@ void BusyWaitThreadManager::acquireOne()
    if ( !thread->isMainThread() ) return;
    if ( !team ) return;
 
-   LockBlock Lock( _lock );
+   // Acquire CPUs is a best effort optimization within the critical path,
+   // do not wait for a lock release if the lock is busy
+   if ( _lock.tryAcquire() ) {
+      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+      size_t previous_mine_and_active = mine_and_active.size();
+      if ( mine_and_active != *_cpuProcessMask ) {
+         // Only claim if some of my CPUs are not active
+         DLB_ClaimCpus( 1 );
+      }
 
-   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   size_t previous_mine_and_active = mine_and_active.size();
-   if ( mine_and_active != *_cpuProcessMask ) {
-      // Only claim if some of my CPUs are not active
-      DLB_ClaimCpus( 1 );
-   }
-
-   mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   if ( previous_mine_and_active == mine_and_active.size() ) {
-      // Only ask if DLB_ClaimCpus didn't give us anything
-      DLB_UpdateResources_max( 1 );
+      mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+      if ( previous_mine_and_active == mine_and_active.size() ) {
+         // Only ask if DLB_ClaimCpus didn't give us anything
+         DLB_UpdateResources_max( 1 );
+      }
+      _lock.release();
    }
 }
 
@@ -661,17 +667,23 @@ void DlbThreadManager::acquireOne()
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
+   if ( _cpuActiveMask->size() >= _maxThreads ) return;
 
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team ) return;
 
-   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-   if ( mine_and_active != *_cpuProcessMask ) {
-      // We claim if some of our CPUs is lent
-      DLB_ClaimCpus( 1 );
-   } else {
-      // Otherwise, just ask for 1 cpu
-      DLB_UpdateResources_max( 1 );
+   // Acquire CPUs is a best effort optimization within the critical path,
+   // do not wait for a lock release if the lock is busy
+   if ( _lock.tryAcquire() ) {
+      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+      if ( mine_and_active != *_cpuProcessMask ) {
+         // We claim if some of our CPUs is lent
+         DLB_ClaimCpus( 1 );
+      } else {
+         // Otherwise, just ask for 1 cpu
+         DLB_UpdateResources_max( 1 );
+      }
+      _lock.release();
    }
 }
 

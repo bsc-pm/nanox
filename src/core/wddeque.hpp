@@ -338,18 +338,24 @@ inline bool WDDeque::testDequeue()
    if ( _dq.empty() )
       return false;
 
-   // Auxiliary map to count successful commutative accesses
-   std::map<WD**, WD*> comm_accesses;
-   // ReadyQueue iterator
-   WDDeque::BaseContainer::const_iterator it;
-   LockBlock lock( _lock );
-   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      const WD &wd = *(WD *)*it;
-      if ( wd.getConcurrencyLevel( comm_accesses ) > 0 )
-         return true;
+   bool wd_avail = false;
+   // Skip check if there's contention in the queue
+   if ( _lock.tryAcquire() ) {
+      // Auxiliary map to count successful commutative accesses
+      std::map<WD**, WD*> comm_accesses;
+      // ReadyQueue iterator
+      WDDeque::BaseContainer::const_iterator it;
+      for ( it = _dq.begin(); it != _dq.end(); ++it ) {
+         const WD &wd = *(WD *)*it;
+         if ( wd.getConcurrencyLevel( comm_accesses ) > 0 ) {
+            wd_avail = true;
+            break;
+         }
+      }
+      _lock.release();
    }
 
-   return false;
+   return wd_avail;
 }
 
 inline void WDDeque::transferElemsFrom( WDDeque &dq )
@@ -980,18 +986,24 @@ inline bool WDPriorityQueue<T>::testDequeue()
    if ( _dq.empty() )
       return false;
 
-   // Auxiliary map to count successful commutative accesses
-   std::map<WD**, WD*> comm_accesses;
-   // ReadyQueue iterator
-   WDPQ::BaseContainer::const_iterator it;
-   LockBlock lock( _lock );
-   for ( it = _dq.begin(); it != _dq.end(); ++it ) {
-      const WD &wd = *(WD *)*it;
-      if ( wd.getConcurrencyLevel( comm_accesses ) > 0 )
-         return true;
+   bool wd_avail = false;
+   // Skip check if there's contention in the queue
+   if ( _lock.tryAcquire() ) {
+      // Auxiliary map to count successful commutative accesses
+      std::map<WD**, WD*> comm_accesses;
+      // ReadyQueue iterator
+      WDPQ::BaseContainer::const_iterator it;
+      for ( it = _dq.begin(); it != _dq.end(); ++it ) {
+         const WD &wd = *(WD *)*it;
+         if ( wd.getConcurrencyLevel( comm_accesses ) > 0 ) {
+            wd_avail = true;
+            break;
+         }
+      }
+      _lock.release();
    }
 
-   return false;
+   return wd_avail;
 }
 
 } // namespace nanos
