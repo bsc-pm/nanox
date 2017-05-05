@@ -20,10 +20,10 @@
 #ifndef _NANOS_ERROR_H
 #define _NANOS_ERROR_H
 typedef enum { NANOS_OK = 0,
-               NANOS_UNKNOWN_ERR,          // generic error
-               NANOS_UNIMPLEMENTED,        // service not implemented
-               NANOS_ENOMEM,               // not enough memory
-               NANOS_INVALID_PARAM,        // invalid parameter
-               NANOS_INVALID_REQUEST,      // invalid request
+               NANOS_UNKNOWN_ERR,          /* generic error */
+               NANOS_UNIMPLEMENTED,        /* service not implemented */
+               NANOS_ENOMEM,               /* not enough memory */
+               NANOS_INVALID_PARAM,        /* invalid parameter */
+               NANOS_INVALID_REQUEST,      /* invalid request */
 } nanos_err_t;
 #endif

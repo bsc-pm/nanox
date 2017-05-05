@@ -20,11 +20,10 @@
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
 
-//! \file nanos_c_api_macros.h
-//! \brief
-//
-//! \defgroup core Nanos++ Core
-
+/*! \file nanos_c_api_macros.h
+ *  \brief
+ *  \defgroup core Nanos++ Core
+ */
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -41,14 +40,14 @@
 
 #endif
 
-// FIXME: Following macro must be architecture dependant (64 bytes)
+/* FIXME: Following macro must be architecture dependant (64 bytes) */
 #define NANOS_ARCHITECTURE_PADDING_SIZE(size)\
       size = size + (63 & (64 - (63 & size)));
 
-//! \addtogroup capi_types Types and Structures
-//! \ingroup capi
-//! \{
-
+/*! \addtogroup capi_types Types and Structures
+ *  \ingroup capi
+ *  \{
+ */
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -94,9 +93,10 @@ typedef struct {
     * offset must be expressed in bytes, not elements.
     */
 #if defined(_MERCURIUM) && defined(_MF03)
-   // Fortran makes a strong separation between pointers and arrays and they
-   // cannot be mixed in any way. To the eyes of Mercurium the original
-   // declaration would be a pointer to a scalar, not a pointer to an array
+   /* Fortran makes a strong separation between pointers and arrays and they
+    * cannot be mixed in any way. To the eyes of Mercurium the original
+    * declaration would be a pointer to a scalar, not a pointer to an array
+    */
    void* dimensions;
 #else
    nanos_region_dimension_internal_t const *dimensions;
@@ -116,7 +116,7 @@ typedef struct {
    void *privates;
    size_t element_size;
    size_t num_scalars;
-   void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
+   void *descriptor; /* This is only used in Fortran, it holds a Fortran array descriptor */
    void (*bop)( void *, void *, int num_scalars);
    void (*vop)( int n, void *, void *);
    void (*cleanup)(void *);
@@ -138,9 +138,10 @@ typedef struct {
    short dimension_count;
 
 #if defined(_MERCURIUM) && defined(_MF03)
-   // Fortran makes a strong separation between pointers and arrays and they
-   // cannot be mixed in any way. To the eyes of Mercurium the original
-   // declaration would be a pointer to a scalar, not a pointer to an array
+   /* Fortran makes a strong separation between pointers and arrays and they
+    * cannot be mixed in any way. To the eyes of Mercurium the original
+    * declaration would be a pointer to a scalar, not a pointer to an array
+    */
    void* dimensions;
 #else
    nanos_region_dimension_internal_t const *dimensions;
@@ -171,21 +172,22 @@ typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 
-// C++ types hidden as void *
+/* C++ types hidden as void * */
 typedef void * nanos_thread_t;
-typedef void * nanos_wd_t;                                                                                                                               
-// SlicerCompoundWD data structure
+typedef void * nanos_wd_t;
+
+/* SlicerCompoundWD data structure */
 typedef struct {
    int nsect;
    nanos_wd_t lwd[];
 } nanos_compound_wd_data_t;
 
-// SlicerRepeatN data structure
+/* SlicerRepeatN data structure */
 typedef struct {
    int n;
 } nanos_repeat_n_info_t;
 
-// SlicerFor data structure
+/* SlicerFor data structure */
 typedef struct {
    int64_t lower;
    int64_t upper;
@@ -199,39 +201,39 @@ typedef struct {
    void *args;
 } nanos_loop_info_t;
 
-// C++ types hidden as void *
-typedef void * nanos_ws_t;      // type for a worksharing plugin
-typedef void * nanos_ws_info_t; // type for user provided information describing a worksharing (used in create service)
-typedef void * nanos_ws_data_t; // abstract type to specify all data needed for a worksharing construct (used internally to communicate all threads)
-typedef void * nanos_ws_item_t; // abstract type to specify a portion for a worksharing construct (used in next item service)
+/* C++ types hidden as void * */
+typedef void * nanos_ws_t;      /* type for a worksharing plugin */
+typedef void * nanos_ws_info_t; /* type for user provided information describing a worksharing (used in create service) */
+typedef void * nanos_ws_data_t; /* abstract type to specify all data needed for a worksharing construct (used internally to communicate all threads) */
+typedef void * nanos_ws_item_t; /* abstract type to specify a portion for a worksharing construct (used in next item service) */
 
 typedef struct {
-   int64_t         lower_bound;  // loop lower bound
-   int64_t         upper_bound;  // loop upper bound
-   int64_t         loop_step;    // loop step
-   int64_t         chunk_size;   // loop chunk size
+   int64_t         lower_bound;  /* loop lower bound */
+   int64_t         upper_bound;  /* loop upper bound */
+   int64_t         loop_step;    /* loop step */
+   int64_t         chunk_size;   /* loop chunk size */
 } nanos_ws_info_loop_t; /* nanos_ws_info_t, specific loop data */
 
 typedef struct {
-   int64_t         lower;      // loop item lower bound
-   int64_t         upper;      // loop item upper bound
-   bool            execute:1;  // is a valid loop item?
-   bool            last:1;     // is the last loop item?
+   int64_t         lower;      /* loop item lower bound */
+   int64_t         upper;      /* loop item upper bound */
+   bool            execute:1;  /* is a valid loop item? */
+   bool            last:1;     /* is the last loop item? */
 } nanos_ws_item_loop_t; /* nanos_ws_item_t, specific loop data */
 
 typedef struct nanos_ws_desc {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   nanos_ws_t            ws;         // Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin
+   nanos_ws_t            ws;         /* Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin */
 #else
-   volatile nanos_ws_t   ws;         // Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin
+   volatile nanos_ws_t   ws;         /* Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin */
 #endif
-   nanos_ws_data_t       data;       // Worksharing plugin data (specified at worksharing create service), API -> Worksharing plugin
-   struct nanos_ws_desc *next;       // Sequence management: this is 'next' global enqueued worksharing descriptor, internal use
-   nanos_thread_t       *threads;    // Slicer plugin information: supporting thread map (lives at slicer creator's stack), API -> Slicer plugin
-   int                   nths;       // Slicer plugin information: number of supporting threads, API ->  Slicer plugin
+   nanos_ws_data_t       data;       /* Worksharing plugin data (specified at worksharing create service), API -> Worksharing plugin */
+   struct nanos_ws_desc *next;       /* Sequence management: this is 'next' global enqueued worksharing descriptor, internal use */
+   nanos_thread_t       *threads;    /* Slicer plugin information: supporting thread map (lives at slicer creator's stack), API -> Slicer plugin */
+   int                   nths;       /* Slicer plugin information: number of supporting threads, API ->  Slicer plugin */
 } nanos_ws_desc_t;
 
-// WD const properties
+/* WD const properties */
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
@@ -264,7 +266,7 @@ typedef struct {
 
 typedef struct {
   void * (*factory) (void *arg);
-  //size_t dd_size;
+  /* size_t dd_size; */
   void * arg;
 } nanos_device_t;
 
@@ -276,16 +278,16 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-// factories
-// smp
+/* factories */
+/* smp */
 NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
 
 #ifdef __cplusplus
 };
 #endif
-// instrumentation structures
 
+/* instrumentation structures */
 typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_SUBSTATE_END,
                NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
 } nanos_event_type_t; /**< Event types  */
@@ -336,6 +338,6 @@ typedef struct {
    void               *data;
 } nanos_init_desc_t;
 
-//! \}
+/*! \} */
 
 #endif

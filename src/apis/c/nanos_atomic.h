@@ -54,7 +54,7 @@ extern "C"
 
 #ifdef _MF03
 
-// This is for Mercurium Fortran
+/* This is for Mercurium Fortran */
 #define NANOS_CHAR @byte@
 #define NANOS_ATOMIC_DECL_OP(op, type_name, type) \
     NANOS_API_DECL(void, nanos_atomic_##op##_##type_name, (type @ref@, type));
@@ -122,4 +122,4 @@ ATOMIC_OPS
 }
 #endif
 
-#endif // _NANOS_ATOMIC_H
+#endif /* _NANOS_ATOMIC_H */

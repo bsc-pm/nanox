@@ -45,9 +45,9 @@ c/nanos_version.h : $(srcdir)/c/nanos_version.def
        echo "#ifdef _MERCURIUM" >> $@; \
        echo "#ifndef _NANOS_INTERNAL" >> $@; \
        cat $(srcdir)/c/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#pragma nanos interface family(\1) version(\2),' >> $@; \
-       echo "#endif // _NANOS_INTERNAL" >> $@; \
-       echo "#endif // _MERCURIUM" >> $@; \
-       echo "#endif // _NANOS_enabled_H_" >> $@; \
+       echo "#endif /* _NANOS_INTERNAL */" >> $@; \
+       echo "#endif /* _MERCURIUM */" >> $@; \
+       echo "#endif /* _NANOS_enabled_H_ */" >> $@; \
        )
 
 
