@@ -137,29 +137,28 @@ hwloc version test execution failed
     ])
   ])dnl hwloc 
 
-  AS_IF([test "x$ac_cv_hwloc_version" != x],[
-    AS_IF([(("$ac_cv_hwloc_version" < 0x010200))],[
-      AC_MSG_ERROR([
-------------------------------
-Version of the provided hwloc package is too old ($ac_cv_hwloc_version).
-hwloc 1.2.0 or greater is required.
-------------------------------])
-    ])dnl
-  ],[
-      AC_MSG_ERROR([
-------------------------------
-Could not find hwloc package version @{:@value: $ac_cv_hwloc_version@:}@.
-Check config.log for details.
-------------------------------])
-
-  ])dnl
-
   AS_IF([test "$ac_cv_hwloc_version" = skip],[
     AC_MSG_WARN([
 ------------------------------
 Hwloc library version cannot be checked
 because cross-compilation mode has been detected.
 ------------------------------])
+  ], [
+    AS_IF([test "x$ac_cv_hwloc_version" != x],[
+      AS_IF([(("$ac_cv_hwloc_version" < 0x010200))],[
+        AC_MSG_ERROR([
+------------------------------
+Version of the provided hwloc package is too old ($ac_cv_hwloc_version).
+hwloc 1.2.0 or greater is required.
+------------------------------])
+      ])dnl
+  ],[
+      AC_MSG_ERROR([
+------------------------------
+Could not find hwloc package version @{:@value: $ac_cv_hwloc_version@:}@.
+Check config.log for details.
+------------------------------])
+    ])dnl
   ])dnl
 
   hwloclibs=$LIBS
