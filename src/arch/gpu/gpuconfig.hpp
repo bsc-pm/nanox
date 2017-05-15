@@ -59,6 +59,7 @@ namespace ext {
          static bool                      _overlapOutputs;
          static transfer_mode             _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
          static size_t                    _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static size_t                    _maxPinnedMemory; //! Maximum amount of pinned memory for each GPU
          static bool                      _allocatePinnedBuffers; //! Enable / disable allocation of pinned memory buffers used by transfers
          static bool                      _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
          static bool                      _initCublas; //! Init CUBLAS library during runtime startup
@@ -98,6 +99,8 @@ namespace ext {
          static transfer_mode getTransferMode ( void ) { return _transferMode; }
 
          static size_t getGPUMaxMemory( void ) { return _maxGPUMemory; }
+
+         static size_t getGPUMaxPinnedMemory( void ) { return _maxPinnedMemory; }
 
          static bool isAllocatePinnedBuffersEnabled ( void ) { return _allocatePinnedBuffers; }
 
