@@ -256,6 +256,9 @@ AS_IF([test $opencl = yes],[
 
     AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
     AC_DEFINE([CL_USE_DEPRECATED_OPENCL_2_0_APIS],[],[Disables warnings when using functions deprecated in OpenCL 2.0])
+    AC_SUBST([HAVE_OPENCL], [OpenCL_DEV])
+], [
+    AC_SUBST([HAVE_OPENCL], [NO_OpenCL_DEV])
 ])dnl
 
 

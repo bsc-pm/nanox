@@ -27,30 +27,28 @@ $END"
 
 LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api -Xlinker --as-needed @opencllibs@"
 
-dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
-
 @is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
-@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ @LDFLAGS@ @cudalib@ @hwloclib@"
 @is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ @LDFLAGS@ @cudalib@ @hwloclib@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 
 @is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ @LDFLAGS@ @cudalib@ @hwloclib@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 
 @is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_performance_enabled_TRUE@ performance_CFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
-@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ @LDFLAGS@ @cudalib@ @hwloclib@"
 @is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
 
 # Common to all versions

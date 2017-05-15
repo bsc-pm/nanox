@@ -23,6 +23,9 @@ EXTRA_DIST = ChangeLog
 
 ACLOCAL_AMFLAGS=-I m4
 
+devincludedir = $(prefix)/include/nanox-dev
+nodist_devinclude_HEADERS = nanox-config.h
+
 # We use an install hook to remove old deprecated libraries, which are not tracked
 # anymore by Automake so they need to be removed manually
 REMOVE_LIBS = \

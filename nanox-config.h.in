@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2017 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,13 +17,46 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_ERROR_H
-#define _NANOS_ERROR_H
-typedef enum { NANOS_OK = 0,
-               NANOS_UNKNOWN_ERR,          /* generic error */
-               NANOS_UNIMPLEMENTED,        /* service not implemented */
-               NANOS_ENOMEM,               /* not enough memory */
-               NANOS_INVALID_PARAM,        /* invalid parameter */
-               NANOS_INVALID_REQUEST,      /* invalid request */
-} nanos_err_t;
+/* Devices */
+#ifndef @HAVE_CUDA@
+#define @HAVE_CUDA@
+#endif
+
+#ifndef @HAVE_OPENCL@
+#define @HAVE_OPENCL@
+#endif
+
+#ifndef @HAVE_GASNET@
+#define @HAVE_GASNET@
+#endif
+
+#ifndef @HAVE_XDMA@
+#define @HAVE_XDMA@
+#endif
+
+/* External libraries */
+#ifndef @HAVE_HWLOC@
+#define @HAVE_HWLOC@
+#endif
+
+#ifndef @HAVE_DLB@
+#define @HAVE_DLB@
+#endif
+
+/* Internal features */
+#ifndef @NANOS_MEMTRACKER_ENABLED@
+#define @NANOS_MEMTRACKER_ENABLED@
+#endif
+
+#ifndef @NANOS_RESILIENCY_ENABLED@
+#define @NANOS_RESILIENCY_ENABLED@
+#endif
+
+/* Architecture */
+#ifndef @HAVE_NEW_GCC_ATOMIC_OPS@
+#define @HAVE_NEW_GCC_ATOMIC_OPS@
+#endif
+
+#ifndef @SMP_SUPPORTS_ULT@
+#define @SMP_SUPPORTS_ULT@
 #endif

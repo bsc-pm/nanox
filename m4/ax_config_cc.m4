@@ -61,7 +61,7 @@ C++ compiler: $ax_cv_cxx_compiler_vendor
 AS_CASE([$ax_cv_cxx_compiler_vendor],
  [ibm],
    [
-     cc_dep_CPPFLAGS="-qinclude=\"config.h\""
+     cc_dep_CPPFLAGS="-qinclude=\"config.h\" -qinclude=\"nanox-config.h\""
      cc_dep_CXXFLAGS="-qinclude=\"new_decl.hpp\""
      AX_APPEND_FLAG([-qlanglvl=variadictemplates],[cc_dep_CXXFLAGS])
      AX_APPEND_FLAG([-Wl,-z,muldefs],[LDFLAGS])
@@ -69,7 +69,7 @@ AS_CASE([$ax_cv_cxx_compiler_vendor],
    ],
  [
    # Default: use -include flag
-   cc_dep_CPPFLAGS="-include \"config.h\""
+   cc_dep_CPPFLAGS="-include \"config.h\" -include \"nanox-config.h\""
    cc_dep_CXXFLAGS="-include \"new_decl.hpp\""
    AX_APPEND_FLAG([-Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Wno-missing-field-initializers -Werror],[cc_dep_CXXFLAGS])
    no_inline_flag=-fno-inline

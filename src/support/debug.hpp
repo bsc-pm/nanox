@@ -53,8 +53,6 @@ namespace nanos {
 
    void printBt( std::ostream &o );
 
-   void printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set );
-
 } // namespace nanos
 
 #define _nanos_ostream ( /* myThread ? *(myThread->_file) : */ std::cerr )

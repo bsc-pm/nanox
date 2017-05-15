@@ -168,6 +168,12 @@ GASNet is linked with.
 
 ])dnl if gasnet
 
+AS_IF([test "x$gasnet_available_conduits" != x],[
+  AC_SUBST([HAVE_GASNET], [CLUSTER_DEV])
+], [
+  AC_SUBST([HAVE_GASNET], [NO_CLUSTER_DEV])
+])
+
 m4_foreach_w([conduit_name],[smp udp mpi ibv mxm aries],[
   _AX_CONDUIT_SUBST(conduit_name)
 ])

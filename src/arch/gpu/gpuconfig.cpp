@@ -185,9 +185,6 @@ void GPUConfig::apply()
    automatic_cublas_init = automatic_cublas_init || nanos_needs_cublas_fun;
    _initCublas = _initCublas || automatic_cublas_init;
 
-   // CuSparse is only detected via flags
-   _initCuSparse = _initCuSparse;
-
    dlclose( myself );
 
    if ( !_enableCUDA ) {

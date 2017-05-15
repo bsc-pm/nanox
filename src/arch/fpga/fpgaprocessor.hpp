@@ -105,7 +105,6 @@ namespace ext {
             }
 
             bool supportsUserLevelThreads () const { return false; }
-            bool isGPU () const { return false; }
             //virtual void waitInputs(WorkDescriptor& wd);
             int getAccelBase() const { return _accelBase; }
 

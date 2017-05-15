@@ -274,6 +274,9 @@ AC_ARG_ENABLE([memtracker], [AS_HELP_STRING([--enable-memtracker], [Enables Memt
 AC_MSG_RESULT([$enable_memtracker])
 AS_IF([test "$enable_memtracker" = xyes],[
       AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled])
+      AC_SUBST([NANOS_MEMTRACKER_ENABLED], [NANOS_MEMTRACKER_ENABLED])
+], [
+      AC_SUBST([NANOS_MEMTRACKER_ENABLED], [NO_NANOS_MEMTRACKER_ENABLED])
 ])
 
 # Task-level resiliency support
@@ -288,7 +291,10 @@ AS_IF([test $enable_resiliency = yes],[
     [-Werror])
 
   AC_DEFINE([NANOS_RESILIENCY_ENABLED],[],[Indicates whether resiliency features should be used or not.])
+  AC_SUBST([NANOS_RESILIENCY_ENABLED],[NANOS_RESILIENCY_ENABLED])
   resiliency_flags=-fnon-call-exceptions
+], [
+  AC_SUBST([NANOS_RESILIENCY_ENABLED],[NO_NANOS_RESILIENCY_ENABLED])
 ])
 AC_SUBST([enable_resiliency])
 AC_SUBST([resiliency_flags])
@@ -327,15 +333,16 @@ AC_CONFIG_FILES([
                  src/utils/Makefile
                  scripts/offload_slave_launch.sh
                  tests/Makefile
-                 tests/gens/Makefile
-                 tests/gens/api-generator
-                 tests/gens/api-omp-generator
-                 tests/gens/core-generator
-                 tests/gens/mcc-openmp-generator
-                 tests/gens/mcc-ompss-generator
-                 tests/gens/opencl-generator
-                 tests/gens/resiliency-generator
+                 nanox-config.h
        ])
+
+AC_CONFIG_FILES([tests/gens/api-generator], [chmod +x tests/gens/api-generator])
+AC_CONFIG_FILES([tests/gens/api-omp-generator], [chmod +x tests/gens/api-omp-generator])
+AC_CONFIG_FILES([tests/gens/core-generator], [chmod +x tests/gens/core-generator])
+AC_CONFIG_FILES([tests/gens/mcc-openmp-generator], [chmod +x tests/gens/mcc-openmp-generator])
+AC_CONFIG_FILES([tests/gens/mcc-ompss-generator], [chmod +x tests/gens/mcc-ompss-generator])
+AC_CONFIG_FILES([tests/gens/opencl-generator], [chmod +x tests/gens/opencl-generator])
+AC_CONFIG_FILES([tests/gens/resiliency-generator], [chmod +x tests/gens/resiliency-generator])
 
 AC_OUTPUT
 
