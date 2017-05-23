@@ -511,6 +511,9 @@ namespace nanos {
 
       class CacheSchedPolicy : public SchedulePolicy
       {
+         public:
+            using SchedulePolicy::queue;
+        
          private:
 
             struct TeamData : public ScheduleTeamData
@@ -1346,11 +1349,6 @@ namespace nanos {
 
                } //not rooted wd
 #endif
-            }
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal( "This method is not implemented yet" );
             }
 
             /*!

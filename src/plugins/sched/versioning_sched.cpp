@@ -252,6 +252,8 @@ namespace ext
 
    class Versioning : public SchedulePolicy
    {
+      public:
+         using SchedulePolicy::queue;
       private:
          struct TeamData : public ScheduleTeamData
          {
@@ -424,11 +426,6 @@ namespace ext
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
             tdata._readyQueue->push_back( &wd );
-         }
-
-         virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-         {
-            fatal( "This method is not implemented yet" );
          }
 
          virtual WD *atSubmit ( BaseThread *thread, WD &newWD )

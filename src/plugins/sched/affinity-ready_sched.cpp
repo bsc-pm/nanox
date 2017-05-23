@@ -37,6 +37,7 @@ namespace nanos {
 
          public:
             typedef std::set<ThreadData *> ThreadDataSet;
+            using SchedulePolicy::queue;
 
          private:
 
@@ -533,12 +534,6 @@ namespace nanos {
                }
 
                tdata._queues->globalPushBack( &wd );
-            }
-
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal ( "This method is not implemented yet" );
             }
 
             /*!

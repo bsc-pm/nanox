@@ -28,6 +28,8 @@ namespace nanos {
 
       class WorkFirst : public SchedulePolicy
       {
+         public:
+            using SchedulePolicy::queue;
          private:
             struct ThreadData : public ScheduleThreadData
             {
@@ -95,11 +97,6 @@ namespace nanos {
             {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 data._readyQueue.push_front ( &wd );
-            }
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal( "This method is not implemented yet" );
             }
 
             /*!
