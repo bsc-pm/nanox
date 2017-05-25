@@ -326,6 +326,15 @@ void ThreadManager::waitForCpuAvailability()
 #endif
 }
 
+void ThreadManager::poll()
+{
+#ifdef DLB
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
+   DLB_PollDROM_Update();
+#endif
+}
+
 /**********************************/
 /****** Thread Manager Conf *******/
 /**********************************/

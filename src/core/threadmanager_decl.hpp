@@ -64,6 +64,7 @@ class ThreadManager
       int  borrowResources();
       void returnMyCpuIfClaimed();
       void waitForCpuAvailability();
+      void poll();
       unsigned int getMaxThreads() { return _maxThreads; }
 };
 
