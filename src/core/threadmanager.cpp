@@ -197,27 +197,30 @@ void ThreadManager::unblockThread( BaseThread* thread )
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
 
-   ThreadTeam *team = myThread->getTeam();
-   fatal_cond( team == NULL, "Cannot unblock another thread from a teamless thread" );
+   int cpuid = thread->getCpuId();
 
    LockBlock lock( _lock );
 
+   bool thread_unblocked = false;
 #ifdef DLB
+   // Try to unblock thread first using DLB
    if ( _useDLB ) {
-      int cpuid = thread->getCpuId();
       if ( !_cpuActiveMask.isSet( cpuid ) ) {
-         DLB_AcquireCpu( cpuid );
+         if ( DLB_AcquireCpu( cpuid ) >= 0 ) {
+            thread_unblocked = true;
+         }
       }
-   } else {
-#endif
-      thread->lock();
-      thread->tryWakeUp( team );
-      thread->unlock();
-#ifdef DLB
    }
 #endif
 
-   sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+   // If DLB is disabled or returns error, do it ourselves
+   if ( !thread_unblocked ) {
+      thread->lock();
+      thread->tryWakeUp( myThread->getTeam() );
+      thread->unlock();
+   }
+
+   sys.getSMPPlugin()->updateCpuStatus( cpuid );
 }
 
 void ThreadManager::acquireOne()
