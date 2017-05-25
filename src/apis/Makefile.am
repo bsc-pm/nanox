@@ -25,7 +25,6 @@ include $(top_srcdir)/src/common.am
 pkginclude_HEADERS=\
 c/nanos.h \
 c/nanos_version.h \
-c/nanos_reduction.h \
 c/nanos_atomic.h \
 $(END)
 
@@ -65,8 +64,6 @@ nanos_c_sources = \
 	c/nanos_memory.cpp\
 	c/nanos_atomic.h\
 	c/nanos_atomic.cpp\
-	c/nanos_reduction.h\
-	c/nanos_reduction.cpp\
 	c/nanos_sched.cpp\
 	c/nanos_dependence.cpp\
 	c/iomp_symbols.cpp\

@@ -21,7 +21,6 @@
 #define _NANOS_OMP_H_
 
 #include "nanos.h"
-#include "nanos_reduction.h"
 #include "nanos_atomic.h"
 
 typedef enum nanos_omp_sched_t {

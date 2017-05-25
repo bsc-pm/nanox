@@ -177,8 +177,6 @@ typedef const void * const_nanos_cpu_set_t;
 
 #ifdef __cplusplus
 
-#define _Bool bool
-
 /* Internal definition for const */
 struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
 {
