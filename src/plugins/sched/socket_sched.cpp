@@ -55,6 +55,9 @@ namespace nanos {
       {
          public:
             const static int UnassignedNode =-1; //!< Value returned by getNode() when it does not find a suitable nod
+
+            using SchedulePolicy::queue;         //!< Load default implementation of queue prior to redefinition
+            using SchedulePolicy::successorFound;//!< Load default implementation of successorFound
          
          private:
             bool _steal;                         //!< Steal work from other sockets?
@@ -536,11 +539,6 @@ namespace nanos {
             {
                socketQueue( thread, wd, false );
             }
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal( "This method is not implemented yet" );
-            }
             
             /*!
              *  \brief Queues a work descriptor in a readyQueue.
@@ -847,10 +845,6 @@ namespace nanos {
                      tdata._readyQueues[ index ].reorderWD( pred );
                   }
                }
-            }
-            
-            virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {
-                fatal( "This method is not implemented yet" );
             }
 
             //! \brief Enables or disables stealing

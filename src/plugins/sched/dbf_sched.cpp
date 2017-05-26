@@ -28,6 +28,7 @@ namespace nanos {
       class DistributedBFPolicy : public SchedulePolicy
       {
          public:
+            using SchedulePolicy::queue;
             static bool       _usePriority;
             static bool       _useSmartPriority;
          private:
@@ -134,11 +135,6 @@ namespace nanos {
                   data._readyQueue->push_front( &wd );
                   sys.getThreadManager()->unblockThread(thread);
                }
-            }
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal( "This method is not implemented yet" );
             }
 
             /*!

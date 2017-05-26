@@ -113,6 +113,7 @@ namespace nanos {
       class BotLev : public SchedulePolicy
       {
          public:
+            using SchedulePolicy::queue;
             typedef std::stack<BotLevDOData *>   bot_lev_dos_t;
             typedef std::set<std::pair< unsigned int, DependableObject * > > DepObjVector; /**< Type vector of successors  */
 
@@ -292,11 +293,6 @@ namespace nanos {
       
 #endif
                 return;
-            }
-
-            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
-            {
-               fatal( "This method is not implemented yet" );
             }
 
             void updateBottomLevels( BotLevDOData *dodata, int botLev )
