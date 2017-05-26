@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #constants
-readonly bets_version=0.9.6a
+readonly bets_version=0.9.8
 
 #color constants
 
@@ -91,6 +91,29 @@ escape_xml ()
     cat $1 | sed -e 's~&~\&amp;~g' -e 's~<~\&lt;~g'  -e  's~>~\&gt;~g' 1> $2
 }
 
+utility=
+for u in bc awk perl ; do
+    hash $u && utility=$u && break
+done
+
+arithmetic ()
+{
+    case "$utility" in
+        bc)
+            echo $* | bc -l
+            ;;
+        awk)
+            awk "BEGIN{print $* }"
+            ;;
+        perl)
+            echo print $* | perl
+            ;;
+        *)
+            echo 0
+            ;;
+    esac
+}
+
 # action functions
 
 passfail ()
@@ -109,7 +132,7 @@ passfail ()
    $* 1>> $junit_log_OUT 2>> $junit_log_ERR || ret=1
    END=$(date "+%s.%N")
 
-   ELAPSED=$(echo $END - $START | bc -l)
+   ELAPSED=$(arithmetic $END - $START)
 
    cat $junit_log_ERR $junit_log_OUT >> $logfile
 
@@ -183,9 +206,10 @@ compile_c ()
 
    local cc
    local cflags
+   local cppflags
    local ldflags
    local tmp
-   
+
    #defaults
    cc=${CC:=cc}
 
@@ -230,10 +254,11 @@ compile_cpp ()
    local srcdir=$4
 
    local cxx
+   local cppflags
    local cxxflags
    local ldflags
    local tmp
-   
+
    #defaults
    cxx=${CXX:=c++}
 
@@ -282,7 +307,7 @@ compile_fortran ()
    local fflags
    local ldflags
    local tmp
-   
+
    #defaults
    fc_=${FC:=f95}
 
@@ -309,7 +334,7 @@ compile_fortran ()
    unset current_test_nolink
 
    pushd $tmpdir
-   logcmd $fc_ $fflags $ldflags $out_param $srcdir/$source 
+   logcmd $fc_ $fflags $out_param $srcdir/$source $ldflags
    local ret=$?
    popd
 
@@ -386,6 +411,42 @@ runner_sde ()
    return $ret
 }
 
+runner_taskset ()
+{
+   local tmpdir
+   local exe
+   local args
+   local env
+
+   tmpdir="$1"
+   exe="$2"
+   args="$3"
+   env="$4"
+
+   echo "ENV ==> " $env >> $logfile
+
+   # Truncate the file
+   cat /dev/null > $tmpfile
+   (
+      # We need to evaluate ENV to pass ${TASKSET_NUM_CPUS}
+      echo "set -x" >> $tmpfile
+      eval $env;
+      echo $env taskset -c 0-$((${TASKSET_NUM_CPUS}-1)) $tmpdir/$exec $args >> $tmpfile
+      echo "ret=\$?" >> $tmpfile
+      echo "set +x" >> $tmpfile
+      echo "exit \$ret" >> $tmpfile
+   )
+
+   echo "=== TMPFILE ========" >> $logfile
+   cat $tmpfile >> $logfile
+   echo "=== End of TMPFILE ========" >> $logfile
+
+   log sh $tmpfile
+   sh $tmpfile >> $logfile
+   local ret=$?
+
+   return $ret
+}
 
 execute ()
 {
@@ -398,9 +459,11 @@ execute ()
    eval env=\"$test_ENV \${test_ENV_$version} \${test_ENV_$cversion}\"
    eval args=\"$test_ARGS \${test_ARGS_$version}\"
 
-   log $env $test_exec_command ./$exec $args
+   log $env ./$exec $args
 
-   ${runner:-runner_local} "$tmpdir" "$exe" "$args" "$env"
+   eval local runner_used=\${runner_$cversion:-\${runner:-runner_local}}
+
+   ${runner_used} "$tmpdir" "$exe" "$args" "$env"
    local ret=$?
 
    return $ret
@@ -410,12 +473,12 @@ execute ()
 
 merge_common_compile_vars ()
 {
-   eval test_nolink_$1="\${test_nolink_$2:=\$test_nolink_$3}"
+   eval test_nolink_$1="\${test_nolink_$2:-\$test_nolink_$3}"
 }
 
 merge_c_compile_vars ()
 {
-   eval test_CC_$1="\${test_CC_$2:=\$test_CC_$3}"
+   eval test_CC_$1="\${test_CC_$2:-\$test_CC_$3}"
    eval test_CPPFLAGS_$1=\"\${test_CPPFLAGS_$2} \${test_CPPFLAGS_$3}\"
    eval test_CFLAGS_$1=\"\${test_CFLAGS_$2} \${test_CFLAGS_$3}\"
    eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
@@ -423,14 +486,14 @@ merge_c_compile_vars ()
 
 merge_fortran_compile_vars ()
 {
-   eval test_FC_$1="\${test_FC_$2:=\$test_FC_$3}"
+   eval test_FC_$1="\${test_FC_$2:-\$test_FC_$3}"
    eval test_FFLAGS_$1=\"\${test_FFLAGS_$2} \${test_FFLAGS_$3}\"
    eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
 }
 
 merge_cpp_compile_vars ()
 {
-   eval test_CXX_$1="\${test_CXX_$2:=\$test_CXX_$3}"
+   eval test_CXX_$1="\${test_CXX_$2:-\$test_CXX_$3}"
    eval test_CPPFLAGS_$1=\"\${test_CPPFLAGS_$2} \${test_CPPFLAGS_$3}\"
    eval test_CXXFLAGS_$1=\"\${test_CXXFLAGS_$2} \${test_CXXFLAGS_$3}\"
    eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
@@ -537,6 +600,11 @@ clean_test_vars ()
    unset runner
 }
 
+allow_all_versions()
+{
+    return 0
+}
+
 # run functions
 
 run_gen_test ()
@@ -572,13 +640,6 @@ run_gen_test ()
    clean_test_vars
    clean_${type}_compile_vars
    clean_exec_vars
-
-   # get file options
-   # This ! is for Fortran
-   local start=$(egrep -n "(\![[:blank:]]*)?<testinfo>" $srcdir/$source | cut -d: -f1)
-   let start=start+1
-   local end=$(egrep -n "(\![[:blank:]]*)?</testinfo>" $srcdir/$source | cut -d: -f1)
-   let end=end-1
 
    SED_SCRIPT='/<testinfo>/,/<\/testinfo>/{
        /<testinfo>/d
@@ -680,6 +741,8 @@ run_gen_test ()
        all_exec_versions="default"
    fi
 
+   filter_test_versions=${filter_test_versions:-allow_all_versions}
+
    if [ "$test_ignore" ]; then
       junit_log "<testcase name=\"${name}\"><skipped>Ignored test</skipped></testcase>"
       local test_ignore_message="${YELLOW}ignored${NORMAL}"
@@ -702,6 +765,11 @@ run_gen_test ()
         log "***End compile test $name-$v"
         if [ "$ok" -eq "0" ]; then
           for e in $all_exec_versions; do
+
+             if ! $filter_test_versions $v $e;
+             then
+                 continue
+             fi
 
              current_test_noexec=${test_noexec:-${test_nolink}}
              eval current_test_noexec=\${current_test_noexec:-\${test_noexec_$e}}
@@ -754,6 +822,41 @@ run_gen_test ()
    fi
 }
 
+run_package()
+{
+    local name=$1
+    local compressed=$2
+
+    if [ "$compressed" = compressed ]; then
+        local file=$name
+        local name=$(basename ${file%.pkg.bz2})
+        log "***Uncompressing package '$file' to '$tmpdir/$name'"
+        tar -C "$tmpdir" -xJf "$file"
+        pushd "$tmpdir/$name" > /dev/null
+    fi
+
+    debug "Starting $name test"
+    filtered_message -n "Compile test $name"
+    log "***Start compile test $name"
+    logcmd "make -s clean"
+    passfail "$name" logcmd "make"
+    local ok=$?
+    log "***End compile test $name"
+    if [ "$ok" -eq "0" ]; then
+        filtered_message -n "Execute test $name"
+        log "***Start execute test $name"
+        passfail "$name" logcmd "make check"
+        logcmd "make -s clean"
+        log "***End execute test $name"
+    fi
+
+    if [ "$compressed" = compressed ]; then
+        popd > /dev/null
+        log "***Removing uncompressed package directory '$tmpdir/$name'"
+        rm -rf "$tmpdir/$name"
+    fi
+}
+
 run_file()
 {
    local file=$1
@@ -773,6 +876,9 @@ run_file()
      *.cpp.bz2)
        run_gen_test $file cpp compressed
        ;;
+     *.pkg.bz2)
+       run_package $file compressed
+       ;;
    esac
 }
 
@@ -787,7 +893,11 @@ run_dir()
   local dirs=$(find . -maxdepth 1 -type d -path "./*" | cut -c3- | sort)
   for d in $dirs; do
      cd $d
-     run_dir $base/$d
+     if [ -f Makefile -o -f makefile -o -f GNUmakefile ] ; then
+         run_package $d
+     else
+        run_dir $base/$d
+     fi
      cd ..
   done
 
