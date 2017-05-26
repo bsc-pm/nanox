@@ -48,7 +48,7 @@ bool GPUConfig::_overlapInputs = true;
 bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
-size_t GPUConfig::_maxPinnedMemory = 2*1024; // 2GB
+size_t GPUConfig::_maxPinnedMemory = 1024; // 1024 MB
 bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
@@ -128,7 +128,7 @@ void GPUConfig::prepare( Config& config )
 
    // Set maximum Host Pinned memory to allocate
    config.registerConfigOption( "gpu-max-pinned-memory", new Config::SizeVar( _maxPinnedMemory ),
-                                "Defines the maximum amount of Pinned memory (in MBytes) to use for each GPU (Defaults to 2GB)" );
+                                "Defines the maximum amount of Pinned memory (in MB) to use for each GPU (defaults to 1024 MB)" );
    config.registerEnvOption ( "gpu-max-pinned-memory", "NX_GPUMAXPINMEM" );
    config.registerArgOption ( "gpu-max-pinned-memory", "gpu-max-pinned-memory" );
 

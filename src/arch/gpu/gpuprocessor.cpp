@@ -60,7 +60,7 @@ void GPUProcessor::init ()
    // Otherwise, use 95% of the total GPU global memory [Discrete GPUs] or
    //                45% of the total GPU global memory [integrated GPUs]
    bool isIntegrated = gpuProperties.integrated;
-   bool defaultGpuAllocRatio = (isIntegrated) ? 0.30 : 0.95;
+   float defaultGpuAllocRatio = (isIntegrated) ? 0.30 : 0.95;
    //TODO: this gpuProperties.totalGlobalMem can induce to allocation errors when there is other GPU applications running or when we use integrated GPUs and the User already allocated memory
    size_t maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * defaultGpuAllocRatio );
    size_t userDefinedMem = GPUConfig::getGPUMaxMemory();
