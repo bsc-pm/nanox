@@ -1,0 +1,7 @@
+language: cpp
+
+script:
+  - ./bootstrap
+  - ./configure --disable-instrumentation --disable-debug
+  - make
+  - make check BETS_OPTIONS="-only-fails"
