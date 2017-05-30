@@ -30,23 +30,29 @@ GPUMemorySpace::GPUMemorySpace() : _initialized( false ),  _allocator( NULL ), _
 }
 
 void GPUMemorySpace::initialize( bool allocateInputMem, bool allocateOutputMem, GPUProcessor *gpu ) {
-   
+
    if ( !_initialized ) {
       _gpu = gpu;
-      std::size_t max_mem = gpu->getGPUProcessorInfo()->getMaxMemoryAvailable();
-      _allocator = NEW SimpleAllocator( (uint64_t) gpu->getGPUProcessorInfo()->getBaseAddress(), max_mem );
+      std::size_t maxGPUMem = gpu->getGPUProcessorInfo()->getMaxMemoryAvailable();
+      _allocator = NEW SimpleAllocator( (uint64_t) gpu->getGPUProcessorInfo()->getBaseAddress(), maxGPUMem );
 
-      if ( allocateInputMem && GPUConfig::isAllocatePinnedBuffersEnabled() ) {
-         size_t pinnedSize = std::min( max_mem, ( size_t ) 2*1024*1024*1024 );
-         void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-         _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+      if ( GPUConfig::isAllocatePinnedBuffersEnabled() ) {
+         std::size_t maxPinnedMem = GPUConfig::getGPUMaxPinnedMemory() * 1024 * 1024; //(convert to bytes)
+         std::size_t pinnedSize = std::min( maxGPUMem, maxPinnedMem );
+
+         if ( allocateInputMem && allocateOutputMem ) pinnedSize /= 2;
+
+         if ( allocateInputMem ) {
+            void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+            _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+         }
+
+         if ( allocateOutputMem ) {
+            void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+            _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+         }
       }
 
-      if ( allocateOutputMem && GPUConfig::isAllocatePinnedBuffersEnabled() ) {
-         size_t pinnedSize = std::min( max_mem, ( size_t ) 2*1024*1024*1024 );
-         void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-         _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-      }
       _initialized = true;
    }
 }
