@@ -43,7 +43,7 @@ namespace nanos {
 
       public:
          // constructor
-         Atomic () {}
+         Atomic () : _value() {}
 
          Atomic ( T init ) : _value( init ) {}
 
