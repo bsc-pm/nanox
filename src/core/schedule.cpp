@@ -312,7 +312,7 @@ inline void Scheduler::idleLoop ()
 
       }//thread going to sleep, thread waiking up
 
-      if ( !thread->isRunning() ) {
+      if ( !thread->isRunning() && !thread->hasNextWD() ) {
         // if behaviour is not exiting, it is the implicit one, and can break the loop
         // otherwise we need to switch to implicit wd.
         if ( !behaviour::exiting() ) break;
