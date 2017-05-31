@@ -184,7 +184,6 @@ common_sources=\
 	wddeque_fwd.hpp \
 	wddeque_decl.hpp \
 	wddeque.hpp \
-	wddeque.cpp \
 	workdescriptor_fwd.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \

@@ -100,9 +100,6 @@ namespace nanos {
           */
          virtual void push_back( WD** wds, size_t numElems ) = 0;
 
-         static void increaseTasksInQueues( int tasks, int increment = 1 );
-         static void decreaseTasksInQueues( int tasks, int decrement = 1 );
-
          /*! \brief Returns true if an element can be dequeued
           */
 
@@ -130,9 +127,11 @@ namespace nanos {
           */
          const WDDeque & operator= ( const WDDeque & );
 
-         /*! \brief Initialization function for WD device counter
-          */
-         void initDeviceList();
+         void increaseTasksInQueues( int tasks, int increment = 1 );
+         void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         void increaseDeviceCounter ( WorkDescriptor *wd );
+         void decreaseDeviceCounter ( WorkDescriptor *wd );
 
       public:
          /*! \brief WDDeque default constructor
@@ -163,9 +162,6 @@ namespace nanos {
          WorkDescriptor * pop_back ( BaseThread *thread );
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
-
-         void increaseTasksInQueues( int tasks, int increment = 1 );
-         void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
          bool testDequeue();
 
@@ -356,6 +352,12 @@ namespace nanos {
          WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
 
 
+         void increaseTasksInQueues( int tasks, int increment = 1 );
+         void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         void increaseDeviceCounter ( WorkDescriptor *wd );
+         void decreaseDeviceCounter ( WorkDescriptor *wd );
+
       public:
          /*! \brief WDPriorityQueue default constructor
           */
@@ -404,9 +406,6 @@ namespace nanos {
          /*! \brief Returns the lowest priority, without blocking.
           */
          WD::PriorityType minPriority() const;
-
-         void increaseTasksInQueues( int tasks, int increment = 1 );
-         void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
          bool testDequeue();
    };
