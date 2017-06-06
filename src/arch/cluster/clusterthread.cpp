@@ -311,6 +311,10 @@ void ClusterThread::exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
 void ClusterThread::initializeDependent( void ) {}
 void ClusterThread::switchToNextThread() {}
 
+void ClusterThread::lock() {
+   _lock.acquire();
+}
+
 void ClusterThread::unlock() {
    _lock.release();
 }
