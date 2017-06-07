@@ -34,19 +34,20 @@ namespace nanos {
          typedef void*           TargetType;
       private:
          TargetType              _address; /**< Pointer to the dependency address */
+         size_t                  _size; /**< Size in bytes of the dependency object */
       public:
 
         /*! \brief Address default constructor
          *  Creates an Address with the given address associated.
          */
-         Address ( TargetType address = NULL )
-            : _address( address ) {}
+         Address ( TargetType address = NULL, size_t s = 1 )
+            : _address( address ), _size( s ) {}
 
         /*! \brief Address copy constructor
          *  \param obj another Address
          */
          Address ( const Address &obj ) 
-            :  BaseDependency(), _address ( obj._address ) {}
+            :  BaseDependency(), _address ( obj._address ), _size( obj._size ) {}
 
         /*! \brief Address destructor
          */
@@ -73,6 +74,12 @@ namespace nanos {
 
          //! \brief Returns dependence base address
          virtual void * getAddress () const;
+
+         //! \brief Returns the size of the dependency object.
+         virtual size_t size() const;
+
+         //! \brief Returns the size of the dependency object.
+         virtual void size ( size_t s );
          
         /*! \brief Overlap operator.
          */

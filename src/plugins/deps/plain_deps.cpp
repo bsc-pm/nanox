@@ -100,6 +100,11 @@ namespace nanos {
                   // if address == NULL, just ignore it
                   if ( target() == NULL ) continue;
                   AccessType const &accessType = dep.flags;
+		  size_t size = 1;
+		  for (short i = 0; i < dep.dimension_count; ++i) {
+		    size *= dep.dimensions[i].size;
+		  }
+		  target.size(size);
 
                   submitDependableObjectDataAccess( depObj, target, accessType, callback );
                   flushDeps.push_back( (uint64_t) target() );

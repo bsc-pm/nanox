@@ -27,6 +27,7 @@ namespace nanos {
 inline const Address & Address::operator= ( const Address &obj )
 {
    _address = obj._address;
+   _size = obj._size;
    return *this;
 }
 
@@ -43,7 +44,10 @@ inline bool Address::operator== ( const Address &obj ) const
 inline bool Address::overlap ( const BaseDependency &obj ) const
 {
    const Address& address( static_cast<const Address&>( obj ) );
-   return _address == address._address;
+   if ( _address <= address._address )
+      return address._address < reinterpret_cast<const void *>( reinterpret_cast<const char *>( _address ) + _size );
+   
+   return _address < reinterpret_cast<const void *>( reinterpret_cast<const char *>( address._address ) + address._size);
 }
 
 inline bool Address::operator< ( const Address &obj ) const
@@ -53,12 +57,22 @@ inline bool Address::operator< ( const Address &obj ) const
 
 inline BaseDependency* Address::clone() const
 {
-   return new Address( _address );
+   return new Address( _address, _size );
 }
 
 inline void * Address::getAddress () const
 {
    return _address;
+}
+
+inline size_t Address::size() const
+{
+  return _size;
+}
+
+inline void Address::size ( size_t s )
+{
+  _size = s;
 }
 
 } // namespace nanos
