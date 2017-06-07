@@ -75,8 +75,9 @@ namespace ext {
       // destructor
       virtual ~ClusterThread();
 
-      void unlock();
-      bool tryLock();
+      virtual void lock();
+      virtual void unlock();
+      virtual bool tryLock();
 
       virtual void runDependent ( void );
       virtual bool inlineWorkDependent ( WD &wd );
