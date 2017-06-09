@@ -15,8 +15,8 @@ def cpus(max_cpus):
 		ans = ans + ['--smp-workers='+str(i)]
 	return ans
 
-test_mode = os.environ.get('NX_TEST_MODE', 'small')
-max_cpus = os.environ.get('NX_TEST_MAX_CPUS', 2)
+test_mode = os.environ.get('NX_TEST_MODE', 'small') or 'small'
+max_cpus = os.environ.get('NX_TEST_MAX_CPUS', 2) or 2
 test_schedule = os.environ.get('NX_TEST_SCHEDULE')
 test_architecture = os.environ.get('NX_TEST_ARCH')
 
