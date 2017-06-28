@@ -1,12 +1,14 @@
-Nanos++ Runtime Library
-=======================
+# Nanos++ Runtime Library
 
-Nanos++ is a runtime library designed to serve as runtime support in parallel
-environments. It is mainly used to support **OmpSs** (an extension to the
-OpenMP programming model based only in tasks). The runtime is developed at the
-**Barcelona Supercomputing Center** within the **Programming Models** group.
-Appart from OmpSs Nanos++ also supports most of the  **OpenMP** 3.1 features
-and includes some additional extensions (some of them also introduced in
+Nanos++ is a parallel runtime library aimed at fast
+prototyping developed by the [*Programming Models group*](https://pm.bsc.es/)
+at the [**Barcelona Supercomputing Center**](http://www.bsc.es/).
+
+Nanos++ is mainly used together with the [Mercurium compiler](https://github.com/bsc-pm/mcxx)
+to implement the [**OmpSs programming model**](https://pm.bsc.es/ompss)
+(an extension to the OpenMP programming model based only in tasks).
+Both tools also implement [**OpenMP 3.1**](https://pm.bsc.es/openmp) features
+and include some additional extensions (some of them also introduced in
 following OpenMP releases).
 
 The runtime provides several services to support task parallelism using a
@@ -34,8 +36,7 @@ You can find further information about the Nanos++ RTL usage in our
 and about Nanos++ RTL development in our
 [developers guide](doc/developers_guide.md).
 
-Reporting New Issues
--------------------
+## Reporting New Issues
 
 Should you find a bug or want to make a feature request you can create a new
 ticket. As Nanos++ is a medium-sized piece of software so, in order to make bug
@@ -58,11 +59,9 @@ application is built.
 e-mail there to track a bug and receive all the notifications due the different
 actions taken in this ticket.
 
-If you have any questions or suggestions you can contact the programming model
-group at BSC by sending an e-mail to **pm-tools**\*.  You can also join our
-**pm-tools-users** mailing list by sending an e-mail to **pm-tools-users-join**\*.
+## Contact Information
 
-***
+For questions, suggestions and bug reports, you can contact us through the pm-tools@bsc.es.
 
-(\*) All our email accounts are hosted at **bsc.es** (i.e. \<account-name\>@bsc.es).
-
+You can also join our pm-tools-users@bsc.es mailing list by sending an e-mail to 
+pm-tools-users-join@bsc.es.
