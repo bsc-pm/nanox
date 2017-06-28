@@ -24,7 +24,7 @@ to try different mechanisms. As such it is designed to be **extensible by means
 of plugins**.  The scheduling policy, the throttling policy, the dependence
 approach, the barrier implementations, slicers and worksharing mechanisms, the
 instrumentation layer and the architectural dependant level are examples of
-plugins that developers may easily implements using Nanos++. This extensibility
+plugins that developers may easily implement using Nanos++. This extensibility
 does not come for free. The runtime overheads are slightly increased, but there
 should be low enough for results to be meaningful except for cases of
 extreme-fine grain applications.
