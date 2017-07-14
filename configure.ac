@@ -144,42 +144,7 @@ AX_CHECK_XDMA
 AX_ENABLE_TASK_CALLBACK
 
 # Extrae check
-MPITRACE_HOME=""
-MPITRACE_INC=""
-MPITRACE_LIB=""
-MPITRACE_BIN=""
-
-AC_ARG_WITH([extrae],
-           AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
-           [
-                extrae_version_h=$withval/include/extrae_version.h
-                AS_IF([test -e $extrae_version_h],[
-                   extrae_version_string=$(sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h)
-                   extrae_version=$(echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/')
-                   AS_IF([test "$extrae_version" -ge 240],[
-                      MPITRACE_HOME="$withval"
-                      MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib"
-                      AS_IF([test -d "$MPITRACE_HOME/lib64"],[
-                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
-                      ])
-                      MPITRACE_BIN="$withval/bin"
-                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
-                   ],[
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                   ])
-                ],[
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                ])
-           ]
-)
-
-AC_SUBST([MPITRACE_HOME])
-AC_SUBST([MPITRACE_INC])
-AC_SUBST([MPITRACE_LIB])
-AC_SUBST([MPITRACE_BIN])
-
-AM_CONDITIONAL([instrumentation_EXTRAE], test x"$MPITRACE_HOME" != x)
+AX_CHECK_EXTRAE
 
 # Check NextSim support
 AC_ARG_WITH([nextsim],

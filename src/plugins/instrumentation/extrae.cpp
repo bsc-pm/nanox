@@ -39,32 +39,8 @@
 #include "errno.h"
 #include <unistd.h>
 
-#ifndef EXTRAE_VERSION
-#warning Extrae library version is not supported (use >= 2.4):
-#else
+#define extrae_size_t unsigned int
 
-#  define NANOX_EXTRAE_SUPPORTED_VERSION
-
-#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
-#      define extrae_size_t unsigned int
-
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */ 
-#      warning Extrae library version is not supported (use >= 2.4):
-#      undef NANOX_EXTRAE_SUPPORTED_VERSION
-#    endif /*------------------------------------------------- version 2.2.x */
-
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
-#      warning Extrae library version is not supported (use >= 2.4):
-#      undef NANOX_EXTRAE_SUPPORTED_VERSION
-#    endif /*------------------------------------------------- version 2.3.x */
-
-#  endif /*--------------------------------------------------- version 2.x.x */
-#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 3 /************* version 3.x.x */
-#      define extrae_size_t unsigned int
-#  endif /*--------------------------------------------------- version 3.x.x */
-#endif
-
-#ifdef NANOX_EXTRAE_SUPPORTED_VERSION
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
@@ -645,5 +621,3 @@ class InstrumentationParaverPlugin : public Plugin {
 } // namespace nanos
 
 DECLARE_PLUGIN("instrumentation-paraver",nanos::ext::InstrumentationParaverPlugin);
-
-#endif
