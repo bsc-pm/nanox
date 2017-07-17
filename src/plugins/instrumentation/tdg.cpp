@@ -44,7 +44,7 @@ namespace {
 
 namespace nanos {
 
-const int64_t concurrent_min_id = 1000000;
+enum { concurrent_min_id = 1000000 };
 static unsigned int cluster_id = 1;
 
 class InstrumentationTDGInstrumentation: public Instrumentation
@@ -62,10 +62,12 @@ private:
     double _min_time;
     double _total_time;
     double _min_diam;
-    
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
     int64_t _next_conc_id;
-    
+#endif
+
     inline int64_t getMyWDId() {
         BaseThread *current_thread = getMyThreadSafe();
         if(current_thread == NULL) return 0;
@@ -460,8 +462,7 @@ public:
     // constructor
     InstrumentationTDGInstrumentation() : Instrumentation(),
                                           _graph_nodes(), _funct_id_to_decl_map(), 
-                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
-                                          _next_tw_id(0), _next_conc_id(0)
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
     {}
     
     // destructor

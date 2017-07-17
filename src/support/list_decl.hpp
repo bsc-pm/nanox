@@ -85,8 +85,8 @@ class List {
             ListNode& operator=( ListNode const &node)
             {
                if (this == &node) return *this;
-               this._object = node._object;
-               this._next = node._next;
+               _object = node._object;
+               _next = node._next;
                return *this;
             }
 
@@ -522,7 +522,7 @@ class List {
            */
            void deleteReference()
            {
-              if ( _node != _list._end ) {
+              if ( _node != _list->_end ) {
                  _node->decreaseRefs();
               }
            }

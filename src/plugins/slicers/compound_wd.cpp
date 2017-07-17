@@ -113,7 +113,7 @@ bool SlicerCompoundWD::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice )
       if ( _totalTasksPerThread != 0) serialize = serialize || ( ss._totalTasks > ( nthreads * _totalTasksPerThread) );
       if ( _readyTasks != 0) serialize = serialize || (ss._readyTasks > _readyTasks );
       if ( _readyTasksPerThread != 0) serialize = serialize || (ss._readyTasks > ( nthreads * _readyTasksPerThread) );
-      if ( _depthOfTask != 0) serialize = serialize; //! \todo depthOfTask is not involved in serialize flag
+      if ( _depthOfTask != 0) {} //! \todo depthOfTask is not involved in serialize flag
    }
    
    /* Computing Checks: neutral element == false */

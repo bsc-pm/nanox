@@ -53,11 +53,13 @@ extern "C" {
 
 namespace nanos {
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    const extrae_type_t _eventState      = 9000000;   /*!< event coding state changes */
    const extrae_type_t _eventPtPStart   = 9000001;   /*!< event coding comm start */
    const extrae_type_t _eventPtPEnd     = 9000002;   /*!< event coding comm end */
    const extrae_type_t _eventSubState   = 9000004;   /*!< event coding sub-state changes */
    const extrae_type_t _eventBase       = 9200000;   /*!< event base (used in key/value pairs) */
+#endif
 
 class InstrumentationExtrae: public Instrumentation 
 {

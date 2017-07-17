@@ -32,8 +32,8 @@ namespace nanos {
 
    class Network;
    class SendDataRequest;
-   class GetRequest;
-   class GetRequestStrided;
+   struct GetRequest;
+   struct GetRequestStrided;
 
    class NetworkAPI
    {

@@ -306,8 +306,6 @@ void Config::parseArgumentsFromCmdLine ()
    }
    tmp[argv_total_len-1] = 0;
 
-   if ( tmp == NULL ) return;
-
    char env[ strlen(tmp) + 1 ];
    strcpy( &env[0], tmp );
    char *arg = strtok( &env[0], " " );

@@ -28,7 +28,7 @@ namespace nanos {
    class ScheduleWDData;
    class ScheduleThreadData;
    class SchedulePolicy;
-   class SchedulePolicySuccessorFunctor;
+   struct SchedulePolicySuccessorFunctor;
 
    class SchedulingGroup;
    class SchedulingData;

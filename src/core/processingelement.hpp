@@ -54,7 +54,7 @@ inline void ProcessingElement::setActiveDevice(unsigned int devIdx) {
 
 inline void ProcessingElement::setActiveDevice(const Device *dev) {
    unsigned int devIdx = 0;
-   for ( ; devIdx < _devices.size() && dev != _devices[devIdx]; devIdx += 1 );
+   for ( ; devIdx < _devices.size() && dev != _devices[devIdx]; devIdx += 1 ) {}
    ensure( devIdx < _devices.size(), "Could not found the given device in the supported devices array");
    _activeDevice = devIdx;
 }

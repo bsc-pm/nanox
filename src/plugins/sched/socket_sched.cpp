@@ -205,8 +205,8 @@ namespace nanos {
                // Look for GPUs in all the nodes
                for (System::ThreadList::iterator it=sys.getWorkersBegin();
                   it!=sys.getWorkersEnd(); it++) {
-                  BaseThread *worker = it->second;
 #ifdef GPU_DEV
+                  BaseThread *worker = it->second;
                   if ( worker->runningOn()->supports( nanos::ext::GPU ) )
                   {
                      int node = worker->runningOn()->getNumaNode();
@@ -216,8 +216,6 @@ namespace nanos {
                      verbose0( "[NUMA] Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
 #endif
-                  // Avoid unused variable warning.
-                  worker = worker;
                }
                // Initialise the structure that will cycle through gpu nodes when giving away GPU tasks
                _gpuNodesToGive.stealNext = 0;

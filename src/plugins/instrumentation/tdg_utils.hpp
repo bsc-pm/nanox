@@ -28,7 +28,7 @@
 
 namespace nanos {
 
-    class Node;
+    struct Node;
 
     int used_edge_types[5] = {0, 0, 0, 0, 0};
     

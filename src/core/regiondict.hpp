@@ -1067,7 +1067,6 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< 
 template < template <class> class Sparsity>
 void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
-   global_reg_t reg( region, this );
    //fprintf(stderr, "%p:%d", this, region);
    o << (void *) this << ":" << std::dec << region;
    if ( regNode == NULL ) {

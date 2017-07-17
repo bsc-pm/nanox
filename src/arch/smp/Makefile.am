@@ -93,7 +93,7 @@ debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 
 debug_libsmp_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libsmp_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libsmp_la_CCASFLAGS=$(common_debug_CXXFLAGS)
+debug_libsmp_la_CCASFLAGS=$(common_debug_CCASFLAGS)
 debug_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
 
 debug_libnanox_pe_smp_la_CPPFLAGS=$(common_debug_CPPFLAGS) @memkindinc@
@@ -109,7 +109,7 @@ instrumentation_LTLIBRARIES = instrumentation/libnanox-pe-smp.la
 
 instrumentation_libsmp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libsmp_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libsmp_la_CCASFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libsmp_la_CCASFLAGS=$(common_instrumentation_CCASFLAGS)
 instrumentation_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
 
 instrumentation_libnanox_pe_smp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @memkindinc@
@@ -125,7 +125,7 @@ instrumentation_debug_LTLIBRARIES = instrumentation-debug/libnanox-pe-smp.la
 
 instrumentation_debug_libsmp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
 instrumentation_debug_libsmp_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libsmp_la_CCASFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libsmp_la_CCASFLAGS=$(common_instrumentation_debug_CCASFLAGS)
 instrumentation_debug_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
 
 instrumentation_debug_libnanox_pe_smp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @memkindinc@
@@ -141,7 +141,7 @@ performance_LTLIBRARIES = performance/libnanox-pe-smp.la
 
 performance_libsmp_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libsmp_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libsmp_la_CCASFLAGS=$(common_performance_CXXFLAGS)
+performance_libsmp_la_CCASFLAGS=$(common_performance_CCASFLAGS)
 performance_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
 
 performance_libnanox_pe_smp_la_CPPFLAGS=$(common_performance_CPPFLAGS) @memkindinc@

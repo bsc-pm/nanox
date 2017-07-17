@@ -246,7 +246,7 @@ class HashMap
                      _currentTable++;
                      _currentItem = _map._table[_currentTable].begin();
                   }
-                  if ( _currentTable = _map._tableSize ) {
+                  if ( _currentTable == _map._tableSize ) {
                      _currentTable = -1;
                   }
                }
