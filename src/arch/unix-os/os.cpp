@@ -44,11 +44,6 @@ LINKER_SECTION(nanos_post_init, nanos_init_desc_t , INIT_NULL)
 long OS::_argc = 0; 
 char ** OS::_argv = 0;
 
-nanos::unique_pointer<OS::ModuleList> OS::_moduleList;
-nanos::unique_pointer<OS::InitList>   OS::_initList;
-nanos::unique_pointer<OS::InitList>   OS::_postInitList;
-CpuSet OS::_systemMask;
-CpuSet OS::_processMask;
 
 static void findArgs (long *argc, char ***argv) 
 {
@@ -70,13 +65,13 @@ static void findArgs (long *argc, char ***argv)
 void OS::init ()
 {
    findArgs(&_argc,&_argv);
-   _moduleList.reset( NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules) );
-   _initList.reset( NEW InitList(&__start_nanos_init, &__stop_nanos_init) );
-   _postInitList.reset( NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init) );
+
+   CpuSet &system_mask = getSystemAffinity();
+   CpuSet &process_mask = getProcessAffinity();
 
    for (int i=0; i<OS::getMaxProcessors(); i++) {
       // FIXME: we are assuming a range of [0,N-1]. Use hwloc if present
-      _systemMask.set(i);
+      system_mask.set(i);
    }
 
 #ifdef IS_BGQ_MACHINE
@@ -98,9 +93,9 @@ void OS::init ()
    /***/
    mask = x;
 
-   memcpy( &(_processMask.get_cpu_set()), &mask, sizeof(uint64_t) );
+   memcpy( &(process_mask.get_cpu_set()), &mask, sizeof(uint64_t) );
 #else
-   sched_getaffinity( 0, sizeof(cpu_set_t), &(_processMask.get_cpu_set()) );
+   sched_getaffinity( 0, sizeof(cpu_set_t), &(process_mask.get_cpu_set()) );
 #endif
 }
 
@@ -131,7 +126,44 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
    return dlsym ( dlHandler, symbolName );
 }
 
-int OS::getMaxProcessors ( void )
+const OS::InitList & OS::getInitializationFunctions ()
+{
+   // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
+   static OS::InitList *init_list = NEW OS::InitList(&__start_nanos_init, &__stop_nanos_init);
+   return *init_list;
+}
+
+const OS::InitList & OS::getPostInitializationFunctions ()
+{
+   // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
+   static OS::InitList *post_init_list = NEW OS::InitList(
+         &__start_nanos_post_init, &__stop_nanos_post_init);
+   return *post_init_list;
+}
+
+const OS::ModuleList & OS::getRequestedModules ()
+{
+   // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
+   static OS::ModuleList *module_list = NEW OS::ModuleList(
+         &__start_nanos_modules, &__stop_nanos_modules);
+   return *module_list;
+}
+
+CpuSet & OS::getSystemAffinity ()
+{
+   // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
+   static CpuSet *system_mask = NEW CpuSet();
+   return *system_mask;
+}
+
+CpuSet & OS::getProcessAffinity ()
+{
+   // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
+   static CpuSet *process_mask = NEW CpuSet();
+   return *process_mask;
+}
+
+int OS::getMaxProcessors ()
 {
 #ifdef IS_BGQ_MACHINE
    return (int) 64;
@@ -157,7 +189,8 @@ int OS::nanosleep ( unsigned long long nanoseconds )
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    sched_getaffinity( 0, sizeof(cpu_set_t), &cpu_set );
-   CPU_AND( &cpu_set, &cpu_set, &(_processMask.get_cpu_set()) );
+   CpuSet &process_mask = getProcessAffinity();
+   CPU_AND( &cpu_set, &cpu_set, &(process_mask.get_cpu_set()) );
    if ( CPU_COUNT( &cpu_set ) == 0 )
       return 0;
 #endif

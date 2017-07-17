@@ -84,11 +84,6 @@ namespace nanos {
          static long _argc; 
          static char ** _argv;
 
-         static nanos::unique_pointer<InitList>   _initList;
-         static nanos::unique_pointer<InitList>   _postInitList;
-         static nanos::unique_pointer<ModuleList> _moduleList;
-         static CpuSet      _systemMask;
-         static CpuSet      _processMask;
       public:
 
          static void init ();
@@ -111,16 +106,15 @@ namespace nanos {
          static double getMonotonicTimeResolution ();
 
          static int nanosleep ( unsigned long long nanoseconds );
-         
-         static const InitList & getInitializationFunctions ( ) { return *_initList;}
-         static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
-         static const ModuleList & getRequestedModules () { return *_moduleList; }
 
-         static const CpuSet& getSystemAffinity() { return _systemMask; }
-         static const CpuSet& getProcessAffinity() { return _processMask; }
+         static const InitList & getInitializationFunctions ();
+         static const InitList & getPostInitializationFunctions ();
+         static const ModuleList & getRequestedModules ();
 
-         static int getMaxProcessors ( void );
+         static CpuSet & getSystemAffinity ();
+         static CpuSet & getProcessAffinity ();
 
+         static int getMaxProcessors ();
    };
 
 // inlined functions
