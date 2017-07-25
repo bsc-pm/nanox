@@ -80,14 +80,14 @@ AS_IF([test "x$with_opencl$with_opencl_include$with_opencl_lib" != x],[
 #                       --without-opencl, $with_opencl value will be 'no'
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
 AS_IF([test "$opencl_path_provided" = yes],[
-  openclinc="-isystem $with_opencl/include"
+  openclinc="-isystem $with_opencl/include -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
   AS_IF([test -d $with_opencl/lib64],
     [opencllib="-L$with_opencl/lib64 -Wl,-rpath,$with_opencl/lib64"],
     [opencllib="-L$with_opencl/lib -Wl,-rpath,$with_opencl/lib"])dnl
 ])dnl
 
 AS_IF([ test $with_opencl_include],[
-  openclinc="-isystem $with_opencl_include"
+  openclinc="-isystem $with_opencl_include -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
 ])dnl
 
 AS_IF([test $with_opencl_lib],[
