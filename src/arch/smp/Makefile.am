@@ -34,6 +34,8 @@ EXTRA_DIST= \
 	ppc64_v2/stack_asm.s \
 	armv71/stack.cpp \
 	armv71/stack_asm.s \
+	armv71_hf/stack.cpp \
+	armv71_hf/stack_asm.s \
 	aarch64/stack.cpp \
 	aarch64/stack_asm.s \
 	tile64/stack.cpp \
@@ -51,7 +53,7 @@ devinclude_HEADERS = \
 	smpthread_fwd.hpp \
 	smptransferqueue_decl.hpp \
 	smptransferqueue.hpp \
-	$(END) 
+	$(END)
 
 common_libadd=\
         $(END)
@@ -85,7 +87,7 @@ else
   ult_sources=
 endif
 
-noinst_LTLIBRARIES = 
+noinst_LTLIBRARIES =
 
 if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsmp.la
@@ -150,4 +152,3 @@ performance_libnanox_pe_smp_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @memkind
 performance_libnanox_pe_smp_la_LIBADD=$(common_libadd) @memkindlibs@
 performance_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
-

@@ -44,7 +44,13 @@ AS_CASE([$host],
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
   ],
-  [arm*-*-gnueabi*],
+  [arm*-*-gnueabihf],
+  [
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=armv71_hf
+  ],
+  [arm*-*-gnueabi],
   [
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
@@ -93,12 +99,12 @@ AS_CASE([$host],
       AC_ARG_VAR([PPUEMBED],[SPU to PPU embedding tool])
       AC_CHECK_PROG( [SPUCC], [spu-cc], spu-cc, no)
       if test x$SPUCC = xno ; then
-	AC_MSG_WARN([spu-cc not found. Disabling SPU support]) 
+	AC_MSG_WARN([spu-cc not found. Disabling SPU support])
         spu_valid=no
-      else 
+      else
         AC_CHECK_PROG( [PPUEMBED], [ppu-embedspu], ppu-embedspu, no)
         if test x$PPUEMBED = xno ; then
-          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support]) 
+          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support])
           spu_valid=no
         else
            AC_ARG_WITH([cellsdk],
@@ -156,4 +162,3 @@ AC_SUBST([SMP_ARCH])
 AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test "$ult_support" = yes])
 
 ]) dnl AX_CHECK_HOST_ARCH
-
