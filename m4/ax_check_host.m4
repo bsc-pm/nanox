@@ -46,12 +46,15 @@ AS_CASE([$host],
   ],
   [arm*-*-gnueabihf],
   [
+    # ARMv7 with hardware floating point support
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71_hf
   ],
   [arm*-*-gnueabi],
   [
+    # ARMv7 with software floating point operations
+    # Other ARMv7 will fail to unknown disabling the ULT
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
