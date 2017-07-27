@@ -1,7 +1,11 @@
 .text
+/*!
+ * NOTE: Workaround to enable the vfp extensions when host contains it but the compiler
+ *       does not enable the support by default.
+ */
+.fpu vfp
 .globl switchStacks
 .globl startHelper
-/* void switchStacks (arg0, arg1, new, helper) */
 .extern abort
 
 /*
@@ -9,6 +13,8 @@
  * See sections 5.1.1 and 5.1.2.1 of Procedure Call Standard for the ARM Architecture
  * http://infocenter.arm.com/help/topic/com.arm.doc.ihi0042f/IHI0042F_aapcs.pdf
  */
+
+/* void switchStacks (arg0, arg1, new, helper) */
 switchStacks:
 
 	/* Saves general purpose registers,
