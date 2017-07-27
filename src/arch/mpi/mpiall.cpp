@@ -27,7 +27,6 @@
 #include "mpidd.cpp"
 #include "mpithread.cpp"
 #include "mpi-api.cpp"
-#include "mpiicpc_syms.cpp"
 #include "hostinfo.cpp"
 #include "command.cpp"
 #include "cachecommand.cpp"
