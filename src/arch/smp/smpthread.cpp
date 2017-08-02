@@ -176,7 +176,7 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( } );
 
    //if ( sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "Starting wd " << wd.getId() << std::endl;
-   
+
    dd.execute( wd );
 
    NANOS_INSTRUMENT ( if ( wd.isRuntimeTask() ) { );
@@ -223,20 +223,18 @@ int SMPThread::getCpuId() const {
 SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe,
       unsigned int representingPEsCount, PE **representingPEs ) :
    SMPThread ( w, pe, pe ),
-   _current( 0 ),
-   _totalThreads( representingPEsCount ) {
+   _current( 0 ) {
    setCurrentWD( w );
    if ( representingPEsCount > 0 ) {
       addThreadsFromPEs( representingPEsCount, representingPEs );
    }
 }
 
-void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs) 
+void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs)
 {
-   _threads.reserve( representingPEsCount );
+   _threads.reserve( _threads.size() + representingPEsCount );
    for ( unsigned int i = 0; i < representingPEsCount; i++ )
    {
-      _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
+      _threads.push_back( &( representingPEs[ i ]->startWorker( this ) ) );
    }
-   _totalThreads = representingPEsCount;
 }
