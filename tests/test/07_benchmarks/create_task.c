@@ -21,8 +21,8 @@
 
 /*
 <testinfo>
-test_mode=performance
 test_generator=gens/mcc-openmp-generator
+test_generator_ENV=( "NX_TEST_MODE=performance" )
 </testinfo>
 */
 

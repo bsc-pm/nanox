@@ -21,8 +21,8 @@
 /*
 <testinfo>
 test_generator=gens/api-omp-generator
-test_max_cpus=1
-test_schedule="bf --schedule-priority"
+test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
+                     "NX_TEST_SCHEDULE=bf --schedule-priority" )
 </testinfo>
 */
 

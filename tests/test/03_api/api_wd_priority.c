@@ -21,7 +21,7 @@
 /*
 <testinfo>
 test_generator=gens/api-omp-generator
-test_schedule="bf --schedule-priority"
+test_generator_ENV=( "NX_TEST_SCHEDULE=bf --schedule-priority" )
 test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */

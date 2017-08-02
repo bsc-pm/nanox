@@ -20,8 +20,8 @@
 /*
 <testinfo>
 test_generator=gens/core-generator
-test_schedule="bf"
-test_max_cpus=1
+test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
+                     "NX_TEST_SCHEDULE=bf" )
 </testinfo>
 */
 

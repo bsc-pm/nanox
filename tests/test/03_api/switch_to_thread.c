@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
-test_schedule="bf"
+test_generator_ENV=( "NX_TEST_SCHEDULE=bf" )
 </testinfo>
 */
 

@@ -19,9 +19,8 @@
 
 /*
 <testinfo>
-test_generator=gens/core-generator
-test_deps_plugins=regions,plain,perfect-regions
-test_schedule=bf
+test_generator="gens/core-generator -d plain,regions,perfect-regions"
+test_generator_ENV=( "NX_TEST_SCHEDULE=bf" )
 </testinfo>
 */
 

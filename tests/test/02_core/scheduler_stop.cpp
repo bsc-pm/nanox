@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/core-generator
-test_schedule=wf
+test_generator_ENV=( "NX_TEST_SCHEDULE=wf" )
 </testinfo>
 */
 

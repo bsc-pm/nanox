@@ -20,8 +20,8 @@
 /*
 <testinfo>
 test_generator=gens/opencl-generator
-test_generator_ENV='test_architecture=smp'
-test_schedule=bf
+test_generator_ENV=( "NX_TEST_SCHEDULE=bf"
+                     "NX_TEST_ARCH=smp" )
 </testinfo>
 */
 

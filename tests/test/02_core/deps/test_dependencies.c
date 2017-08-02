@@ -19,8 +19,7 @@
 
 /*
 <testinfo>
-test_generator=gens/api-generator
-test_deps_plugins=plain,regions,perfect-regions
+test_generator="gens/api-generator -d plain,regions,perfect-regions"
 </testinfo>
 */
 
