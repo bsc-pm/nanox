@@ -43,7 +43,7 @@ namespace ext {
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
-        
+
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
@@ -117,7 +117,6 @@ namespace ext {
       private:
          std::vector< BaseThread * > _threads;
          unsigned int _current;
-         unsigned int _totalThreads;
 
          // disable copy constructor and assignment operator
          SMPMultiThread( const SMPThread &th );
@@ -133,15 +132,15 @@ namespace ext {
 
          virtual BaseThread * getNextThread()
          {
-            if ( _totalThreads == 0 )
+            if ( _threads.size() == 0 )
                return this;
-            _current = ( _current == ( _totalThreads - 1 ) ) ? 0 : _current + 1;
+            _current = ( _current == ( _threads.size() - 1 ) ) ? 0 : _current + 1;
             return _threads[ _current ];
          }
 
          unsigned int getNumThreads() const
          {
-            return _totalThreads;
+            return _threads.size();
          }
 
          void addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs);
