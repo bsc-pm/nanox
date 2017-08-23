@@ -38,8 +38,6 @@
 
 namespace nanos {
 
-typedef unsigned int reg_t;
-
    template < class > class ContainerDense;
 
    class RegionVectorEntry;
