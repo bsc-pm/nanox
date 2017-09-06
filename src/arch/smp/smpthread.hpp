@@ -145,6 +145,7 @@ namespace ext {
 
          void addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs);
          virtual bool canBlock() { return false;}
+         virtual void initializeDependent( void );
    };
 } // namespace ext
 } // namespace nanos
