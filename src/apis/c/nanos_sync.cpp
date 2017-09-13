@@ -38,10 +38,8 @@
 
 using namespace nanos;
 
-NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoid_flush ))
+NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion_mandatory, ( nanos_wg_t uwg, bool avoid_flush ))
 {
-   if ( myThread->getCurrentWD()->isFinal() ) return NANOS_OK;
-
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
 
    NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
@@ -57,6 +55,13 @@ NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoi
    }
 
    return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoid_flush ))
+{
+   WD *wg = ( WD * )uwg;
+   if ( wg->isFinal() ) return NANOS_OK;
+   return nanos_wg_wait_completion_mandatory( uwg, avoid_flush );
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition ))

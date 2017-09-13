@@ -87,7 +87,7 @@
 
 /*! \page capi_families API Families & Versions
  *  \ingroup capi
- * 
+ *
  * - nanos interface family: master
  *   - 5004: adding data alignment parameter to slicer wd
  *   - 5005: translate function support
@@ -115,6 +115,7 @@
  *   - 5025: Changed WD priority from unsigned to int.
  *   - 5029: Adding implicit parameter to work descriptor flags.
  *   - 5030: Adding instrumentation support to wrap main function.
+ *   - 5041: Adding mandatory taskwait to support devices tasks in final mode.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
@@ -178,7 +179,7 @@ typedef const void * const_nanos_cpu_set_t;
 #ifdef __cplusplus
 
 /* Internal definition for const */
-struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
+struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag
 {
    /* C++ doesn't support C99 flexible array */
    nanos_device_t devices[1];
@@ -288,6 +289,7 @@ NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, n
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ) );
 
 /* sync */
+NANOS_API_DECL(nanos_err_t, nanos_wg_wait_completion_mandatory, ( nanos_wg_t wg, bool avoid_flush ));
 NANOS_API_DECL(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t wg, bool avoid_flush ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition ));
@@ -334,7 +336,7 @@ NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int
 NANOS_API_DECL(nanos_err_t, nanos_cmalloc_2dim_distributed, ( void **p, size_t rows, size_t cols, size_t elem_size, unsigned int start_node, size_t num_nodes, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
-NANOS_API_DECL(void, nanos_free0, ( void *p )); 
+NANOS_API_DECL(void, nanos_free0, ( void *p ));
 
 /* error handling */
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
