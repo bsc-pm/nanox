@@ -37,6 +37,9 @@ void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos
    unsigned int align = ( ( (unsigned int) state ) & 7) / sizeof(intptr_t *);
    state -= align;
 
+   // (A) Adjust to 8 bytes here. See (B) below
+   state--;
+
    *state = ( intptr_t )cleanup;
    state--;
    *state = ( intptr_t )cleanupArg;
@@ -46,7 +49,12 @@ void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(nanos
    *state = ( intptr_t )wd;
    state--;
    *state = ( intptr_t )startHelper;
-   state -= 9; //number of push and pop registers except for the lr on pc on stack.s
+
+   // Make room for stored registers except lr (= the link register) that we
+   // want to be popped by switchStacks so it returns to startHelper
+   // (B) Note that this would leave the stack unaligned.
+   // This is why in (A) above we compensated it
+   state -= 9;
 
    return (void *) state;
 }

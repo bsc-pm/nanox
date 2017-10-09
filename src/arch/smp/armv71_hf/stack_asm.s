@@ -18,7 +18,7 @@
 switchStacks:
 
 	/* Saves general purpose registers,
-           R12 is included to make them even number */
+	      R12 is included to make them even number */
 	push {r4-r12,lr}
 
 	/* Saves VFP and NEON registers */
@@ -29,7 +29,7 @@ switchStacks:
 	mov r2, sp
 	mov sp, r4
 
-	/* arguments in r0=arg1, r1=arg2, r2=old sp */
+	/* arguments in r0=arg0, r1=arg1, r2=old sp */
 	blx r3
 
 	/* Restores VFP and NEON registers */
