@@ -62,6 +62,11 @@ AC_DEFUN([AX_CHECK_EXTRAE],
 
       AC_MSG_RESULT([$extrae_version])
 
+      AS_IF([test -z "$extrae_version"],[
+         AC_MSG_ERROR([could not find Extrae installation])
+      ])
+
+      AC_MSG_CHECKING([if Extrae library is compatible])
       AS_IF([test "$extrae_version" -ge 240],[
             MPITRACE_HOME="$withval"
             MPITRACE_INC="$withval/include"
@@ -70,9 +75,9 @@ AC_DEFUN([AX_CHECK_EXTRAE],
                MPITRACE_LIB="$MPITRACE_HOME/lib64"
             ])
             MPITRACE_BIN="$withval/bin"
-            AC_MSG_RESULT([checking if Extrae library is compatible... yes])
+            AC_MSG_RESULT([yes])
       ],[
-         AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae >= 2.4 needed)])
+         AC_MSG_ERROR([no (Extrae >= 2.4 needed)])
       ])
    ])
 
