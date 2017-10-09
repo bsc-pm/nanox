@@ -72,14 +72,15 @@ nanos_wd_dyn_props_t dyn_props = {0};
 
 int main ( int argc, char **argv )
 {
-   for (int i = 0; i < NUM_ITERS; ++i) {
+   int i;
+   for (i = 0; i < NUM_ITERS; ++i) {
       array[i] = 0;
    }
 
    int result = 0;
    NANOS_SAFE( nanos_set_final( true ) );
 
-   for (int i = 0; i < NUM_ITERS && result == 0; ++i) {
+   for (i = 0; i < NUM_ITERS && result == 0; ++i) {
       nanos_wd_t wd = NULL;
       main__task_1_data_t *task_data = NULL;
 
