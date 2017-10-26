@@ -26,7 +26,7 @@ test_LDFLAGS="-Wl,--export-dynamic"
 */
 
 extern "C"{
-   unsigned int nanos_need_priorities_ __attribute__((common));
+   __attribute__((weak)) void nanos_needs_priorities_fun(void) {}
 }
 
 #include "config.hpp"

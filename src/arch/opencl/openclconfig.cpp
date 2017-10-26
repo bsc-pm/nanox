@@ -153,13 +153,8 @@ void OpenCLConfig::apply(const std::string devTypeIn, std::map<cl_device_id, cl_
 
     void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
-   bool mercurium_has_tasks;
    //For more information see  #1214
-   if ((mercurium_has_tasks = dlsym(myself, "ompss_uses_opencl"))) {
-      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
-            " deprecated soon, we recommend you to update your OmpSs installation.");
-   }
-   mercurium_has_tasks = mercurium_has_tasks || nanos_needs_opencl_fun;
+   bool mercurium_has_tasks = nanos_needs_opencl_fun;
 
     dlclose( myself );
 

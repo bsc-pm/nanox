@@ -169,20 +169,9 @@ void GPUConfig::apply()
    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
    //For more information see  #1214
-   bool mercurium_has_tasks;
-   if ((mercurium_has_tasks = dlsym(myself, "ompss_uses_cuda"))) {
-      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
-            " deprecated soon, we recommend you to update your OmpSs installation.");
-   }
-   mercurium_has_tasks = mercurium_has_tasks || nanos_needs_cuda_fun;
+   bool mercurium_has_tasks = nanos_needs_cuda_fun;
+   bool automatic_cublas_init = nanos_needs_cublas_fun;
 
-   //For more information see  #1214
-   bool automatic_cublas_init;
-   if ((automatic_cublas_init = dlsym(myself, "gpu_cublas_init"))) {
-      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
-            " deprecated soon, we recommend you to update your OmpSs installation.");
-   }
-   automatic_cublas_init = automatic_cublas_init || nanos_needs_cublas_fun;
    _initCublas = _initCublas || automatic_cublas_init;
 
    dlclose( myself );

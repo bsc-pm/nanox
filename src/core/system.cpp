@@ -434,11 +434,7 @@ void System::config ()
    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
    //For more information see  #1214
-   if ((_compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_need_priorities_"))) {
-      warning0("Old mechanism to enable optional features has been detected. This mechanism will be"
-            " deprecated soon, we recommend you to update your OmpSs installation.");
-   }
-   _compilerSuppliedFlags.prioritiesNeeded = _compilerSuppliedFlags.prioritiesNeeded || nanos_needs_priorities_fun;
+   _compilerSuppliedFlags.prioritiesNeeded = nanos_needs_priorities_fun;
 
    // Close handle to myself
    dlclose( myself );
