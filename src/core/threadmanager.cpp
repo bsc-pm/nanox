@@ -675,14 +675,15 @@ void DlbThreadManager::acquireOne()
    // Acquire CPUs is a best effort optimization within the critical path,
    // do not wait for a lock release if the lock is busy
    if ( _lock.tryAcquire() ) {
-      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
-      if ( mine_and_active != *_cpuProcessMask ) {
-         // We claim if some of our CPUs is lent
-         DLB_ClaimCpus( 1 );
-      } else {
-         // Otherwise, just ask for 1 cpu
+//      CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+//      if ( mine_and_active != *_cpuProcessMask ) {
+//         // We claim if some of our CPUs is lent
+//         DLB_ClaimCpus( 1 );
+//      } else {
+//         // Otherwise, just ask for 1 cpu
          DLB_UpdateResources_max( 1 );
-      }
+
+//      }
       _lock.release();
    }
 }
@@ -727,12 +728,16 @@ void DlbThreadManager::waitForCpuAvailability()
 
    // Do not check CPU if this thread has been signaled in order to stop
    if ( !thread->isRunning() ) return;
+   OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
+   sched_yield();
 
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
       sched_yield();
    }
+   OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
+   sched_yield();
 }
 
 void DlbThreadManager::blockThread( BaseThread *thread )
