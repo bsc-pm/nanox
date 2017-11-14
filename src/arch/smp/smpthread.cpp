@@ -103,6 +103,9 @@ void SMPThread::wait()
          leaveTeam();
       }
 
+      /* Lend CPU to DLB if possible */
+      sys.getThreadManager()->lendCpu(this);
+
       /* Set flag */
       BaseThread::wait();
 

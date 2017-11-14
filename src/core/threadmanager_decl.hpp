@@ -60,6 +60,7 @@ class ThreadManager
             );
       void blockThread( BaseThread *thread );
       void unblockThread( BaseThread *thread );
+      void lendCpu( BaseThread *thread );
       void acquireOne();
       int  borrowResources();
       void returnMyCpuIfClaimed();

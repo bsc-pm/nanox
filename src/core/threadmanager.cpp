@@ -183,13 +183,6 @@ void ThreadManager::blockThread( BaseThread *thread )
 
    // Clear CPU from active mask when all threads of a process are blocked
    sys.getSMPPlugin()->updateCpuStatus( my_cpu );
-
-#ifdef DLB
-   // Lend CPU only if my_cpu has been cleared from the active mask
-   if ( _useDLB && !_cpuActiveMask.isSet(my_cpu) ) {
-      DLB_LendCpu( my_cpu );
-   }
-#endif
 }
 
 void ThreadManager::unblockThread( BaseThread* thread )
@@ -221,6 +214,17 @@ void ThreadManager::unblockThread( BaseThread* thread )
    }
 
    sys.getSMPPlugin()->updateCpuStatus( cpuid );
+}
+
+void ThreadManager::lendCpu( BaseThread *thread )
+{
+#ifdef DLB
+   // Lend CPU only if my_cpu has been cleared from the active mask
+   int my_cpu = thread->getCpuId();
+   if ( _useDLB && !_cpuActiveMask.isSet(my_cpu) ) {
+      DLB_LendCpu( my_cpu );
+   }
+#endif
 }
 
 void ThreadManager::acquireOne()
