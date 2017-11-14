@@ -300,8 +300,9 @@ void ThreadManager::returnMyCpuIfClaimed()
    if ( _cpuProcessMask.isSet(my_cpu) ) return;
 
    if ( !thread->isSleeping() ) {
-      LockBlock lock( _lock );
-      DLB_ReturnCpu( my_cpu );
+      if ( !DLB_CheckCpuAvailability(my_cpu) ) {
+         blockThread( thread );
+      }
    }
 #endif
 }
