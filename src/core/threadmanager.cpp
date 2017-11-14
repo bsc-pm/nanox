@@ -236,16 +236,14 @@ void ThreadManager::acquireOne()
    // do not wait for a lock release if the lock is busy
    if ( _lock.tryAcquire() ) {
 
-      // If we have DLB support, we ask first for any available CPU
-      bool done = false;
 #ifdef DLB
       if ( _useDLB ) {
-         done = DLB_BorrowCpus( 1 ) == DLB_SUCCESS;
-      }
+         // If we have DLB support, we ask for any CPU
+         // DLB will priorize owned CPUs first
+         DLB_AcquireCpus( 1 );
+      } else {
 #endif
-
-      // Otherwise, we acquire one CPU from our process mask
-      if (!done) {
+         // Otherwise, we acquire one CPU from our process mask
          CpuSet new_active_cpus = _cpuActiveMask;
          CpuSet mine_and_active = _cpuProcessMask & _cpuActiveMask;
 
@@ -256,18 +254,16 @@ void ThreadManager::acquireOne()
                   it!=_cpuProcessMask.end(); ++it ) {
                int cpu = *it;
                if ( !new_active_cpus.isSet(cpu) ) {
-#ifdef DLB
-                  if ( _useDLB ) {
-                     DLB_AcquireCpu(cpu);
-                  }
-#endif
                   new_active_cpus.set(cpu);
                   sys.setCpuActiveMask( new_active_cpus );
                   break;
                }
             }
          }
+#ifdef DLB
       }
+#endif
+
       _lock.release();
    }
 }
