@@ -304,7 +304,7 @@ void ThreadManager::returnMyCpuIfClaimed()
    if ( _cpuProcessMask.isSet(my_cpu) ) return;
 
    if ( !thread->isSleeping() ) {
-      if ( !DLB_CheckCpuAvailability(my_cpu) ) {
+      if ( DLB_CheckCpuAvailability(my_cpu) == DLB_ERR_PERM ) {
          blockThread( thread );
       }
    }
@@ -320,12 +320,22 @@ void ThreadManager::waitForCpuAvailability()
    BaseThread *thread = getMyThreadSafe();
    int my_cpu = thread->getCpuId();
 
+   int dlb_err = DLB_NOTED;
    while ( !lastActiveThread()
-         && !DLB_CheckCpuAvailability(my_cpu)
-         && thread->isRunning() ) {
-      // Sleep and Yield the thread to reduce cycle consumption
-      OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
-      sched_yield();
+         && thread->isRunning()
+         && dlb_err == DLB_NOTED ) {
+
+      /* Query DLB for CPU availability */
+      dlb_err = DLB_CheckCpuAvailability(my_cpu);
+
+      if ( dlb_err == DLB_ERR_PERM ) {
+         /* CPU has been reclaimed or disabled */
+         blockThread( thread );
+      } else if ( dlb_err == DLB_NOTED ) {
+         /* CPU is not yet available */
+         OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
+         sched_yield();
+      }
    }
 #endif
 }

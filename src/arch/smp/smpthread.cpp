@@ -152,9 +152,8 @@ void SMPThread::wait()
    }
    _pthread.mutexUnlock();
 
-   /* Whether the thread should wait for the cpu to be free before doing some work */
+   /* Wait if the CPU is not yet available, or check whether it's been reclaimed */
    sys.getThreadManager()->waitForCpuAvailability();
-   sys.getThreadManager()->returnMyCpuIfClaimed();
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    /* restart and emit state WAKINGUP */
