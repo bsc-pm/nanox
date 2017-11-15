@@ -111,7 +111,7 @@ void SMPThread::wait()
       BaseThread::wait();
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-      /* Add events cpuid = 0 and state STOPPED */
+      /* Add event cpuid = 0 and state STOPPED */
       INS->addEventList( 2, events );
 #endif
 
@@ -136,8 +136,10 @@ void SMPThread::wait()
       }
       INS->createPointEvent( &events[0], cpuid_key, cpuid_value );
       INS->returnPreviousStateEvent( &events[1] );
-      /* Add all 3 events */
-      INS->addEventList( 3, events );
+      /* Add event cpuid and end of STOPPED state */
+      INS->addEventList( 2, events );
+      /* Add state WAKINGUP */
+      INS->addEventList( 1, &events[2] );
 #endif
 
       if ( getTeam() == NULL ) {
@@ -156,7 +158,7 @@ void SMPThread::wait()
    sys.getThreadManager()->waitForCpuAvailability();
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   /* restart and emit state WAKINGUP */
+   /* Add end of WAKINGUP state */
    INS->returnPreviousStateEvent( &events[2] );
    INS->addEventList( 1, &events[2] );
 #endif
