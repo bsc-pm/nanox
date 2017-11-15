@@ -107,9 +107,6 @@ void SMPThread::wait()
          leaveTeam();
       }
 
-      /* Lend CPU to DLB if possible */
-      sys.getThreadManager()->lendCpu(this);
-
       /* Set flag */
       BaseThread::wait();
 
@@ -117,6 +114,9 @@ void SMPThread::wait()
       /* Add events cpuid = 0 and state STOPPED */
       INS->addEventList( 2, events );
 #endif
+
+      /* Lend CPU to DLB if possible */
+      sys.getThreadManager()->lendCpu(this);
 
       /* It is recommended to wait under a while loop to handle spurious wakeups
        * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
