@@ -314,19 +314,19 @@ namespace nanos
       void OpenMPInterface::registerCallbacks() const
       {
          DLB_CallbackSet( dlb_callback_set_num_threads,
-               (dlb_callback_t)nanos_omp_set_num_threads );
+               (dlb_callback_t)nanos_omp_set_num_threads, NULL );
          DLB_CallbackSet( dlb_callback_set_active_mask,
-               (dlb_callback_t)nanos_omp_set_active_mask );
+               (dlb_callback_t)nanos_omp_set_active_mask, NULL );
          DLB_CallbackSet( dlb_callback_set_process_mask,
-               (dlb_callback_t)nanos_omp_set_process_mask );
+               (dlb_callback_t)nanos_omp_set_process_mask, NULL );
          DLB_CallbackSet( dlb_callback_add_active_mask,
-               (dlb_callback_t)nanos_omp_add_active_mask );
+               (dlb_callback_t)nanos_omp_add_active_mask, NULL );
          DLB_CallbackSet( dlb_callback_add_process_mask,
-               (dlb_callback_t)nanos_omp_add_process_mask );
+               (dlb_callback_t)nanos_omp_add_process_mask, NULL );
          DLB_CallbackSet( dlb_callback_enable_cpu,
-               (dlb_callback_t)nanos_omp_enable_cpu );
+               (dlb_callback_t)nanos_omp_enable_cpu, NULL );
          DLB_CallbackSet( dlb_callback_disable_cpu,
-               (dlb_callback_t)nanos_omp_disable_cpu );
+               (dlb_callback_t)nanos_omp_disable_cpu, NULL );
       }
 #endif
 
