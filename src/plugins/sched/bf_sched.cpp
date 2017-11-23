@@ -58,7 +58,7 @@ namespace nanos {
            virtual ~BreadthFirst () {}
 
          private:
-            
+
            virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
            virtual size_t getThreadDataSize () const { return 0; }
 
@@ -86,18 +86,18 @@ namespace nanos {
             virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
             {
                fatal_cond( numElems == 0, "Cannot queue 0 elements.");
-               
+
                // First step: check if all threads have the same team
                ThreadTeam* team = threads[0]->getTeam();
-               
+
                for ( size_t i = 1; i < numElems; ++i )
                {
                   if ( threads[i]->getTeam() == team )
                      continue;
-                  
+
                   fatal( "Batch submission does not support different teams" );
                }
-               
+
                // If they have the same team, we can insert in batch
                TeamData &tdata = (TeamData &) *team->getScheduleData();
                if ( _useStack ) tdata._readyQueue->push_front( wds, numElems );
@@ -108,7 +108,7 @@ namespace nanos {
                   sys.getThreadManager()->unblockThread(threads[i]);
                }
             }
-            
+
             /*! This scheduling policy supports all WDs, no restrictions. */
             bool isValidForBatch ( const WD * wd ) const
             {
@@ -134,7 +134,7 @@ namespace nanos {
 
 
  //              if ( predecessor == NULL || successor == NULL ) return;
-               
+
                WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
@@ -142,7 +142,7 @@ namespace nanos {
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }
-               
+
                debug ( "Propagating priority from "
                   << (void*)succ << ":" << succ->getId() << " to "
                   << (void*)pred << ":"<< pred->getId()
@@ -150,11 +150,11 @@ namespace nanos {
                   << ", new priority: " << std::max( pred->getPriority(),
                   succ->getPriority() )
                );
-               
+
                // Propagate priority
                if ( pred->getPriority() < succ->getPriority() ) {
                   pred->setPriority( succ->getPriority() );
-                  
+
                   // Reorder
                   TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
                   WDPriorityQueue<> *q = (WDPriorityQueue<> *) tdata._readyQueue;
@@ -190,11 +190,11 @@ namespace nanos {
               }
               return found != NULL ? found : atIdle(thread,false);
            }
-        
+
            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
-              WD * found = current.getImmediateSuccessor(*thread);
-              if ( found && (_usePriority || _useSmartPriority) && schedule ) {
+              WD * found = schedule ? current.getImmediateSuccessor(*thread) : NULL;
+              if ( found && (_usePriority || _useSmartPriority) ) {
                  WDPriorityQueue<> &tdata = (WDPriorityQueue<> &) *((TeamData *) thread->getTeam()->getScheduleData())->_readyQueue;
                  if (found->getPriority() < tdata.maxPriority() ) {
                     queue(thread, *found);

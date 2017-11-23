@@ -289,7 +289,13 @@ namespace nanos {
           *  information to progressively relax the stealing conditions
           */
          virtual WD * atIdle        ( BaseThread *thread, int numSteal ) = 0;
+
+         /*! \brief \param schedule The core scheduler will set this parameter
+          *  0 if no WD should be returned.
+          *  Otherwise, a WD can be returned and it will be queued to local thread queue
+          */
          virtual WD * atBeforeExit  ( BaseThread *thread, WD &current, bool schedule );
+
          /*! \brief \see atIdle for an explanation of the numSteal
           *  parameter
           */
