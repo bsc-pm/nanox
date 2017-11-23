@@ -39,7 +39,7 @@ void WorkDescriptor::init ()
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() : 0.0 );
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
@@ -58,14 +58,14 @@ void WorkDescriptor::initWithPE ( ProcessingElement &pe )
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
-  
+
    //message("init wd " << getId() );
    //if ( getNewDirectory() == NULL )
    //   initNewDirectory();
-   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );
 
    if ( getNumCopies() > 0 ) {
-      
+
       //CopyData *copies = getCopies();
       //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
       //   CopyData & cd = copies[i];
@@ -78,7 +78,7 @@ void WorkDescriptor::initWithPE ( ProcessingElement &pe )
       //      //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
       //   }
       //}
-      
+
       _notifyThread = pe.getFirstThread();
       pe.copyDataIn( *this );
       //this->notifyCopy();
@@ -112,7 +112,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
-   
+
    ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
 
    // Waiting for copies
@@ -129,10 +129,6 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
    _mcontrol.setCacheMetaData();
-
-   // Getting run time
-   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
-
 }
 
 
@@ -173,10 +169,6 @@ bool WorkDescriptor::isInputDataReady() {
       // Setting state to ready
       setReady();
       //_mcontrol.setCacheMetaData();
-
-      // Getting run time
-      _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
-
    }
    return result;
 }
@@ -233,7 +225,7 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
        if (_devices[i]->isCompatible( device )){
-            return true;           
+            return true;
        }
    }
 
@@ -247,7 +239,7 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
    std::vector<const Device *> const &pe_archs = pe.getDeviceTypes();
    if ( pe.getActiveDevice() == pe_archs.size() ) {
-      // all active 
+      // all active
       for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
             it != pe_archs.end() && !result; it++ ) {
          result = canRunIn( *(*it) ) ;
@@ -256,7 +248,7 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
       result = canRunIn( *pe_archs[pe.getActiveDevice()] );
    }
 
-   return result;   
+   return result;
 }
 
 void WorkDescriptor::submit( bool force_queue )
@@ -268,7 +260,7 @@ void WorkDescriptor::submit( bool force_queue )
    } else {
       Scheduler::submit(*this, force_queue );
    }
-} 
+}
 
 void WorkDescriptor::submitOutputCopies ()
 {
@@ -288,9 +280,6 @@ void WorkDescriptor::waitOutputCopies ()
 
 void WorkDescriptor::finish ()
 {
-   // Getting run time
-   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
-
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
@@ -300,21 +289,18 @@ void WorkDescriptor::finish ()
    }
 
    // Getting execution time
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() - _executionTime : 0.0 );
 }
 
 void WorkDescriptor::preFinish ()
 {
-   // Getting run time
-   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
-
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
    }
 
    // Getting execution time
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() - _executionTime : 0.0 );
 }
 
 
@@ -331,7 +317,7 @@ bool WorkDescriptor::isOutputDataReady()
 void WorkDescriptor::done ()
 {
    // Releasing commutative accesses
-   releaseCommutativeAccesses(); 
+   releaseCommutativeAccesses();
 
    // Executing programming model specific finalization
    sys.getPMInterface().wdFinished( *this );
@@ -401,7 +387,7 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //if (predecessorWd != NULL) predecessorWd->listed();
 
    //*(myThread->_file) << "I'm " << getId() << " : " << getDescription() << " my predecessor " << predecessorWd->getId() << " : " << predecessorWd->getDescription() << " has finished." << std::endl;
-   _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
+   _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol );
 }
 
 void WorkDescriptor::wgdone()
@@ -497,7 +483,7 @@ bool WorkDescriptor::tryAcquireCommutativeAccesses()
       return false;
    }
    return true;
-} 
+}
 
 void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 {
