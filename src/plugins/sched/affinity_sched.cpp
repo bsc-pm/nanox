@@ -1401,7 +1401,7 @@ namespace nanos {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                WD * found = NULL;
                tdata._wdMap.prefetch( thread, current );
-               if ( _immediateSuccessor ) {
+               if ( _immediateSuccessor && schedule ) {
                   found = current.getImmediateSuccessor(*thread);
                   if ( found ) {
                      found->_mcontrol.preInit();
