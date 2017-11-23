@@ -113,7 +113,7 @@ typedef std::set<const Device *>  DeviceList;
          const Device *_architecture; /**< Related Device (architecture). */
       private:
          work_fct       _work;
-         
+
       public:
 
          /*! \brief DeviceData constructor
@@ -162,7 +162,7 @@ typedef std::set<const Device *>  DeviceList;
           */
          virtual size_t size ( void ) = 0;
 
-         /*! \brief FIXME: (#170) documentation needed 
+         /*! \brief FIXME: (#170) documentation needed
           */
          virtual DeviceData *copyTo ( void *addr ) = 0;
          const char * getName ( void ) const { return _architecture->getName(); }
@@ -252,8 +252,6 @@ typedef std::set<const Device *>  DeviceList;
          unsigned long                 _versionGroupId;         //!< The way to link different implementations of a task into the same group
          double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time, accounting data transfers
          double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time, accounting data transfers
-         double                        _runTime;          //!< FIXME:scheduler data. WD starting wall-clock time, without data transfers
-         double                        _estimatedRunTime;      //!< FIXME:scheduler data. WD estimated execution time, without data transfers
          DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
          LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
          DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted            //!< Directory to mantain cache coherence
@@ -285,7 +283,7 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
          const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-         /*! \brief WorkDescriptor default constructor (private) 
+         /*! \brief WorkDescriptor default constructor (private)
           */
          WorkDescriptor ();
 
@@ -390,7 +388,7 @@ typedef std::set<const Device *>  DeviceList;
          BaseThread * isTiedTo() const;
 
          memory_space_id_t isTiedToLocation() const;
-         
+
          bool shouldBeTied() const;
 
          void untie();
@@ -440,13 +438,13 @@ typedef std::set<const Device *>  DeviceList;
 
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
-          * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD. 
+          * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD.
           *             If so, it means that it will be deallocated when the WD is destroyed
           */
          void setInternalData ( void *data, bool ownedByWD = true );
 
          void * getInternalData () const;
-         
+
          /*! \brief Sets custom data for the scheduling policy
           *  \param [in] data Pointer do the data. Ownership will be
           *  changed to the WD, so that data will be destroyed with it
@@ -456,7 +454,7 @@ typedef std::set<const Device *>  DeviceList;
           *  destroyed
           */
          void setSchedulerData( ScheduleWDData * data, bool ownedByWD = true );
-         
+
          ScheduleWDData* getSchedulerData() const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
@@ -464,7 +462,7 @@ typedef std::set<const Device *>  DeviceList;
          nanos_translate_args_t getTranslateArgs() const;
 
          /*! \brief Returns the NUMA node that this WD was assigned to.
-          * 
+          *
           * \see NUMANodet
           */
          int getNUMANode() const;
@@ -474,7 +472,7 @@ typedef std::set<const Device *>  DeviceList;
           * \see getNUMANode
           */
          void setNUMANode( int node );
-         
+
          /*! \brief Get the number of devices
           *
           *  This function return the number of devices for the current WD
@@ -501,7 +499,7 @@ typedef std::set<const Device *>  DeviceList;
           */
          void prepareDevice ( void );
 
-         /*! \brief WD dequeue 
+         /*! \brief WD dequeue
           *
           *  This function give us the next WD slice to execute. As a default
           *  behaviour give the whole WD and returns true, meaning that there
@@ -569,22 +567,6 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setEstimatedExecutionTime( double time );
 
-         /*! \brief returns the running time of the WD, without data transfers
-          */
-         double getRunTime() const;
-
-         /*! \brief sets the running time of the WD, without data transfers
-          */
-         void setRunTime( double time );
-
-         /*! \brief returns the estimated execution time of the WD, without data transfers
-          */
-         double getEstimatedRunTime() const;
-
-         /*! \brief sets the estimated execution time of the WD, without data transfers
-          */
-         void setEstimatedRunTime( double time );
-
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
          DOSubmit * getDOSubmit();
@@ -619,7 +601,7 @@ typedef std::set<const Device *>  DeviceList;
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
-         
+
          /*! \brief Early-release all the input dependencies of this WD
           */
          void releaseInputDependencies();
@@ -646,7 +628,7 @@ typedef std::set<const Device *>  DeviceList;
          void notifyOutlinedCompletion();
 
          void predecessorFinished( WorkDescriptor *predecessorWd );
-         
+
          void wgdone();
          void listed();
          void printCopies();
@@ -671,7 +653,7 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief Release ownership of commutative targets.
           *  Called when a task is finished.
           */
-         void releaseCommutativeAccesses(); 
+         void releaseCommutativeAccesses();
 
          void setImplicit( bool b = true );
          bool isImplicit( void );
@@ -772,4 +754,3 @@ typedef std::set<const Device *>  DeviceList;
 } // namespace nanos
 
 #endif
-
