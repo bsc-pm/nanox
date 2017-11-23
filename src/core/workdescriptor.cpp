@@ -39,7 +39,7 @@ void WorkDescriptor::init ()
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() : 0.0 );
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
@@ -289,7 +289,7 @@ void WorkDescriptor::finish ()
    }
 
    // Getting execution time
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() - _executionTime : 0.0 );
 }
 
 void WorkDescriptor::preFinish ()
@@ -300,7 +300,7 @@ void WorkDescriptor::preFinish ()
    }
 
    // Getting execution time
-   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+   _executionTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDExecTime() ? OS::getMonotonicTimeUs() - _executionTime : 0.0 );
 }
 
 

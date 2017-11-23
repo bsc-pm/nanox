@@ -182,13 +182,13 @@ namespace ext
          {
             return _queue.pop_front( thread );
          }
-         
+
          Lock& getLock(){
             return _queue.getLock();
          }
-         
+
          void push_front( WD** wds, size_t numElems ) {}
-         
+
          void push_back( WD** wds, size_t numElems )
          {
             _queue.push_back( wds, numElems );
@@ -434,6 +434,10 @@ namespace ext
             return 0;
          }
 
+         virtual bool isCheckingWDExecTime ()
+         {
+            return true;
+         }
 
          /*
           * Activate the device for the given WD.
