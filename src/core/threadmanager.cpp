@@ -189,30 +189,33 @@ void ThreadManager::unblockThread( BaseThread* thread )
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
+   if ( !thread->isSleeping() ) return;
 
    int cpuid = thread->getCpuId();
 
    LockBlock lock( _lock );
 
-   bool thread_unblocked = false;
 #ifdef DLB
-   // Try to unblock thread first using DLB
    if ( _useDLB ) {
-      if ( !_cpuActiveMask.isSet( cpuid ) ) {
-         if ( DLB_AcquireCpu( cpuid ) >= 0 ) {
-            thread_unblocked = true;
-         }
+      int dlb_err = DLB_AcquireCpu( cpuid );
+      if ( dlb_err < 0 ) {
+         warning( "DLB returned error: " << DLB_Strerror(dlb_err) );
+      } else if ( dlb_err == DLB_SUCCESS || dlb_err == DLB_NOTED ) {
+         /* if DLB_SUCCESS the CPU has been successfully acquired
+          * if DLB_NOTED the CPU has been reclaimed, but also acquired
+          *    and the target thread will manage the oversubscription
+          */
+         return;
+      } else if ( dlb_err == DLB_NOUPDT ) {
+         /* DLB already had this CPU as guested by this process
+          * continue waking up thread as if DLB were not involved */
       }
    }
 #endif
 
-   // If DLB is disabled or returns error, do it ourselves
-   if ( !thread_unblocked ) {
-      thread->lock();
-      thread->tryWakeUp( myThread->getTeam() );
-      thread->unlock();
-   }
-
+   thread->lock();
+   thread->tryWakeUp( myThread->getTeam() );
+   thread->unlock();
    sys.getSMPPlugin()->updateCpuStatus( cpuid );
 }
 
