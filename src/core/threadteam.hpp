@@ -280,24 +280,6 @@ inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
 
 inline size_t ThreadTeam::getFinalSize ( void ) const { return _expectedThreads.size(); }
 
-inline bool ThreadTeam::isStable ( void )
-{
-   LockBlock Lock( _lock );
-   bool is_stable = _threads.size() == _expectedThreads.size();
-   if ( is_stable ) {
-      // If first condition is met, we keep looking:
-      // _threads is a std::map (ordered by key) so we will dump all the values
-      // into a temp set in order to compare with a linear cost
-      ThreadSet threads_set;
-      ThreadTeamList::const_iterator it;
-      for ( it = _threads.begin(); it != _threads.end(); ++it ) {
-         threads_set.insert( (it->second) );
-      }
-      is_stable = _expectedThreads == threads_set;
-   }
-   return is_stable;
-}
-
 inline void ThreadTeam::addExpectedThread( BaseThread *thread )
 {
    LockBlock Lock( _lock );
