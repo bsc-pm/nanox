@@ -32,7 +32,7 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD *wd, unsigned int numCopies ) : 
+MemController::MemController( WD *wd, unsigned int numCopies ) :
    _initialized( false )
    , _preinitialized( false )
    , _inputDataReady( false )
@@ -72,7 +72,7 @@ bool MemController::ownsRegion( global_reg_t const &reg ) {
 void MemController::preInit( ) {
    unsigned int index;
    if ( _preinitialized ) return;
-   if ( _VERBOSE_CACHE ) { 
+   if ( _VERBOSE_CACHE ) {
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd->getId() << " " << (_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a")  << " NUM COPIES " << _wd->getNumCopies() << std::endl;
    }
 
@@ -110,7 +110,7 @@ void MemController::preInit( ) {
       //
       //
 
-      // o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd->getCopies()[index] << std::endl; 
+      // o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd->getCopies()[index] << std::endl;
 
       if ( sys.usePredecessorCopyInfo() ) {
          unsigned int predecessorsVersion;
@@ -125,7 +125,7 @@ void MemController::preInit( ) {
          _memCacheCopies[ index ].getVersionInfo();
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd->getId() << " " <<(_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a") << " copy "<< index <<" got requesting location info to global directory for region [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<<  _memCacheCopies[ index ]._reg.id << " ] "; }
       }
-      if ( _VERBOSE_CACHE ) { 
+      if ( _VERBOSE_CACHE ) {
          for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
                DirectoryEntryData *rsentry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );
                DirectoryEntryData *dsentry = ( DirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->second );
@@ -155,7 +155,7 @@ void MemController::preInit( ) {
    //     o << "### preInit wd " << _wd->getId() << std::endl;
    //     for ( index = 0; index < _wd->getNumCopies(); index += 1 ) {
    //        o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " "; _memCacheCopies[ index ]._reg.key->printRegion( o, _memCacheCopies[ index ]._reg.id ) ;
-   //        o << std::endl; 
+   //        o << std::endl;
    //     }
    //  }
 
@@ -200,7 +200,7 @@ void MemController::preInit( ) {
       _wd->tieToLocation( rooted_loc );
    }
 
-   if ( _VERBOSE_CACHE ) { 
+   if ( _VERBOSE_CACHE ) {
       *(myThread->_file) << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd->getId() << " " << (_wd->getDescription()!=NULL ? _wd->getDescription() : "n/a")  << " NUM COPIES " << _wd->getNumCopies() << " &_preinitialized= "<< &_preinitialized<< std::endl;
    }
    _preinitialized = true;
@@ -235,7 +235,7 @@ bool MemController::allocateTaskMemory() {
       if ( !sys.useFineAllocLock() ) {
       sys.allocLock();
       }
-      
+
       if ( !_memoryAllocated && !_invalidating ) {
          //o << "### Allocating data for task " << std::dec << _wd->getId() <<  " (" << (_wd->getDescription()!=NULL?_wd->getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
          bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( _memCacheCopies, _wd->getNumCopies(), *_wd );
@@ -267,6 +267,7 @@ bool MemController::allocateTaskMemory() {
                }
 
                _memCacheCopies[idx]._invalControl.abort( *_wd );
+               delete _memCacheCopies[idx]._invalControl._invalOps;
                _memCacheCopies[idx]._invalControl._invalOps = NULL;
             }
          }
@@ -297,7 +298,7 @@ bool MemController::allocateTaskMemory() {
             int targetChunk = _memCacheCopies[ idx ]._allocFrom;
             if ( targetChunk != -1 ) {
                _memCacheCopies[ idx ]._chunk = _memCacheCopies[ targetChunk ]._chunk;
-               // if ( _memCacheCopies[ idx ]._chunk->locked() ) 
+               // if ( _memCacheCopies[ idx ]._chunk->locked() )
                //    _memCacheCopies[ idx ]._chunk->unlock();
                _memCacheCopies[ idx ]._chunk->addReference( *_wd, 133 ); //allocateTaskMemory, chunk allocated by other copy
             }
@@ -326,7 +327,7 @@ bool MemController::allocateTaskMemory() {
 void MemController::copyDataIn() {
    ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
-  
+
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       //if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::ostream &o = (*myThread->_file);
@@ -334,13 +335,13 @@ void MemController::copyDataIn() {
          for ( unsigned int index = 0; index < _wd->getNumCopies(); index += 1 ) {
          DirectoryEntryData *d = RegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
          o << "## " << (_wd->getCopies()[index].isInput() ? "in" : "") << (_wd->getCopies()[index].isOutput() ? "out" : "") << " "; _memCacheCopies[ index ]._reg.key->printRegion( o, _memCacheCopies[ index ]._reg.id ) ;
-         if ( d ) o << " " << *d << std::endl; 
+         if ( d ) o << " " << *d << std::endl;
          else o << " dir entry n/a" << std::endl;
          _memCacheCopies[ index ].printLocations( o );
          }
       //}
    }
-   
+
 
       sys.allocLock();
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd->getId() << std::endl;
@@ -437,7 +438,7 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
    if ( sys.usePredecessorCopyInfo() ) {
       for( unsigned int index = 0; index < predecessorController._wd->getNumCopies(); index += 1) {
-         unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion(); 
+         unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion();
          unsigned int predecessorProducedVersion = predecessorController._memCacheCopies[ index ].getVersion() + (predecessorController._wd->getCopies()[ index ].isOutput() ? 1 : 0);
          if ( predecessorProducedVersion == version ) {
             // if the predecessor's children produced new data, then the father can not
@@ -451,7 +452,7 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
       }
    }
 }
- 
+
 bool MemController::isDataReady( WD const &wd ) {
    ensure( _preinitialized == true, "MemController not initialized!");
    if ( _initialized ) {
@@ -459,7 +460,7 @@ bool MemController::isDataReady( WD const &wd ) {
          _inputDataReady = _inOps->isDataReady( wd );
       }
       return _inputDataReady;
-   } 
+   }
    return false;
 }
 
@@ -482,7 +483,7 @@ bool MemController::isOutputDataReady( WD const &wd ) {
          }
       }
       return _outputDataReady;
-   } 
+   }
    return false;
 }
 
