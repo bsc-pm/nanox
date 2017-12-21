@@ -169,6 +169,10 @@ class SMPPlugin : public SMPBasePlugin
    
    virtual void addCpuActiveMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers );
 
+   virtual void enableCpu ( int cpuid, std::map<unsigned int, BaseThread *> &workers );
+
+   virtual void disableCpu ( int cpuid, std::map<unsigned int, BaseThread *> &workers );
+
    virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team );
 
    virtual void updateCpuStatus( int cpuid );

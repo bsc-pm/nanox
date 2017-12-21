@@ -635,6 +635,8 @@ inline void System::addCpuProcessMask( const CpuSet& mask ) { _smpPlugin->addCpu
 inline const CpuSet& System::getCpuActiveMask() const { return _smpPlugin->getCpuActiveMask(); }
 inline bool System::setCpuActiveMask( const CpuSet& mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
 inline void System::addCpuActiveMask( const CpuSet& mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+inline void System::enableCpu( int cpuid ) { _smpPlugin->enableCpu( cpuid, _workers ); }
+inline void System::disableCpu( int cpuid ) { _smpPlugin->disableCpu( cpuid, _workers ); }
 
 inline void System::forceMaxThreadCreation() { _smpPlugin->forceMaxThreadCreation( _workers ); }
 

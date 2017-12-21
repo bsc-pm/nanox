@@ -94,3 +94,30 @@ void ThreadTeam::cleanUpReductionList( void )
       _redList.pop_back();
    }
 }
+
+bool ThreadTeam::isStable ( void )
+{
+   LockBlock Lock( _lock );
+
+   if ( _expectedThreads.find( myThread ) == _expectedThreads.end() ) {
+      // Current thread does not belong to the team, switch to first team member
+      ensure( !_expectedThreads.empty(), "Team has no members" );
+      BaseThread *target_thread = *_expectedThreads.begin();
+      sys.getThreadManager()->unblockThread( target_thread );
+      Scheduler::switchToThread( target_thread );
+   }
+
+   bool is_stable = _threads.size() == _expectedThreads.size();
+   if ( is_stable ) {
+      // If first condition is met, we keep looking:
+      // _threads is a std::map, we need to construct
+      // a std::set to compare with linear cost
+      ThreadSet threads_set;
+      ThreadTeamList::const_iterator it;
+      for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+         threads_set.insert( (it->second) );
+      }
+      is_stable = _expectedThreads == threads_set;
+   }
+   return is_stable;
+}

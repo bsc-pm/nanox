@@ -87,10 +87,14 @@ void SMPThread::idle( bool debug )
 void SMPThread::wait()
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary();
+   static Instrumentation *INS = sys.getInstrumentation();
+   static InstrumentationDictionary *ID = INS->getInstrumentationDictionary();
    static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid");
    nanos_event_value_t cpuid_value = (nanos_event_value_t) 0;
-   sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value);
+   Instrumentation::Event events[3];
+   INS->createPointEvent( &events[0], cpuid_key, cpuid_value );
+   INS->createStateEvent( &events[1], NANOS_STOPPED );
+   INS->createStateEvent( &events[2], NANOS_WAKINGUP );
 #endif
 
    _pthread.mutexLock();
@@ -106,7 +110,13 @@ void SMPThread::wait()
       /* Set flag */
       BaseThread::wait();
 
-      NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      /* Add event cpuid = 0 and state STOPPED */
+      INS->addEventList( 2, events );
+#endif
+
+      /* Lend CPU to DLB if possible */
+      sys.getThreadManager()->lendCpu(this);
 
       /* It is recommended to wait under a while loop to handle spurious wakeups
        * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
@@ -114,8 +124,6 @@ void SMPThread::wait()
       while ( isSleeping() ) {
          _pthread.condWait();
       }
-
-      NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
 
       /* Unset flag */
       BaseThread::resume();
@@ -126,7 +134,12 @@ void SMPThread::wait()
       } else if ( sys.isCpuidEventEnabled() ) {
          cpuid_value = (nanos_event_value_t) sched_getcpu() + 1;
       }
-      sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value);
+      INS->createPointEvent( &events[0], cpuid_key, cpuid_value );
+      INS->returnPreviousStateEvent( &events[1] );
+      /* Add event cpuid and end of STOPPED state */
+      INS->addEventList( 2, events );
+      /* Add state WAKINGUP */
+      INS->addEventList( 1, &events[2] );
 #endif
 
       if ( getTeam() == NULL ) {
@@ -141,10 +154,14 @@ void SMPThread::wait()
    }
    _pthread.mutexUnlock();
 
-   /* Whether the thread should wait for the cpu to be free before doing some work */
+   /* Wait if the CPU is not yet available, or check whether it's been reclaimed */
    sys.getThreadManager()->waitForCpuAvailability();
-   sys.getThreadManager()->returnMyCpuIfClaimed();
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   /* Add end of WAKINGUP state */
+   INS->returnPreviousStateEvent( &events[2] );
+   INS->addEventList( 1, &events[2] );
+#endif
 }
 
 void SMPThread::wakeup()

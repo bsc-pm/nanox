@@ -26,6 +26,10 @@
 #include "nanos_omp.h"
 #include "plugin.hpp"
 
+#ifdef DLB
+#include <dlb.h>
+#endif
+
 using namespace nanos;
 //using namespace nanos::OpenMP;
 
@@ -280,6 +284,53 @@ namespace nanos
       }
 
       /*!
+       * \brief Enable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to enable
+       */
+      void OpenMPInterface::enableCpu( int cpuid )
+      {
+         sys.enableCpu( cpuid );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Disable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to disable
+       */
+      void OpenMPInterface::disableCpu( int cpuid )
+      {
+         sys.disableCpu( cpuid );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+#ifdef DLB
+      /*!
+       * \brief Register Nanos++ interface in DLB
+       */
+      void OpenMPInterface::registerCallbacks() const
+      {
+         DLB_CallbackSet( dlb_callback_set_num_threads,
+               (dlb_callback_t)nanos_omp_set_num_threads, NULL );
+         DLB_CallbackSet( dlb_callback_set_active_mask,
+               (dlb_callback_t)nanos_omp_set_active_mask, NULL );
+         DLB_CallbackSet( dlb_callback_set_process_mask,
+               (dlb_callback_t)nanos_omp_set_process_mask, NULL );
+         DLB_CallbackSet( dlb_callback_add_active_mask,
+               (dlb_callback_t)nanos_omp_add_active_mask, NULL );
+         DLB_CallbackSet( dlb_callback_add_process_mask,
+               (dlb_callback_t)nanos_omp_add_process_mask, NULL );
+         DLB_CallbackSet( dlb_callback_enable_cpu,
+               (dlb_callback_t)nanos_omp_enable_cpu, NULL );
+         DLB_CallbackSet( dlb_callback_disable_cpu,
+               (dlb_callback_t)nanos_omp_disable_cpu, NULL );
+      }
+#endif
+
+      /*!
        * \brief Returns the identifier of the interface, OpenMP
        */
       PMInterface::Interfaces OpenMPInterface::getInterface() const
@@ -463,6 +514,34 @@ namespace nanos
          LockBlock Lock( _lock );
 
          sys.addCpuActiveMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Enable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to enable
+       */
+      void OmpSsInterface::enableCpu( int cpuid )
+      {
+         LockBlock Lock( _lock );
+
+         sys.enableCpu( cpuid );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
+       * \brief Disable one CPU in the active cpu mask
+       * \param[in] cpuid CPU id to disable
+       */
+      void OmpSsInterface::disableCpu( int cpuid )
+      {
+         LockBlock Lock( _lock );
+
+         sys.disableCpu( cpuid );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );

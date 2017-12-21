@@ -670,7 +670,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             success = true;
          }
          applyCpuMask( workers );
-         sys.getThreadManager()->processMaskChanged();
       }
       return success;
    }
@@ -680,7 +679,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       _cpuProcessMask.add( mask );
       _cpuActiveMask.add( mask );
       applyCpuMask( workers );
-      sys.getThreadManager()->processMaskChanged();
    }
 
    const CpuSet& SMPPlugin::getCpuActiveMask () const
@@ -712,6 +710,21 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       applyCpuMask( workers );
    }
 
+   void SMPPlugin::enableCpu ( int cpuid, std::map<unsigned int, BaseThread *> &workers )
+   {
+      if ( _cpuSystemMask.isSet( cpuid ) && !_cpuActiveMask.isSet( cpuid ) ) {
+         _cpuActiveMask.set( cpuid );
+         applyCpuMask( workers );
+      }
+   }
+
+   void SMPPlugin::disableCpu ( int cpuid, std::map<unsigned int, BaseThread *> &workers )
+   {
+      if ( _cpuActiveMask.isSet( cpuid ) ) {
+         _cpuActiveMask.clear( cpuid );
+         applyCpuMask( workers );
+      }
+   }
 
    void SMPPlugin::updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team )
    {

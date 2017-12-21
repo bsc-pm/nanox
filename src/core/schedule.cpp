@@ -1068,6 +1068,9 @@ void Scheduler::exit ( void )
 
    finishWork( oldwd, true );
 
+   /* Serve taskset requests */
+   sys.getThreadManager()->poll();
+
    /* update next WorkDescriptor (if any) */
    WD *next = thread->getNextWD();
 
