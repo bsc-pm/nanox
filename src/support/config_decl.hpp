@@ -216,27 +216,31 @@ namespace nanos {
          {
 
             private:
-               std::list<T> &_var;
+               std::list<T>   &_var;
+               char            _sep;
+
                // assignment operator
                const ListOption & operator= ( const ListOption &opt );
 
             public:
                //constructors
-               ListOption( const std::string &name, std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
+               ListOption( const std::string &name, std::list<T> &ref, char sep = ',' ) :
+                     ActionOption<T,helpFormat,checkT>( name ), _var( ref ), _sep( sep ) {}
 
-               ListOption( const char *name, std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
+               ListOption( const char *name, std::list<T> &ref, char sep = ',' ) :
+                     ActionOption<T,helpFormat,checkT>( name ), _var( ref ), _sep( sep ) {}
 
-               ListOption( std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>(), _var( ref ) {}
+               ListOption( std::list<T> &ref, char sep = ',' ) :
+                     ActionOption<T,helpFormat,checkT>(), _var( ref ), _sep( sep ) {}
 
                // copy constructor
                ListOption( const ListOption &opt ) :
-                     ActionOption<T,helpFormat,checkT>( opt ),_var( opt._var ) {}
+                     ActionOption<T,helpFormat,checkT>( opt ), _var( opt._var ), _sep( opt._sep ) {}
 
                //destructor
                virtual ~ListOption() {}
+
+               virtual void parse ( const char* value );
 
                virtual void setValue ( const T &value );
 

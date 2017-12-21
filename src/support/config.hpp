@@ -76,12 +76,12 @@ inline bool Config::isMetric<T>::operator() ( T &value, char suffix ) const
 }
 
 inline std::string Config::getOrphanOptions()
-{  
+{
    ensure0( _orphanOptionsMap != NULL, "Config::_orphanOptionsMap was not initialised" );
-   
+
    std::string str;
    bool first = true;
-   
+
    for ( ConfigOrphansMap::const_iterator it = _orphanOptionsMap->begin();
       it != _orphanOptionsMap->end(); ++it )
    {
@@ -92,12 +92,12 @@ inline std::string Config::getOrphanOptions()
             str += ", ";
          else
             first = false;
-         
+
          str += it->first;
-         
+
       }
    }
-   
+
    return str;
 }
 
@@ -199,6 +199,24 @@ inline Config::ListOption<T,helpFormat,checkT> * Config::ListOption<T,helpFormat
    return NEW ListOption( *this );
 }
 
+template<typename T, class helpFormat, typename checkT>
+void Config::ListOption<T,helpFormat,checkT>::parse ( const char *value )
+{
+   std::istringstream input( value );
+   // taking advantage of the fact that istream::operator>> skips whitespaces
+   for (std::string element; std::getline(input, element, _sep); ) {
+      std::stringstream iss(element);
+      T t;
+      char suffix = 0;
+      if ( ( iss >> t ).fail() )
+         throw InvalidOptionException( *this, value );
+      if ( (!iss.eof()) && ( iss>>suffix ).fail() )
+         throw InvalidOptionException( *this, value );
+      if ( ! this->checkValue( t,suffix ) )
+         throw InvalidOptionException( *this, value );
+      setValue( t );
+   }
+}
 // FIXME: end new list
 
 inline std::string Config::HelpFormat::operator()()
@@ -402,13 +420,13 @@ inline const Config::BaseConfigOption& Config::BaseConfigOption::operator= ( con
 inline Config::BaseConfigOption* Config::ConfigOption::clone()
 {
    // We cannot use Memtracker NEW's macro
-   return new ConfigOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
+   return new ConfigOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section);
 }
 
 inline Config::BaseConfigOption* Config::ConfigAliasOption::clone()
 {
    // We cannot use Memtracker NEW's macro
-   return new ConfigAliasOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
+   return new ConfigAliasOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section);
 }
 
 } // namespace nanos
