@@ -59,7 +59,7 @@ class ClusterPlugin : public ArchPlugin
       int getGpuPresend() const;
       int getSmpPresend() const;
       System::CachePolicyType getCachePolicy ( void ) const;
-      RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
+      RemoteWorkDescriptor * getRemoteWorkDescriptor( unsigned int nodeId, int archId );
       bool getAllocFit() const;
       bool unalignedNodeMemory() const;
 
@@ -68,7 +68,7 @@ class ClusterPlugin : public ArchPlugin
       virtual void finalize();
 
       virtual ProcessingElement * createPE( unsigned id, unsigned uid );
-      virtual unsigned getNumThreads() const; 
+      virtual unsigned getNumThreads() const;
       void addPEs( PEMap &pes ) const;
       virtual void addDevices( DeviceList &devices ) const {}
       virtual unsigned int getNumPEs() const;

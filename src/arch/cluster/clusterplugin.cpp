@@ -35,16 +35,16 @@
 #include "fpgadd.hpp"
 #endif
 
-#if defined(__SIZEOF_SIZE_T__) 
+#if defined(__SIZEOF_SIZE_T__)
    #if  __SIZEOF_SIZE_T__ == 8
 
-#define DEFAULT_NODE_MEM (0x542000000ULL) 
-#define MAX_NODE_MEM     (0x542000000ULL) 
+#define DEFAULT_NODE_MEM (0x542000000ULL)
+#define MAX_NODE_MEM     (0x542000000ULL)
 
    #elif __SIZEOF_SIZE_T__ == 4
 
-#define DEFAULT_NODE_MEM (0x40000000UL) 
-#define MAX_NODE_MEM     (0x40000000UL) 
+#define DEFAULT_NODE_MEM (0x40000000UL)
+#define MAX_NODE_MEM     (0x40000000UL)
 
    #else
       #error "Weird"
@@ -111,7 +111,7 @@ void ClusterPlugin::init()
             arch_idx += 1;
          }
 
-         _remoteNodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes - 1, (nanos::ext::ClusterNode *) NULL); 
+         _remoteNodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes - 1, (nanos::ext::ClusterNode *) NULL);
          unsigned int node_index = 0;
          for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
             if ( nodeC != _gasnetApi->getNodeNum() ) {
@@ -157,7 +157,7 @@ void ClusterPlugin::init()
 // void * ClusterPlugin::getPinnedSegmentAddr( unsigned int idx ) const {
 //    return _pinnedSegmentAddrList[ idx ];
 // }
-// 
+//
 // std::size_t ClusterPlugin::getPinnedSegmentLen( unsigned int idx ) const {
 //    return _pinnedSegmentLenList[ idx ];
 // }
@@ -178,8 +178,8 @@ System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
-RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
-   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( archId );
+RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( unsigned int nodeId, int archId ) {
+   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( nodeId );
    rwd->_mcontrol.preInit();
    rwd->_mcontrol.initialize( *_cpu );
    return rwd;
@@ -247,16 +247,16 @@ void ClusterPlugin::startSupportThreads() {
             _clusterThread->getThreadWD().setInternalData(NEW char[sys.getPMInterface().getInternalDataSize()]);
          //_pmInterface->setupWD( smpRepThd->getThreadWD() );
          //setSlaveParentWD( &mainWD );
-         if ( sys.getNumAccelerators() > 0 ) { 
+         if ( sys.getNumAccelerators() > 0 ) {
             /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
             sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
          }
 
          _gasnetApi->_rwgs = (GASNetAPI::ArchRWDs *) NEW GASNetAPI::ArchRWDs();
-         _gasnetApi->_rwgs[0][0] = getRemoteWorkDescriptor(0);
-         _gasnetApi->_rwgs[0][1] = getRemoteWorkDescriptor(1);
-         _gasnetApi->_rwgs[0][2] = getRemoteWorkDescriptor(2);
-         _gasnetApi->_rwgs[0][3] = getRemoteWorkDescriptor(3);
+         _gasnetApi->_rwgs[0][0] = getRemoteWorkDescriptor(0, 0);
+         _gasnetApi->_rwgs[0][1] = getRemoteWorkDescriptor(0, 1);
+         _gasnetApi->_rwgs[0][2] = getRemoteWorkDescriptor(0, 2);
+         _gasnetApi->_rwgs[0][3] = getRemoteWorkDescriptor(0, 3);
       }
    }
 }
@@ -272,7 +272,7 @@ void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &wo
          }
       }
    } else {
-      workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) ); 
+      workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) );
    }
 }
 
@@ -357,4 +357,3 @@ bool ClusterPlugin::unalignedNodeMemory() const {
 }
 
 DECLARE_PLUGIN("arch-cluster",nanos::ext::ClusterPlugin);
-

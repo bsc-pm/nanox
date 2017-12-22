@@ -35,16 +35,16 @@
 #include "fpgadd.hpp"
 #endif
 
-#if defined(__SIZEOF_SIZE_T__) 
+#if defined(__SIZEOF_SIZE_T__)
    #if  __SIZEOF_SIZE_T__ == 8
 
 #define DEFAULT_NODE_MEM  (0x80000000ULL) //2Gb
-#define MAX_NODE_MEM     (0x542000000ULL) 
+#define MAX_NODE_MEM     (0x542000000ULL)
 
    #elif __SIZEOF_SIZE_T__ == 4
 
-#define DEFAULT_NODE_MEM (0x40000000UL) 
-#define MAX_NODE_MEM     (0x40000000UL) 
+#define DEFAULT_NODE_MEM (0x40000000UL)
+#define MAX_NODE_MEM     (0x40000000UL)
 
    #else
       #error "Weird"
@@ -127,8 +127,8 @@ int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
       }
 
 
-      _nodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes, (nanos::ext::ClusterNode *) NULL); 
-      std::vector<ProcessingElement *> tmp_nodes(nodes-1, (ProcessingElement *) NULL); 
+      _nodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes, (nanos::ext::ClusterNode *) NULL);
+      std::vector<ProcessingElement *> tmp_nodes(nodes-1, (ProcessingElement *) NULL);
       unsigned int node_index = 0;
       for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
          if ( nodeC != _gasnetApi->getNodeNum() ) {
@@ -144,10 +144,10 @@ int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
       }
       _gasnetApi->_rwgs = NEW GASNetAPI::ArchRWDs[ nodes ];
       for ( unsigned int idx = 0; idx < nodes; idx += 1 ) {
-         _gasnetApi->_rwgs[idx][0] = getRemoteWorkDescriptor(0);
-         _gasnetApi->_rwgs[idx][1] = getRemoteWorkDescriptor(1);
-         _gasnetApi->_rwgs[idx][2] = getRemoteWorkDescriptor(2);
-         _gasnetApi->_rwgs[idx][3] = getRemoteWorkDescriptor(3);
+         _gasnetApi->_rwgs[idx][0] = getRemoteWorkDescriptor(idx, 0);
+         _gasnetApi->_rwgs[idx][1] = getRemoteWorkDescriptor(idx, 1);
+         _gasnetApi->_rwgs[idx][2] = getRemoteWorkDescriptor(idx, 2);
+         _gasnetApi->_rwgs[idx][3] = getRemoteWorkDescriptor(idx, 3);
       }
       _clusterThread->addThreadsFromPEs( tmp_nodes.size(), &(tmp_nodes[0]) );
    }
@@ -191,8 +191,8 @@ System::CachePolicyType ClusterMPIPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
-RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( int archId ) {
-   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( archId );
+RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( int nodeId, int archId ) {
+   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( nodeId );
    rwd->_mcontrol.preInit();
    rwd->_mcontrol.initialize( *_cpu );
    return rwd;
@@ -251,7 +251,7 @@ unsigned ClusterMPIPlugin::getNumThreads() const {
 
 void ClusterMPIPlugin::startSupportThreads() {
    _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
-   if ( sys.getNumAccelerators() > 0 ) { 
+   if ( sys.getNumAccelerators() > 0 ) {
       /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
       sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
    }
@@ -268,7 +268,7 @@ void ClusterMPIPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> 
    //       }
    //    }
    // } else {
-       workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) ); 
+       workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) );
    // }
 }
 
@@ -357,4 +357,3 @@ BaseThread *ClusterMPIPlugin::getClusterThread() const {
 }
 
 DECLARE_PLUGIN("arch-cluster",nanos::ext::ClusterMPIPlugin);
-

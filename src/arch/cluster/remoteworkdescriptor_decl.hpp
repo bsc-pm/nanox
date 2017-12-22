@@ -28,7 +28,7 @@ namespace nanos {
          unsigned int _destinationNode;
       public:
          RemoteWorkDescriptor();
-         RemoteWorkDescriptor(unsigned int destinatioNode);
+         RemoteWorkDescriptor( unsigned int destinatioNode );
          virtual void exitWork( WorkDescriptor &work );
    };
 
