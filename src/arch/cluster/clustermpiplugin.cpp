@@ -191,7 +191,7 @@ System::CachePolicyType ClusterMPIPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
-RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( int nodeId, int archId ) {
+RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( unsigned int nodeId, int archId ) {
    RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( nodeId );
    rwd->_mcontrol.preInit();
    rwd->_mcontrol.initialize( *_cpu );
