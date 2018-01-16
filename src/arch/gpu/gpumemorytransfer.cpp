@@ -48,8 +48,11 @@ void GPUMemoryTransferOutList::removeMemoryTransfer ()
          _lock.release();
      }
 
+     //NOTE: Following code is suspicious and probably can be removed
       if ( !found ) {
          _lock.acquire();
+         ensure( _pendingTransfersAsync.begin() != _pendingTransfersAsync.end(),
+            "Bad assumption in GPUMemoryTransferOutList::removeMemoryTransfer" );
          GPUMemoryTransfer * mt ( *_pendingTransfersAsync.begin() );
          _pendingTransfersAsync.erase( _pendingTransfersAsync.begin() );
          _lock.release();
