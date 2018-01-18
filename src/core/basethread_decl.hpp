@@ -202,7 +202,6 @@ namespace nanos {
          ThreadTeam             *_nextTeam;      //!< If thread has no team, which team should it join
 
       private:
-         virtual void initializeDependent () = 0;
          virtual void runDependent () = 0;
 
          // These must be called through the Scheduler interface
@@ -238,6 +237,7 @@ namespace nanos {
          virtual void lock ();
          virtual void unlock ();
 
+         virtual void initializeDependent () = 0;
          virtual void start () = 0;
          virtual void finish ();
          void run();
