@@ -22,7 +22,7 @@ AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
  
 # Nanos version check
 # Make sure build_version is double-quoted!
-AS_IF([test -d "$srcdir/.git"],[
+AS_IF([test -e "$srcdir/.git"],[
    # Git directory found
    AC_PATH_PROG([GIT], [git], [])
    AC_MSG_CHECKING([revision of git repository])
