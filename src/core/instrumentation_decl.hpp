@@ -586,7 +586,7 @@ namespace nanos {
             /* 43 */ registerEventKey("dep-address", "Dependence address", true, EVENT_DEVELOPER );
             /* 44 */ registerEventKey("copy-data-in","WD id that is copying data in", true, EVENT_DEVELOPER );
             /* 45 */ registerEventKey("cache-copy-data-in","WD id that is copying data in", true, EVENT_DEVELOPER );
-            /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in", true, EVENT_DEVELOPER );
+            /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data out", true, EVENT_DEVELOPER );
             /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler", true, EVENT_DEVELOPER );
 
             /* 48*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true, EVENT_DEVELOPER );
