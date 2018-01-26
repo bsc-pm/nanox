@@ -42,6 +42,7 @@ class ThreadManager
       bool              _useSleep;
       bool              _useBlock;
       bool              _useDLB;
+      std::deque<int>   _self_managed_cpus;  /* List of CPUs lent while DLB is disabled */
 
    public:
       ThreadManager( bool warmup, bool tie_master, unsigned int num_yields,

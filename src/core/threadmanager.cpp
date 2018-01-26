@@ -43,7 +43,8 @@ ThreadManager::ThreadManager( bool warmup, bool tie_master, unsigned int num_yie
    _sleepTime( sleep_time ),
    _useSleep( use_sleep ),
    _useBlock( use_block ),
-   _useDLB( use_dlb )
+   _useDLB( use_dlb ),
+   _self_managed_cpus()
 {
 }
 
@@ -197,18 +198,29 @@ void ThreadManager::unblockThread( BaseThread* thread )
 
 #ifdef DLB
    if ( _useDLB ) {
-      int dlb_err = DLB_AcquireCpu( cpuid );
-      if ( dlb_err < 0 ) {
-         warning( "DLB returned error: " << DLB_Strerror(dlb_err) );
-      } else if ( dlb_err == DLB_SUCCESS || dlb_err == DLB_NOTED ) {
-         /* if DLB_SUCCESS the CPU has been successfully acquired
-          * if DLB_NOTED the CPU has been reclaimed, but also acquired
-          *    and the target thread will manage the oversubscription
+      std::deque<int>::iterator it =
+         std::find( _self_managed_cpus.begin(), _self_managed_cpus.end(), cpuid );
+      if( it != _self_managed_cpus.end() ) {
+         /* CPU was lent while DLB was disabled, remove it from the deque
+          * and continue waking up thread as if DLB were not involved
           */
-         return;
-      } else if ( dlb_err == DLB_NOUPDT ) {
-         /* DLB already had this CPU as guested by this process
-          * continue waking up thread as if DLB were not involved */
+         _self_managed_cpus.erase( it );
+      } else {
+         int dlb_err = DLB_AcquireCpu( cpuid );
+         if ( dlb_err == DLB_SUCCESS || dlb_err == DLB_NOTED ) {
+            /* if DLB_SUCCESS the CPU has been successfully acquired
+             * if DLB_NOTED the CPU has been reclaimed, but also acquired
+             *    and the target thread will manage the oversubscription
+             */
+            return;
+         } else if ( dlb_err == DLB_NOUPDT || dlb_err == DLB_ERR_DISBLD ) {
+            /* if DLB_NOUPDT the CPU was already assigned to this process
+             * if DLB_ERR_DISBLD the petition was ignored
+             * in both cases we continue as if DLB were not involved
+             */
+         } else {
+            warning( "DLB returned error: " << DLB_Strerror(dlb_err) );
+         }
       }
    }
 #endif
@@ -225,7 +237,13 @@ void ThreadManager::lendCpu( BaseThread *thread )
    // Lend CPU only if my_cpu has been cleared from the active mask
    int my_cpu = thread->getCpuId();
    if ( _useDLB && !_cpuActiveMask.isSet(my_cpu) ) {
-      DLB_LendCpu( my_cpu );
+      int dlb_err = DLB_LendCpu( my_cpu );
+      if ( dlb_err == DLB_ERR_DISBLD ) {
+         /* If DLB is disabled at this point, we need to keep track
+          * of lent CPUs since DLB will be unaware of them
+          */
+         _self_managed_cpus.push_front( my_cpu );
+      }
    }
 #endif
 }
@@ -245,9 +263,17 @@ void ThreadManager::acquireOne()
 
 #ifdef DLB
       if ( _useDLB ) {
-         // If we have DLB support, we ask for any CPU
-         // DLB will priorize owned CPUs first
-         DLB_AcquireCpus( 1 );
+         if ( !_self_managed_cpus.empty() ) {
+            // If there are CPUs lent while DLB was disabled, acquire one of them
+            int cpuid = _self_managed_cpus.front();
+            _self_managed_cpus.pop_front();
+            CpuSet new_active_cpus = _cpuActiveMask;
+            new_active_cpus.set( cpuid );
+            sys.setCpuActiveMask( new_active_cpus );
+         } else {
+            // Otherwise ask DLB
+            DLB_AcquireCpus( 1 );
+         }
       } else {
 #endif
          // Otherwise, we acquire one CPU from our process mask
@@ -259,9 +285,9 @@ void ThreadManager::acquireOne()
             // Iterate over default cpus not running and wake them up if needed
             for ( CpuSet::const_iterator it=_cpuProcessMask.begin();
                   it!=_cpuProcessMask.end(); ++it ) {
-               int cpu = *it;
-               if ( !new_active_cpus.isSet(cpu) ) {
-                  new_active_cpus.set(cpu);
+               int cpuid = *it;
+               if ( !new_active_cpus.isSet( cpuid ) ) {
+                  new_active_cpus.set( cpuid );
                   sys.setCpuActiveMask( new_active_cpus );
                   break;
                }
@@ -286,6 +312,17 @@ int ThreadManager::borrowResources()
    if ( !myThread->isMainThread() ) return -1;
 
    LockBlock lock( _lock );
+
+   // Acquire all CPUs lent while DLB was disabled
+   if ( !_self_managed_cpus.empty() ) {
+      CpuSet new_active_cpus = _cpuActiveMask;
+      while ( !_self_managed_cpus.empty() ) {
+         new_active_cpus.set( _self_managed_cpus.front() );
+         _self_managed_cpus.pop_front();
+      }
+      sys.setCpuActiveMask( new_active_cpus );
+   }
+
    DLB_PollDROM_Update();
    DLB_Borrow();
 
