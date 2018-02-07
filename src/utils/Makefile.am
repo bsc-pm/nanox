@@ -28,6 +28,7 @@ if is_debug_enabled
 bin_PROGRAMS += nanox-dbg
 
 nanox_dbg_CPPFLAGS= $(common_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(debugdir)\"
+nanox_dbg_CXXFLAGS=$(common_debug_CXXFLAGS)
 nanox_dbg_SOURCES= $(nanox_sources)
 nanox_dbg_LDFLAGS=$(AM_LDFLAGS)
 nanox_dbg_LDADD=\
@@ -41,6 +42,7 @@ if is_instrumentation_enabled
 bin_PROGRAMS += nanox-ins
 
 nanox_ins_CPPFLAGS= $(common_instrumentation_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentationdir)\"
+nanox_ins_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 nanox_ins_SOURCES= $(nanox_sources)
 nanox_ins_LDFLAGS=$(AM_LDFLAGS)
 nanox_ins_LDADD=\
@@ -54,6 +56,7 @@ if is_instrumentation_debug_enabled
 bin_PROGRAMS += nanox-ins-dbg
 
 nanox_ins_dbg_CPPFLAGS= $(common_instrumentation_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentation_debugdir)\"
+nanox_ins_dbg_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 nanox_ins_dbg_SOURCES= $(nanox_sources)
 nanox_ins_dbg_LDFLAGS=$(AM_LDFLAGS)
 nanox_ins_dbg_LDADD=\
@@ -67,6 +70,7 @@ if is_performance_enabled
 bin_PROGRAMS += nanox-pfm
 
 nanox_pfm_CPPFLAGS= $(common_performance_CPPFLAGS) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_pfm_CXXFLAGS=$(common_performance_CXXFLAGS)
 nanox_pfm_SOURCES= $(nanox_sources)
 nanox_pfm_LDFLAGS=$(AM_LDFLAGS)
 nanox_pfm_LDADD=\
@@ -76,7 +80,8 @@ nanox_pfm_LDADD=\
 
 # For simplicity, we will only build nanox-bindings in PERFORMANCE version
 bin_PROGRAMS += nanox-bindings
-nanox_bindings_CPPFLAGS = $(common_performance_CPPFLAGS) $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_bindings_CPPFLAGS = $(common_performance_CPPFLAGS) $(common_includes) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_bindings_CXXFLAGS=$(common_performance_CXXFLAGS)
 nanox_bindings_SOURCES = nanox_bindings.cpp
 nanox_bindings_LDFLAGS=$(AM_LDFLAGS)
 nanox_bindings_LDADD = \
