@@ -32,14 +32,11 @@ extern char **environ;
 
 using namespace nanos;
 
+// Define weak empty structures that other libraries can override
+NANOS_REGISTER(nanos_modules, const char *)
+NANOS_REGISTER(nanos_init, nanos_init_desc_t)
+NANOS_REGISTER(nanos_post_init, nanos_init_desc_t)
 
-static void do_nothing(void *) {}
-#define INIT_NULL { do_nothing, 0 }
-
-// Make sure the two special linker sections exist
-LINKER_SECTION(nanos_modules, const char *, NULL)
-LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL)
-LINKER_SECTION(nanos_post_init, nanos_init_desc_t , INIT_NULL)
 
 long OS::_argc = 0; 
 char ** OS::_argv = 0;
@@ -129,7 +126,7 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
 const OS::InitList & OS::getInitializationFunctions ()
 {
    // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
-   static OS::InitList *init_list = NEW OS::InitList(&__start_nanos_init, &__stop_nanos_init);
+   static OS::InitList *init_list = NEW OS::InitList(__nanos_init_begin, __nanos_init_end);
    return *init_list;
 }
 
@@ -137,7 +134,7 @@ const OS::InitList & OS::getPostInitializationFunctions ()
 {
    // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
    static OS::InitList *post_init_list = NEW OS::InitList(
-         &__start_nanos_post_init, &__stop_nanos_post_init);
+         __nanos_post_init_begin, __nanos_post_init_end);
    return *post_init_list;
 }
 
@@ -145,7 +142,7 @@ const OS::ModuleList & OS::getRequestedModules ()
 {
    // Construct On First Use Idiom to avoid Static Initialization Order Fiasco
    static OS::ModuleList *module_list = NEW OS::ModuleList(
-         &__start_nanos_modules, &__stop_nanos_modules);
+         __nanos_modules_begin, __nanos_modules_end);
    return *module_list;
 }
 

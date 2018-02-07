@@ -23,11 +23,14 @@
 // Define GCC Version
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
-// Define a linker section with GCC attribute
-#define LINKER_SECTION(name,type,nop) \
-    type __section_##name __attribute__((weak, section( #name ))) = nop; \
-    extern type __start_##name; \
-    extern type __stop_##name;
+// Define array and boundary pointers
+#define NANOS_REGISTER(name, type, ...) \
+    type __##name[] __attribute__((weak)) = {__VA_ARGS__}; \
+    type * __##name##_begin __attribute__((weak)) = __##name; \
+    type * __##name##_end __attribute__((weak)) = __##name + sizeof(__##name) / sizeof(*__##name);
+
+// Keep compatibility with old LINKER_SECTION macro
+#define LINKER_SECTION(name, type, nop) NANOS_REGISTER(name, type, nop)
 
 
 #if __CUDACC__

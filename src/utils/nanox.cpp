@@ -129,8 +129,7 @@ void utilInit ( void * )
    sys.setDelayedStart(true);
 }
 
-#define INIT_NULL { utilInit, 0 }                                                                                                                                         
-LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL) 
+NANOS_REGISTER(nanos_init, nanos_init_desc_t, { utilInit, 0 });
 
 int main (int argc, char* argv[])
 {
