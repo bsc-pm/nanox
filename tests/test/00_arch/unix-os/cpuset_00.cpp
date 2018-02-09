@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include "cpuset.hpp"
+#include <iostream>
 
 using namespace nanos;
 
@@ -64,6 +65,21 @@ int main(int argc, char *argv[])
    assert(set2.size()==3);
    set2 |= set1;  /* 1111 */
    assert(set2.size()==4);
+
+   // Subsets and Supersets
+   set2.clear(0); /* 0111 */
+   assert(set2.isSubsetOf(set1));
+   assert(set1.isSupersetOf(set2));
+   set2.set(4);   /* 10111 */
+   assert(!set1.isSubsetOf(set2));
+   assert(!set1.isSupersetOf(set2));
+   assert(!set2.isSubsetOf(set1));
+   assert(!set2.isSupersetOf(set1));
+   CpuSet empty_set;
+   assert(empty_set.isSubsetOf(set1));
+   assert(set1.isSupersetOf(empty_set));
+   assert(empty_set.isSubsetOf(empty_set));
+   assert(empty_set.isSupersetOf(empty_set));
 
    // First and last methods
    CpuSet set3;   /* 0000 */

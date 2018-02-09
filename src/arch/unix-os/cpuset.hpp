@@ -177,6 +177,20 @@ class CpuSet
          CPU_AND( &_mask, &_mask, &(cpu_set._mask) );
       }
 
+      bool isSubsetOf ( const CpuSet& cpu_set ) const
+      {
+         cpu_set_t intxn;
+         CPU_AND( &intxn, &_mask, &(cpu_set._mask) );
+         return CPU_EQUAL( &intxn, &_mask );
+      }
+
+      bool isSupersetOf ( const CpuSet& cpu_set ) const
+      {
+         cpu_set_t intxn;
+         CPU_AND( &intxn, &_mask, &(cpu_set._mask) );
+         return CPU_EQUAL( &intxn, &(cpu_set._mask) );
+      }
+
       // low level
       cpu_set_t& get_cpu_set() { return _mask; }
       const cpu_set_t& get_cpu_set() const { return _mask; }
