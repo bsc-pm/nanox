@@ -40,13 +40,10 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-#define NUM_ITERS  1000
-#define NUM_RUNS   10
-#define MIN_PROCS  4
+enum { NUM_ITERS = 1000 };
+enum { NUM_RUNS  = 10 };
+enum { MIN_CPUS  = 4 };
 
-#ifndef min
-#define min(x,y) ((x<y)?x:y)
-#endif
 
 Atomic<int> A;
 
@@ -55,28 +52,9 @@ typedef struct {
 } main__loop_1_data_t;
 
 
-void print_mask( const char *pre, cpu_set_t *mask );
 void set_random_mask( void );
 void main__loop_1 ( void *args );
 
-void print_mask( const char *pre, cpu_set_t *mask )
-{
-   char str[CPU_SETSIZE*2 + 8];
-   int i, max_cpu = 0;
-
-   strcpy( str, "[ " );
-   for (i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET(i, mask ) ) {
-         strcat( str, "1 " );
-         max_cpu = i;
-      } else {
-         strcat( str, "0 " );
-      }
-   }
-   str[ (max_cpu+2)*2 ] = ']';
-   str[ (max_cpu+2)*2+1] = '\0';
-   std::cout << pre << str << std::endl;
-}
 
 void set_random_mask( void )
 {
@@ -84,7 +62,7 @@ void set_random_mask( void )
    CPU_ZERO( &new_mask );
 
    int i;
-   for (i=0; i<MIN_PROCS; i++) {
+   for (i=0; i<MIN_CPUS; i++) {
       if (rand()%2) {
          CPU_SET( i, &new_mask );
       }
@@ -100,12 +78,17 @@ void main__loop_1 ( void *args )
 
 int main ( int argc, char **argv )
 {
-   if ( OS::getMaxProcessors() < MIN_PROCS ) {
-      fprintf(stdout, "Skiping %s test\n", argv[0]);
+   /* Skip test if binding is disabled */
+   if ( !sys.getSMPPlugin()->getBinding() ) {
       return EXIT_SUCCESS;
    }
-   if ( !sys.getSMPPlugin()->getBinding() )
+
+   /* Skip test if process mask does not contains at least MIN_CPUS */
+   const CpuSet& process_mask = sys.getCpuProcessMask();
+   if ( process_mask.size() < MIN_CPUS ) {
+      std::cout << "Skipping " << argv[0] << " test, not enough CPUs" << std::endl;
       return EXIT_SUCCESS;
+   }
 
    int i;
    bool check = true;

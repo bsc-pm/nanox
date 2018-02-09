@@ -17,14 +17,10 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-//#define _GNU_SOURCE
-#include <sched.h>
-#include <string.h>
-#include <iostream>
-#include "os.hpp"
 #include "cpuset.hpp"
-#include "nanos.h"
 #include "system.hpp"
+#include <iostream>
+#include <assert.h>
 
 /*
 <testinfo>
@@ -36,94 +32,44 @@
 </testinfo>
 */
 
-#define SIZE 100
-
-#ifndef min
-#define min(x,y) ((x<y)?x:y)
-#endif
-
 using namespace nanos;
 using namespace nanos::ext;
 
-void print_mask( const char *pre, cpu_set_t *mask );
-
-void print_mask( const char *pre, cpu_set_t *mask )
-{
-   char str[CPU_SETSIZE*2 + 8];
-   int i, max_cpu = 0;
-
-   strcpy( str, "[ " );
-   for (i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET(i, mask ) ) {
-         strcat( str, "1 " );
-         max_cpu = i;
-      } else {
-         strcat( str, "0 " );
-      }
-   }
-   str[ (max_cpu+2)*2 ] = ']';
-   str[ (max_cpu+2)*2+1] = '\0';
-   std::cout << pre << str << std::endl;
-}
+enum { MIN_CPUS = 2 };
 
 int main ( int argc, char *argv[])
 {
-   if ( OS::getMaxProcessors() < 2 ) {
-      fprintf(stdout, "Skiping %s test\n", argv[0]);
-      return 0;
-   }
-
-   int error = 0;
-   int max_procs = OS::getMaxProcessors();
-
-   cpu_set_t nanos_mask1, nanos_mask2;
-   cpu_set_t sched_mask1, sched_mask2;
-   CPU_ZERO( &nanos_mask1 );
-   CPU_ZERO( &nanos_mask2 );
-   CPU_ZERO( &sched_mask1 );
-   CPU_ZERO( &sched_mask2 );
-
-   // init
-   const CpuSet &active_mask = sys.getCpuActiveMask();
-   active_mask.copyTo( &nanos_mask1 );
-   sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask1 );
-
-   // test
-   CPU_SET( 0, &nanos_mask2 );
-   CPU_SET( 1, &nanos_mask2 );
-   sys.setCpuActiveMask( &nanos_mask2 );
-   sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask2 );
-
-   fprintf(stdout,"Thread team final size will be %d and %d is expected\n",
-      (int) myThread->getTeam()->getFinalSize(),
-            min(CPU_COUNT(&nanos_mask2),max_procs)
-   );
-   if ( sys.getPMInterface().isMalleable() && myThread->getTeam()->getFinalSize() != (size_t) CPU_COUNT(&nanos_mask2) ) error++;
-
-
-   /* If binding is disabled further tests make no sense */
+   /* Skip test if binding is disabled */
    if ( !sys.getSMPPlugin()->getBinding() ) {
-      fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
-      return error;
+      return EXIT_SUCCESS;
    }
 
-   // check intersections
-   cpu_set_t intxn;
+   /* Skip test if process mask does not contains at least MIN_CPUS */
+   const CpuSet& process_mask = sys.getCpuProcessMask();
+   if ( process_mask.size() < MIN_CPUS ) {
+      std::cout << "Skipping " << argv[0] << " test, not enough CPUs" << std::endl;
+      return EXIT_SUCCESS;
+   }
 
-   CPU_AND( &intxn, &nanos_mask1, &sched_mask1);
-   if ( !CPU_EQUAL( &intxn, &sched_mask1 ) ) error++;
-   //print_mask( "nanos_mask1: ", &nanos_mask1 );
-   //print_mask( "sched_mask1: ", &sched_mask1 );
-   //print_mask( "intxn: ", &intxn );
+   /* Test active mask provided by Nanos++ and by the system */
+   const CpuSet initial_active_mask( sys.getCpuActiveMask() );
+   CpuSet initial_sched_mask;
+   sched_getaffinity( 0, sizeof(cpu_set_t), initial_sched_mask.get_cpu_set_pointer() );
+   assert( initial_sched_mask.isSubsetOf( initial_active_mask) );
 
-   CPU_AND( &intxn, &nanos_mask2, &sched_mask2);
-   if ( !CPU_EQUAL( &intxn, &sched_mask2 ) ) error++;
-   //print_mask( "nanos_mask2: ", &nanos_mask2 );
-   //print_mask( "sched_mask2: ", &sched_mask2 );
-   //print_mask( "intxn: ", &intxn );
+   /* Set active mask to first MIN_CPUS of the process mask */
+   CpuSet mask;
+   for ( CpuSet::const_iterator it=process_mask.begin();
+         it!=process_mask.end() && mask.size() < MIN_CPUS;
+         ++it ) {
+      mask.set(*it);
+   }
+   sys.setCpuActiveMask( mask );
+   assert( myThread->getTeam()->getFinalSize() == MIN_CPUS );
+   CpuSet sched_mask;
+   sched_getaffinity( 0, sizeof(cpu_set_t), sched_mask.get_cpu_set_pointer() );
+   assert( sched_mask.isSubsetOf( mask) );
 
-   fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
-
-   return error;
+   return EXIT_SUCCESS;
 }
 
