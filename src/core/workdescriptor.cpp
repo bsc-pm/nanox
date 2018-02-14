@@ -108,7 +108,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // If there is no active device, choose a compatible one
    ProcessingElement *pe = myThread->runningOn();
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceTypes()[0] ) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *pe->getActiveDevice() );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -139,7 +139,7 @@ void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previo
    ProcessingElement *pe = myThread->runningOn();
 
    // If there is no active device, choose a compatible one
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceTypes()[0]) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *pe->getActiveDevice() );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
