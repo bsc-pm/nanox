@@ -561,7 +561,7 @@ namespace ext
             for ( w = 0; w < tdata._executionMap.size(); w++ ) {
                thread = sys.getWorker( w );
                // Check the thread can run the task
-               if ( next->canRunIn( *thread->runningOn() ) ) {
+               if ( thread->runningOn()->canRun( *next ) ) {
                   // Check if it would be the earliest time to run the task
                   unsigned int i;
 
@@ -632,7 +632,7 @@ namespace ext
             for ( w = 0; w < tdata._executionMap.size(); w++ ) {
                thread = sys.getWorker( w );
                // Check the thread can run the task
-               if ( next->canRunIn( *thread->runningOn() ) ) {
+               if ( thread->runningOn()->canRun( *next ) ) {
                   // Find the least busy thread to run the task
 
                   tdata._executionMap[w]->_lock.acquire();
@@ -785,7 +785,7 @@ namespace ext
 
                tdata._statsLock.acquire();
 
-               if ( next->canRunIn( *pe ) ) {
+               if ( pe->canRun( *next ) ) {
                   // If the thread can run the task, activate its device and return the WD
                   unsigned int i;
                   for ( i = 0; i < numVersions; i++ ) {
@@ -817,7 +817,7 @@ namespace ext
             unsigned int i;
 
             // First, check if the thread can run and, in fact, has to run the task
-            if ( next->canRunIn( *pe ) ) {
+            if ( pe->canRun( *next ) ) {
                unsigned int bestCandidateIdx = numVersions;
 
                tdata._statsLock.acquire();

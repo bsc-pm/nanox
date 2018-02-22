@@ -56,11 +56,11 @@ void SlicerGuidedFor::submit ( WorkDescriptor &work )
    //! and determine the number of valid threads
    nli->threads = 0;
    for ( i = 0; i < num_threads; i++) {
-     if (  work.canRunIn( *((*team)[i].runningOn()) ) )  nli->threads++;
+     if ( (*team)[i].runningOn()->canRun( work ) )  nli->threads++;
    }
    ensure(nli->threads > 0, "Slicer has computed an invalid number of threads");
 
-   //! in order to submit the work. 
+   //! in order to submit the work.
    Scheduler::submit ( work );
 }
 
@@ -92,7 +92,7 @@ bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor**
       *slice = nwd;
    }
 
-   return retval; 
+   return retval;
 }
 
 class SlicerGuidedForPlugin : public Plugin {
@@ -104,7 +104,7 @@ class SlicerGuidedForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("guided_for", NEW SlicerGuidedFor() );	
+         sys.registerSlicer("guided_for", NEW SlicerGuidedFor() );
       }
 };
 
