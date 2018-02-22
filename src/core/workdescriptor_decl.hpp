@@ -80,7 +80,7 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief Device equals operator
           */
          //bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
-         bool operator== ( const Device &arch ) { return arch._name == _name; }
+         bool operator== ( const Device &arch ) const { return arch._name == _name; }
 
          /*! \brief Get device name
           */

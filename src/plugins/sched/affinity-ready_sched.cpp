@@ -110,7 +110,7 @@ namespace nanos {
                   inline void pushBack ( WD * wd, int index )
                   {
 #ifdef EXTRA_QUEUE_DEBUG
-                     if ( !wd->canRunIn( *_pes[index] ) ) {
+                     if ( !_pes[index]->canRun( *wd ) ) {
                         std::cout << "Impossible to add WD to incompatible queue!!!" << std::endl;
                      }
 #endif
@@ -221,7 +221,7 @@ namespace nanos {
                   inline void pushBack ( WD * wd, int index )
                   {
 #ifdef EXTRA_QUEUE_DEBUG
-                     if ( !wd->canRunIn( *_pes[index] ) ) {
+                     if ( !_pes[index]->canRun( *wd ) ) {
                         std::cout << "Impossible to add WD to incompatible queue!!!" << std::endl;
                      }
 #endif
@@ -521,7 +521,7 @@ namespace nanos {
 
                for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
                   ThreadData * thd = *it;
-                  if ( wd.canRunIn( * thd->_pe ) ) {
+                  if ( thd->_pe->canRun( wd ) ) {
                      executors++;
                      candidate = thd->_memId;
                   }
@@ -579,7 +579,7 @@ namespace nanos {
                      int winner = -1;
                      for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
                         ThreadData * thd = *it;
-                        if ( wd.canRunIn( * thd->_pe ) ) {
+                        if ( thd->_pe->canRun( wd ) ) {
                            if ( winner == -1 ) {
                               winner = thd->_memId;
                            } else {
@@ -600,7 +600,7 @@ namespace nanos {
                   // Check which memory spaces this WD can be run on
                   for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
                      ThreadData * thd = *it;
-                     if ( wd.canRunIn( * thd->_pe ) ) {
+                     if ( thd->_pe->canRun( wd ) ) {
                         tdata._queues->pushBack( &wd, thd->_memId );
                         break;
                      }
@@ -762,7 +762,7 @@ namespace nanos {
                   //propagatePriority( obj );
                }
             }
-            
+
             bool usingPriorities() const
             {
                return _usePriority;

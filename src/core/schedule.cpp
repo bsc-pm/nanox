@@ -95,7 +95,7 @@ void Scheduler::_submit ( WD &wd, bool force_queue )
    }
 
    /* handle tasks which cannot run in current thread */
-   if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
+   if ( force_queue || !mythread->runningOn()->canRun( wd ) ) {
      /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */

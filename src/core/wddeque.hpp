@@ -144,11 +144,17 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
       return NULL;
 
    if ( _deviceCounter ) {
-      std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
       bool has_tasks = false;
-      for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
-            it != pe_devices.end() && !has_tasks; it++ ) {
-         has_tasks = (_ndevs[ *it ].value() > 0); 
+      if ( thread->runningOn()->hasActiveDevice() ) {
+         //Only check the active device
+         has_tasks = (_ndevs[thread->runningOn()->getActiveDevice()].value() > 0);
+      } else {
+         //All devices are active, so look for work in any of them
+         std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
+         for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
+               it != pe_devices.end() && !has_tasks; it++ ) {
+            has_tasks = (_ndevs[ *it ].value() > 0);
+         }
       }
       if ( !has_tasks ) {
          return NULL;
@@ -217,11 +223,17 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thre
       return NULL;
 
    if ( _deviceCounter ) {
-      std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
       bool has_tasks = false;
-      for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
-            it != pe_devices.end() && !has_tasks; it++ ) {
-         has_tasks = (_ndevs[ *it ].value() > 0); 
+      if ( thread->runningOn()->hasActiveDevice() ) {
+         //Only check the active device
+         has_tasks = (_ndevs[thread->runningOn()->getActiveDevice()].value() > 0);
+      } else {
+         //All devices are active, so look for work in any of them
+         std::vector<const Device *> const &pe_devices = thread->runningOn()->getDeviceTypes();
+         for ( std::vector<const Device *>::const_iterator it = pe_devices.begin();
+               it != pe_devices.end() && !has_tasks; it++ ) {
+            has_tasks = (_ndevs[ *it ].value() > 0);
+         }
       }
       if ( !has_tasks ) {
          return NULL;
@@ -557,7 +569,7 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
    // Find where to insert the wd
    WDPQ::BaseContainer::iterator it;
    T priority = wd->getPriority();
-   
+
    if ( fifo ) {
       // #637: Insert at the back if possible
       if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= wd->getPriority() ) ) ){
@@ -574,7 +586,7 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
          it = lower_bound( wd );
       }
    }
-   
+
    _dq.insert( it, wd );
    // If the wd was inserted at the end, it has lower priority than any other
    if( wd == _dq.back() )
@@ -591,7 +603,7 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
    WDPQ::BaseContainer::iterator it;
    WD* first = wds[0];
    T priority = first->getPriority();
-   
+
    if ( fifo ) {
       // #637: Insert at the back if possible
       if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= priority ) ) ){
@@ -608,7 +620,7 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
          it = lower_bound( first );
       }
    }
-   
+
    _dq.insert( it, wds, wds + numElems );
    // If the wd was inserted at the end, it has lower priority than any other
    if( first == _dq.back() )
@@ -905,7 +917,7 @@ template<typename T>
 inline bool WDPriorityQueue<T>::reorderWD( WorkDescriptor *wd )
 {
    LockBlock l( _lock );
-   
+
    // Find the WD
    WDPQ::BaseContainer::iterator it =
       std::find( _dq.begin(), _dq.end(), wd );
@@ -1009,4 +1021,3 @@ inline bool WDPriorityQueue<T>::testDequeue()
 } // namespace nanos
 
 #endif
-

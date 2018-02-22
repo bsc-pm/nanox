@@ -39,6 +39,25 @@ inline int ProcessingElement::getId() const
    return _id;
 }
 
+inline bool ProcessingElement::canRun( const WD& wd ) const
+{
+   bool result = false;
+   if ( wd.started() && !supportsUserLevelThreads() ) return false;
+
+   if ( !hasActiveDevice() ) {
+      // All devices are active
+      for ( std::vector<const Device *>::const_iterator it = _devices.begin();
+            it != _devices.end() && !result;
+            it++ )
+      {
+         result = wd.canRunIn( *(*it) );
+      }
+   } else {
+      result = wd.canRunIn( *(_devices[_activeDevice]) );
+   }
+   return result;
+}
+
 inline ProcessingElement::ThreadList &ProcessingElement::getThreads() {
    return _threads;
 }
@@ -59,8 +78,12 @@ inline void ProcessingElement::setActiveDevice(const Device *dev) {
    _activeDevice = devIdx;
 }
 
-inline unsigned int ProcessingElement::getActiveDevice() const {
-   return _activeDevice;
+inline Device const * ProcessingElement::getActiveDevice() const {
+  return hasActiveDevice() ? _devices[_activeDevice] : NULL;
+}
+
+inline bool ProcessingElement::hasActiveDevice() const {
+   return _activeDevice != _devices.size();
 }
 
 inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
@@ -68,4 +91,3 @@ inline std::size_t ProcessingElement::getNumThreads() const { return _threads.si
 } // namespace nanos
 
 #endif
-
