@@ -44,7 +44,7 @@ inline bool ProcessingElement::canRun( const WD& wd ) const
    bool result = false;
    if ( wd.started() && !supportsUserLevelThreads() ) return false;
 
-   if ( _activeDevice == _devices.size() ) {
+   if ( !hasActiveDevice() ) {
       // All devices are active
       for ( std::vector<const Device *>::const_iterator it = _devices.begin();
             it != _devices.end() && !result;
@@ -78,8 +78,12 @@ inline void ProcessingElement::setActiveDevice(const Device *dev) {
    _activeDevice = devIdx;
 }
 
-inline unsigned int ProcessingElement::getActiveDevice() const {
-   return _activeDevice;
+inline Device const * ProcessingElement::getActiveDevice() const {
+  return hasActiveDevice() ? _devices[_activeDevice] : NULL;
+}
+
+inline bool ProcessingElement::hasActiveDevice() const {
+   return _activeDevice != _devices.size();
 }
 
 inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }

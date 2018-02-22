@@ -60,17 +60,17 @@ namespace ext {
 
          //! \brief ProcessingElement constructor
          ProcessingElement ( const Device *arch, unsigned int memSpaceId,
-            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
+            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket );
 
          ProcessingElement ( const Device **arch, unsigned int numArchs, unsigned int memSpaceId,
-            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
+            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket );
 
          //! \brief ProcessingElement destructor
          virtual ~ProcessingElement();
 
          //! \brief get identifier
          int getId() const;
-         
+
          std::vector<Device const *> const &getDeviceTypes () const;
          bool supports( Device const &dev ) const;
 
@@ -125,7 +125,12 @@ namespace ext {
          virtual bool isActive() const { return true; }
          void setActiveDevice( unsigned int devIdx );
          void setActiveDevice( const Device *dev );
-         unsigned int getActiveDevice() const;
+
+         //! \breif Returns the active device of the PE. If serveral are active, returns NULL
+         Device const * getActiveDevice() const;
+
+         //! \brief Returns whether the PE has one active device (true) or all of them are active (false)
+         bool hasActiveDevice() const;
    };
 
    typedef class ProcessingElement PE;
