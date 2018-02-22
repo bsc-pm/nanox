@@ -74,6 +74,13 @@ namespace ext {
          std::vector<Device const *> const &getDeviceTypes () const;
          bool supports( Device const &dev ) const;
 
+         /*! \brief Indicates if the Processing Element can run the WD
+          *
+          *  \param[in] wd    Work descriptor which we have to check.
+          *  \return          Boolean indicating if the PE ca run the WD.
+          */
+         bool canRun ( const WD &wd ) const;
+
          ThreadList &getThreads();
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );

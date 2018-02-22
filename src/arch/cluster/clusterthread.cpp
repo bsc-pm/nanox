@@ -46,7 +46,7 @@ ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead
 ClusterThread::RunningWDQueue::~RunningWDQueue() {
 }
 
-void ClusterThread::RunningWDQueue::addRunningWD( WorkDescriptor *wd ) { 
+void ClusterThread::RunningWDQueue::addRunningWD( WorkDescriptor *wd ) {
    _numRunning++;
 }
 
@@ -80,7 +80,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
    _numRunning--;
 }
 
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) 
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device )
    : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock() {
    setCurrentWD( w );
 }
@@ -238,12 +238,12 @@ void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
       arch = 3;
    }
 #endif
-   else { 
+   else {
       fatal("Unsupported architecture");
    }
    _runningWDs[ arch ].completeWD( completedWD );
 }
-void ClusterThread::addRunningWD( unsigned int archId, WorkDescriptor *wd ) { 
+void ClusterThread::addRunningWD( unsigned int archId, WorkDescriptor *wd ) {
    _runningWDs[archId].addRunningWD( wd );
 }
 unsigned int ClusterThread::numRunningWDs( unsigned int archId ) const {
@@ -387,7 +387,7 @@ WD * ClusterThread::getClusterWD( BaseThread *thread )
    if ( thread->getTeam() != NULL ) {
       wd = thread->getNextWD();
       if ( wd ) {
-         if ( !wd->canRunIn( *thread->runningOn() ) ) 
+         if ( !thread->runningOn()->canRun( *wd ) )
          { // found a non compatible wd in "nextWD", ignore it
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
             //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
@@ -456,7 +456,7 @@ void ClusterThread::workerClusterLoop ()
                            WD * wd = getClusterWD( current_thread );
                            if ( wd )
                            {
-                              Scheduler::prePreOutlineWork(wd); 
+                              Scheduler::prePreOutlineWork(wd);
                               if ( Scheduler::tryPreOutlineWork(wd) ) {
                                  current_thread->preOutlineWorkDependent( *wd );
                                  if ( wd->isInputDataReady() ) {
@@ -500,7 +500,7 @@ void ClusterThread::workerClusterLoop ()
                         WD * wd = getClusterWD( current_thread );
                         if ( wd )
                         {
-                           Scheduler::prePreOutlineWork(wd); 
+                           Scheduler::prePreOutlineWork(wd);
                            if ( Scheduler::tryPreOutlineWork(wd) ) {
                               current_thread->preOutlineWorkDependent( *wd );
                               if ( wd->isInputDataReady() ) {

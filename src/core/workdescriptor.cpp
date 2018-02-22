@@ -221,34 +221,19 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
    if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
-
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
        if (_devices[i]->isCompatible( device )){
             return true;
        }
    }
-
    return false;
 }
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
-   bool result = false;
-   if ( started() && !pe.supportsUserLevelThreads() ) return false;
-
-   std::vector<const Device *> const &pe_archs = pe.getDeviceTypes();
-   if ( pe.getActiveDevice() == pe_archs.size() ) {
-      // all active
-      for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
-            it != pe_archs.end() && !result; it++ ) {
-         result = canRunIn( *(*it) ) ;
-      }
-   } else {
-      result = canRunIn( *pe_archs[pe.getActiveDevice()] );
-   }
-
-   return result;
+   warning("WorkDescriptor::canRunIn(ProcessingElement) is deprecated. Use PE::canRun(WD) instead.");
+   return pe.canRun( *this );
 }
 
 void WorkDescriptor::submit( bool force_queue )

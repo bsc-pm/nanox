@@ -47,7 +47,7 @@ static void staticLoop ( void *arg )
 
    nanos_loop_info_t * loop_info = (nanos_loop_info_t *) arg;
 
-   //! Checking empty iteration spaces 
+   //! Checking empty iteration spaces
    if ( (loop_info->upper > loop_info->lower)  && ( loop_info->step <= 0 ) ) return;
    if ( (loop_info->upper < loop_info->lower)  && ( loop_info->step >= 0 ) ) return;
 
@@ -91,7 +91,7 @@ static void staticLoop ( void *arg )
 void SlicerStaticFor::submit ( WorkDescriptor &work )
 {
    debug ( "Submitting sliced task " << &work << ":" << work.getId() );
-   
+
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
    WorkDescriptor *slice = NULL;
@@ -118,7 +118,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    std::vector<BaseThread*> target_threads;
    for ( i = 0; i < num_threads; i++) {
       BaseThread &thread = team->getThread(i);
-      if ( work.canRunIn( *thread.runningOn() ) ) {
+      if ( thread.runningOn()->canRun( work ) ) {
          target_threads.push_back( &thread );
          ++valid_threads;
       }
@@ -147,7 +147,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
       _chunk = ((_niters / valid_threads) ) * _step;
       // Computing specific loop boundaries for WorkDescriptor 0
       loop_info->chunk = _chunk + (( _adjust > 0 ) ? _step : 0);
-      loop_info->stride = _niters * _step; 
+      loop_info->stride = _niters * _step;
       // Creating additional WorkDescriptors: 1..N
       for ( i = 1; i < valid_threads; i++ ) {
 
@@ -156,14 +156,14 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          // Duplicating slice
          slice = NULL;
          sys.duplicateWD( &slice, &work );
-   
+
          debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << &work << ":" << work.getId() );
 
          // Computing specific loop boundaries for current slice
          loop_info = ( nanos_loop_info_t * ) slice->getData();
          loop_info->lower = _lower;
          loop_info->chunk = _chunk + (( _adjust > i ) ? _step : 0);
-         loop_info->stride = _niters * _step; 
+         loop_info->stride = _niters * _step;
 
          // Submit: slice (WorkDescriptor i, running on Thread i)
          sys.setupWD ( *slice, work.getParent() );
@@ -178,10 +178,10 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
       // setting new arguments
       loop_info = (nanos_loop_info_t *) work.getData();
       loop_info->lower = _lower;
-      loop_info->upper = _upper; 
+      loop_info->upper = _upper;
       loop_info->step = _step;
-      loop_info->chunk = _offset; 
-      loop_info->stride = _offset * valid_threads; 
+      loop_info->chunk = _offset;
+      loop_info->stride = _offset * valid_threads;
       // Init and Submit WorkDescriptors: 1..N
       for ( i = 1; i < valid_threads; i++ ) {
          // Avoiding to create 'empty' WorkDescriptors
@@ -198,7 +198,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          loop_info->upper = _upper;
          loop_info->step = _step;
          loop_info->chunk = _offset;
-         loop_info->stride = _offset * valid_threads; 
+         loop_info->stride = _offset * valid_threads;
 
          // Submit: slice (WorkDescriptor i, running on Thread i)
          sys.setupWD ( *slice, work.getParent() );
@@ -233,7 +233,7 @@ class SlicerStaticForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("static_for", NEW SlicerStaticFor() );	
+         sys.registerSlicer("static_for", NEW SlicerStaticFor() );
       }
 };
 
