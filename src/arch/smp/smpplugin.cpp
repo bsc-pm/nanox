@@ -268,6 +268,16 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          count += 1;
       }
 
+      /*! NOTE: This SMPProcessor will be associated to the master thread. We need to mark
+       *        it as reserved to avoid that other architecture plugins reserve it.
+       *        Otherwise, SMP and the other will assume that the PE only runs one thread
+       *        and they won't notify the over-subscription to the instrumentation plugin.
+       */
+      SMPProcessor *masterPE = getFirstSMPProcessor();
+      masterPE->reserve();
+      //NOTE: Disabling next setter as no thread will be created in the PE, only a thread will be associated
+      //masterPE->setNumFutureThreads( 1 /* Master thread */ );
+
 #ifdef NANOS_DEBUG_ENABLED
       if ( sys.getVerbose() ) {
          std::cerr << "Bindings: [ ";
@@ -314,6 +324,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          count = _requestedWorkers;
       } else {
          count = active_cpus - reserved_cpus;
+         count += 1; //< First CPU is reserved in ::init() for the master worker thread
       }
       return count + future_threads;
 
@@ -849,8 +860,8 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
    unsigned int SMPPlugin::getEstimatedNumWorkers() const
    {
       unsigned int count = 0;
-      /*if a certain number of workers was requested, pick the minimum between that value
-       * and the number of cpus and the support threads requested
+      /*if a certain number of workers was requested, pick that value, otherwise
+       * pick the number of cpus minus the support threads requested
        */
       int active_cpus = 0;
       int reserved_cpus = 0;
@@ -864,6 +875,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
          count = _requestedWorkers;
       } else {
          count = active_cpus - reserved_cpus;
+         count += 1; //< First CPU is reserved in ::init() for the master worker thread
       }
       debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count;
