@@ -863,17 +863,16 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       /*if a certain number of workers was requested, pick that value, otherwise
        * pick the number of cpus minus the support threads requested
        */
-      int active_cpus = 0;
-      int reserved_cpus = 0;
-      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         active_cpus += (*it)->isActive();
-         reserved_cpus += (*it)->isReserved();
-      }
-
-
       if ( _requestedWorkers > 0 ) {
          count = _requestedWorkers;
       } else {
+         int active_cpus = 0;
+         int reserved_cpus = 0;
+         for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            active_cpus += (*it)->isActive();
+            reserved_cpus += (*it)->isReserved();
+         }
+
          count = active_cpus - reserved_cpus;
          count += 1; //< First CPU is reserved in ::init() for the master worker thread
       }
