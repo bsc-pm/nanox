@@ -913,7 +913,7 @@ namespace nanos {
 
          for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
             ThreadData * thd = *it;
-            if ( scores[ thd->_memId ] == -1 && wd.canRunIn( * thd->_pe ) ) {
+            if ( scores[ thd->_memId ] == -1 && thd->_pe->canRun( wd ) ) {
                scores[ thd->_memId ] = 0;
             }
          }
