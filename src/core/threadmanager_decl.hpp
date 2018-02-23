@@ -63,6 +63,7 @@ class ThreadManager
       void unblockThread( BaseThread *thread );
       void lendCpu( BaseThread *thread );
       void acquireOne();
+      void acquireDefaultCPUs( int max );
       int  borrowResources();
       void returnMyCpuIfClaimed();
       void waitForCpuAvailability();

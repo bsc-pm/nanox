@@ -115,6 +115,14 @@ class WorkSharingGuidedFor : public WorkSharing {
                "Chunk bounds out of range" );
 
          loop_item->execute = true;
+
+         // Try to acquire more CPUs if mychunk is not the last one
+         if (loop_data->numOfChunks - mychunk > 2) {
+            ThreadManager *const thread_manager = sys.getThreadManager();
+            if ( thread_manager->isGreedy()) {
+               thread_manager->acquireOne();
+            }
+         }
       }
 
       int64_t getItemsLeft( nanos_ws_desc_t *wsd )

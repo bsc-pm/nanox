@@ -69,6 +69,9 @@ void SlicerReplicate::submit ( WorkDescriptor &work )
       /* Submit as a regular untied WD */
       work.untie();
       Scheduler::submit ( work );
+
+      /* Enable CPUs from the process mask if needed */
+      sys.getThreadManager()->acquireDefaultCPUs( ws->getItemsLeft(wsd) - 1 );
    }
 }
 

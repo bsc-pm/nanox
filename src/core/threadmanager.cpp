@@ -238,7 +238,7 @@ void ThreadManager::lendCpu( BaseThread *thread )
    int my_cpu = thread->getCpuId();
    if ( _useDLB && !_cpuActiveMask.isSet(my_cpu) ) {
       int dlb_err = DLB_LendCpu( my_cpu );
-      if ( dlb_err == DLB_ERR_DISBLD ) {
+      if ( dlb_err == DLB_ERR_DISBLD && _cpuProcessMask.isSet(my_cpu) ) {
          /* If DLB is disabled at this point, we need to keep track
           * of lent CPUs since DLB will be unaware of them
           */
@@ -299,6 +299,51 @@ void ThreadManager::acquireOne()
 
       _lock.release();
    }
+}
+
+void ThreadManager::acquireDefaultCPUs( int max )
+{
+   if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
+   if ( _cpuActiveMask.size() >= _maxThreads ) return;
+
+   ThreadTeam *team = getMyThreadSafe()->getTeam();
+   if ( !team ) return;
+
+   // AcquireDefaultCPUs is called when one thread submits tasks for all threads
+   // (e.g., worksharings), therefore we can't use a tryLock
+   LockBlock lock( _lock );
+
+#ifdef DLB
+      if ( _useDLB ) {
+         // Acquire CPUs lent while DLB was disabled
+         if ( !_self_managed_cpus.empty() ) {
+            CpuSet new_active_cpus = _cpuActiveMask;
+            while ( !_self_managed_cpus.empty() && max > 0) {
+               new_active_cpus.set( _self_managed_cpus.front() );
+               _self_managed_cpus.pop_front();
+               --max;
+            }
+            sys.setCpuActiveMask( new_active_cpus );
+         }
+
+         // Reclaim CPUs from this process
+         DLB_ReclaimCpus( max );
+      } else {
+#endif
+         // Otherwise, acquire CPUs from the process mask
+         if ( !_cpuActiveMask.isSupersetOf( _cpuProcessMask ) ) {
+            CpuSet new_active_cpus = _cpuActiveMask;
+            for ( CpuSet::const_iterator it=_cpuProcessMask.begin();
+                  it!=_cpuProcessMask.end() && max>0; ++it ) {
+               new_active_cpus.set( *it );
+               --max;
+            }
+            sys.setCpuActiveMask( new_active_cpus );
+         }
+#ifdef DLB
+      }
+#endif
 }
 
 int ThreadManager::borrowResources()
