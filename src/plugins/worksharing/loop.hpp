@@ -30,6 +30,7 @@ typedef struct {
    int64_t                   chunkSize;    // loop chunk size
    int64_t                   numOfChunks;  // number of chunks for the loop
    Atomic<int64_t>           currentChunk; // current chunk ready to execute
+   int64_t                   numParticipants; // number of participants
 } WorkSharingLoopInfo;
 
 } // namespace ext

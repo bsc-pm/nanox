@@ -89,8 +89,8 @@ class WorkSharingStaticFor : public WorkSharing {
 
          if ( loop_data->chunkSize == 0){
             // static distribution
-            loop_item->lower = loop_data->lowerBound 
-                             + (schunk + loop_data->loopStep) * thid 
+            loop_item->lower = loop_data->lowerBound
+                             + (schunk + loop_data->loopStep) * thid
                              + ( (adjust > thid) ? thid * loop_data->loopStep : adjust * loop_data->loopStep );
             loop_item->upper = loop_item->lower + schunk + ((adjust > thid ) ? loop_data->loopStep : 0);
             loop_data->lowerBound = loop_data->upperBound + loop_data->loopStep;
@@ -110,7 +110,15 @@ class WorkSharingStaticFor : public WorkSharing {
          debug("Loop next item -> lower: " << loop_item->lower << " upper: " << loop_item->upper );
       }
 
-   
+      int64_t getItemsLeft( nanos_ws_desc_t *wsd )
+      {
+         return 0;
+      }
+
+      bool instanceOnCreation()
+      {
+         return true;
+      }
 };
 
 class WorkSharingStaticForPlugin : public Plugin {
@@ -122,11 +130,11 @@ class WorkSharingStaticForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerWorkSharing("static_for", NEW WorkSharingStaticFor() );	
+         sys.registerWorkSharing("static_for", NEW WorkSharingStaticFor() );
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingStaticForPlugin );
+DECLARE_PLUGIN( "worksharing-static", nanos::ext::WorkSharingStaticForPlugin );
