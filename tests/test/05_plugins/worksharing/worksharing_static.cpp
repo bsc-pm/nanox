@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2018 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,39 +17,44 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-int.h"
+/*
+<testinfo>
+test_generator=gens/api-omp-generator
+</testinfo>
+*/
 
-#ifndef _NANOS_WORK_SHARING_H
-#define _NANOS_WORK_SHARING_H
+#include "nanos_omp.h"
+#include <iostream>
+#include <cstdlib>
 
-namespace nanos {
+// The program will create all possible permutation using NUM_{A,B,C}
+// for step and chunk. For a complete testing purpose they have to be:
+// -  single step/chunk: 1 ('one')
+// -  a divisor of VECTOR_SIZE  (e.g. 5, using a VECTOR_SIZE of 1000)
+// -  a non-divisor of VECTOR_SIZE (e.g. 13 using a VECTOR_SIZE 1000)
+#define NUM_A          1
+#define NUM_B          5
+#define NUM_C          13
 
-   class WorkSharing {
-      public:
+// Mandatory definitions before including "worksharing.hpp"
+#define NUM_ITERS      20
+#define VECTOR_SIZE    1000
+#define VECTOR_MARGIN  20
 
-         WorkSharing () {}
+// Optional definitions before including "worksharing.hpp"
+//#define VERBOSE
+//#define EXTRA_VERBOSE
 
-         virtual ~WorkSharing () {}
+#include "worksharing.hpp"
 
-         //! \brief create a loop descriptor
-         //! \return only one thread per loop will get 'true' (single like behaviour)
-         virtual bool create( nanos_ws_desc_t **wsd, nanos_ws_info_t *info ) = 0;
+int main(int argc, char **argv)
+{
+   int error = 0;
 
-         //! \brief Duplicates a WorkSharing Descriptor
-         virtual void duplicateWS ( nanos_ws_desc_t *orig, nanos_ws_desc_t **copy) = 0;
+   error += ws_test(nanos_omp_sched_static, "sched_static (A,0)", NUM_A, 0);
+   error += ws_test(nanos_omp_sched_static, "sched_static (B,0)", NUM_B, 0);
+   error += ws_test(nanos_omp_sched_static, "sched_static (C,0)", NUM_C, 0);
 
-         //! \brief Get next chunk of iterations
-         //! \return if there are more iterations to execute
-         virtual void nextItem( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ) = 0 ;
-
-         //! \brief Get the number of chunks that remain to be executed
-         //! \return number of chunks
-         virtual int64_t getItemsLeft( nanos_ws_desc_t *wsd ) = 0 ;
-
-         //! \brief Get whether the WorkSharing needs to be fully instanced for all threads
-         virtual bool instanceOnCreation() = 0;
-   };
-
-} // namespace nanos
-
-#endif
+   std::cout << argv[0] << (!error ? ": successful" : ": unsuccessful") << std::endl;
+   return error ? EXIT_FAILURE : EXIT_SUCCESS;
+}

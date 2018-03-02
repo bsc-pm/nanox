@@ -27,11 +27,13 @@
 namespace nanos {
 namespace ext {
 
+enum { GUIDED_FACTOR = 2 };
+
 class WorkSharingGuidedFor : public WorkSharing {
 
       //! \brief create a loop descriptor
       //! \return only one thread per loop will get 'true' (single like behaviour)
-      bool create ( nanos_ws_desc_t **wsd, nanos_ws_info_t *info )
+      bool create( nanos_ws_desc_t **wsd, nanos_ws_info_t *info )
       {
          nanos_ws_info_loop_t *loop_info = (nanos_ws_info_loop_t *) info;
          bool single = false;
@@ -39,33 +41,37 @@ class WorkSharingGuidedFor : public WorkSharing {
          *wsd = myThread->getTeamWorkSharingDescriptor( &single );
          if ( single ) {
 
+            // New WorkSharingLoopInfo
             (*wsd)->data = NEW WorkSharingLoopInfo();
 
-            int64_t num_threads = myThread->getTeam()->getFinalSize();
-
+            // Computing Lower and upper bound. Loop step.
             ((WorkSharingLoopInfo *)(*wsd)->data)->lowerBound = loop_info->lower_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->upperBound = loop_info->upper_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->loopStep   = loop_info->loop_step;
 
-            int64_t chunk_size = (1 < loop_info->chunk_size) ? loop_info->chunk_size : 1;
+            // Computing chunk size
+            int64_t chunk_size = std::max<int64_t>( loop_info->chunk_size, 1 );
             ((WorkSharingLoopInfo *)(*wsd)->data)->chunkSize  = chunk_size;
 
-            int64_t niters = (((loop_info->upper_bound - loop_info->lower_bound) / loop_info->loop_step ) + 1 );
-            int64_t chunks = niters / chunk_size;
-            if ( niters % chunk_size != 0 ) chunks++;
-            ((WorkSharingLoopInfo *)(*wsd)->data)->numOfChunks = 0;
+            // Computing number of participants
+            int64_t num_participants = myThread->getTeam()->getFinalSize();
+            ((WorkSharingLoopInfo *)(*wsd)->data)->numParticipants = num_participants;
 
+            // Computing number of chunks
+            int64_t guided_divisor = num_participants * GUIDED_FACTOR;
+            int64_t niters = (((loop_info->upper_bound - loop_info->lower_bound) / loop_info->loop_step ) + 1 );
+            ((WorkSharingLoopInfo *)(*wsd)->data)->numOfChunks = 0;
             while ( niters > 0 ) {
-               niters = niters - ((niters/(2*num_threads) < chunk_size) ? chunk_size : niters/(2*num_threads));
+               niters -= std::max( niters/guided_divisor, chunk_size );
                ((WorkSharingLoopInfo *)(*wsd)->data)->numOfChunks++;
             }
 
+            // Initializing current chunk
             ((WorkSharingLoopInfo *)(*wsd)->data)->currentChunk  = 0;
 
             memoryFence();     // Split initialization phase (before) from make it visible (after)
 
             (*wsd)->ws = this; // Once 'ws' field has a value, any other thread can use the structure
-
          }
 
          // wait until worksharing descriptor is initialized
@@ -80,39 +86,57 @@ class WorkSharingGuidedFor : public WorkSharing {
          nanos_ws_item_loop_t *loop_item = ( nanos_ws_item_loop_t *) item;
          WorkSharingLoopInfo  *loop_data = ( WorkSharingLoopInfo  *) wsd->data;
 
+         // Compute current chunk
          int64_t mychunk = loop_data->currentChunk++;
-         if ( mychunk > loop_data->numOfChunks)
-         {
+         if ( mychunk >= loop_data->numOfChunks ) {
             loop_item->execute = false;
             return;
          }
 
-         int64_t num_threads = myThread->getTeam()->getFinalSize();
-         int sign = (( loop_data->loopStep < 0 ) ? -1 : +1);
-
+         // Compute lower and upper bounds
+         int64_t guided_divisor = loop_data->numParticipants * GUIDED_FACTOR;
+         int64_t niters = (loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep + 1;
          loop_item->lower = loop_data->lowerBound;
-         int64_t i = 0;
-         int64_t niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
-
-         int64_t current;
-         while ( i < mychunk ) {
-            current = (niters/(2*num_threads) < loop_data->chunkSize) ? loop_data->chunkSize : niters/(2*num_threads);
+         for ( int64_t i = 0; i < mychunk; ++i ) {
+            // Iterate only previous chunks to substract iterations already done
+            int64_t current = std::max( niters/guided_divisor, loop_data->chunkSize );
             niters -= current;
-            loop_item->lower += (current * loop_data->loopStep);
-            i++;
+            loop_item->lower += current * loop_data->loopStep;
          }
-         loop_item->upper = loop_item->lower 
-                          + std::max( niters/(2*num_threads), loop_data->chunkSize) * loop_data->loopStep 
+         loop_item->upper = loop_item->lower
+                          + std::max( niters/guided_divisor, loop_data->chunkSize) * loop_data->loopStep
                           - loop_data->loopStep;
 
-         if ( ( loop_data->upperBound * sign ) < ( loop_item->upper * sign ) ) loop_item->upper = loop_data->upperBound;
-         loop_item->last = mychunk == (loop_data->numOfChunks - 1);
-         loop_item->execute = (loop_item->lower * sign) <= (loop_item->upper * sign);
+         // Check bounds
+         if ( loop_item->upper*loop_data->loopStep > loop_data->upperBound*loop_data->loopStep ) {
+            loop_item->upper = loop_data->upperBound;
+         }
+         ensure( loop_item->lower*loop_data->loopStep <= loop_item->upper*loop_data->loopStep,
+               "Chunk bounds out of range" );
+
+         loop_item->execute = true;
+
+         // Try to acquire more CPUs if mychunk is not the last one
+         if (loop_data->numOfChunks - mychunk > 2) {
+            ThreadManager *const thread_manager = sys.getThreadManager();
+            if ( thread_manager->isGreedy()) {
+               thread_manager->acquireOne();
+            }
+         }
+      }
+
+      int64_t getItemsLeft( nanos_ws_desc_t *wsd )
+      {
+         WorkSharingLoopInfo *loop_data = (WorkSharingLoopInfo*)wsd->data;
+         return loop_data->numOfChunks - loop_data->currentChunk;
+      }
+
+      bool instanceOnCreation()
+      {
+         return false;
       }
 
       void duplicateWS ( nanos_ws_desc_t *orig, nanos_ws_desc_t **copy) {}
-
-   
 };
 
 class WorkSharingGuidedForPlugin : public Plugin {
@@ -124,11 +148,11 @@ class WorkSharingGuidedForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerWorkSharing("guided_for", NEW WorkSharingGuidedFor() );	
+         sys.registerWorkSharing("guided_for", NEW WorkSharingGuidedFor() );
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingGuidedForPlugin );
+DECLARE_PLUGIN( "worksharing-guided", nanos::ext::WorkSharingGuidedForPlugin );

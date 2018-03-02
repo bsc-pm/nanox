@@ -37,7 +37,6 @@ class WorkSharingDynamicFor : public WorkSharing {
          bool single = false;
 
          *wsd = myThread->getTeamWorkSharingDescriptor( &single );
-
          if ( single ) {
 
             // New WorkSharingLoopInfo
@@ -49,7 +48,7 @@ class WorkSharingDynamicFor : public WorkSharing {
             ((WorkSharingLoopInfo *)(*wsd)->data)->loopStep   = loop_info->loop_step;
 
             // Computing chunk size
-            int64_t chunk_size = (1 < loop_info->chunk_size) ? loop_info->chunk_size : 1;
+            int64_t chunk_size = std::max<int64_t>( loop_info->chunk_size, 1 );
             ((WorkSharingLoopInfo *)(*wsd)->data)->chunkSize  = chunk_size;
 
             // Computing number of chunks
@@ -64,7 +63,6 @@ class WorkSharingDynamicFor : public WorkSharing {
             memoryFence();     // Split initialization phase (before) from make it visible (after)
 
             (*wsd)->ws = this; // Once 'ws' field has a value, any other thread can use the structure
-
          }
 
          // Wait until worksharing descriptor is initialized
@@ -79,26 +77,50 @@ class WorkSharingDynamicFor : public WorkSharing {
          nanos_ws_item_loop_t *loop_item = ( nanos_ws_item_loop_t *) item;
          WorkSharingLoopInfo  *loop_data = ( WorkSharingLoopInfo  *) wsd->data;
 
+         // Compute current chunk
          int64_t mychunk = loop_data->currentChunk++;
-         if ( mychunk > loop_data->numOfChunks) {
+         if ( mychunk >= loop_data->numOfChunks ) {
             loop_item->execute = false;
             return;
          }
 
-         int sign = (( loop_data->loopStep < 0 ) ? -1 : +1);
+         // Compute lower and upper bounds
+         loop_item->lower = loop_data->lowerBound
+                          + loop_data->chunkSize * loop_data->loopStep * mychunk;
+         loop_item->upper = loop_item->lower
+                          + loop_data->chunkSize * loop_data->loopStep
+                          - loop_data->loopStep;
 
-         loop_item->lower = loop_data->lowerBound + mychunk * loop_data->chunkSize * loop_data->loopStep;
+         // Check bounds
+         if ( loop_item->upper*loop_data->loopStep > loop_data->upperBound*loop_data->loopStep ) {
+            loop_item->upper = loop_data->upperBound;
+         }
+         ensure( loop_item->lower*loop_data->loopStep <= loop_item->upper*loop_data->loopStep,
+               "Chunk bounds out of range" );
 
-         loop_item->upper = loop_item->lower + loop_data->chunkSize * loop_data->loopStep - sign;
-         if ( ( loop_data->upperBound * sign ) < ( loop_item->upper * sign ) ) loop_item->upper = loop_data->upperBound;
+         loop_item->execute = true;
 
-         loop_item->last = mychunk == (loop_data->numOfChunks - 1);
+         // Try to acquire more CPUs if mychunk is not the last one
+         if (loop_data->numOfChunks - mychunk > 2) {
+            ThreadManager *const thread_manager = sys.getThreadManager();
+            if ( thread_manager->isGreedy()) {
+               thread_manager->acquireOne();
+            }
+         }
+      }
 
-         loop_item->execute = (loop_item->lower * sign) <= (loop_item->upper * sign);
+      int64_t getItemsLeft( nanos_ws_desc_t *wsd )
+      {
+         WorkSharingLoopInfo *loop_data = (WorkSharingLoopInfo*)wsd->data;
+         return loop_data->numOfChunks - loop_data->currentChunk;
+      }
+
+      bool instanceOnCreation()
+      {
+         return false;
       }
 
       void duplicateWS ( nanos_ws_desc_t *orig, nanos_ws_desc_t **copy) {}
-   
 };
 
 class WorkSharingDynamicForPlugin : public Plugin {
@@ -110,11 +132,11 @@ class WorkSharingDynamicForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerWorkSharing("dynamic_for", NEW WorkSharingDynamicFor() );	
+         sys.registerWorkSharing("dynamic_for", NEW WorkSharingDynamicFor() );
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingDynamicForPlugin );
+DECLARE_PLUGIN( "worksharing-dynamic", nanos::ext::WorkSharingDynamicForPlugin );

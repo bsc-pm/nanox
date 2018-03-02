@@ -43,37 +43,36 @@ void SlicerReplicate::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Replicate" );
 
-   nanos_ws_desc_t *wsd_current = *(( nanos_ws_desc_t ** )work.getData());
-
-   int i = myThread->getTeam()->getFinalSize() - 1;
-
-   BaseThread *thread = &(myThread->getTeam()->getThread(i));
-   if ( thread == myThread ) {
-      i--;
-      thread = &(myThread->getTeam()->getThread(i));
-   }
-
-   BaseThread *last_thread = thread;
-   i--;
-   while ( i >= 0 ) {
-      thread = &(myThread->getTeam()->getThread(i));
-      if ( thread != myThread ) {
-         WorkDescriptor *slice = NULL;
-         sys.duplicateWD( &slice, &work );
-         sys.setupWD(*slice, &work );
-         slice->tieTo( *thread );
-         ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
-         thread->addNextWD( slice );
+   nanos_ws_desc_t *wsd = *(nanos_ws_desc_t **)work.getData();
+   WorkSharing *ws = (WorkSharing *)wsd->ws;
+   if (ws->instanceOnCreation()) {
+      /* WS static */
+      ThreadTeam *team = myThread->getTeam();
+      int team_size = team->getFinalSize();
+      for (int i=0; i<team_size; ++i) {
+         BaseThread &thread = team->getThread(i);
+         if (&thread != myThread) {
+            /* duplicate */
+            WorkDescriptor *slice = NULL;
+            sys.duplicateWD( &slice, &work );
+            sys.setupWD( *slice, &work );
+            slice->tieTo( thread );
+            ws->duplicateWS( wsd, (nanos_ws_desc_t **)slice->getData() );
+            thread.addNextWD( slice );
+         }
       }
-      i--;
+      work.convertToRegularWD();
+      work.tieTo( *myThread );
+      myThread->addNextWD( &work );
+   } else {
+      /* WS dynamic or guided */
+      /* Submit as a regular untied WD */
+      work.untie();
+      Scheduler::submit ( work );
+
+      /* Enable CPUs from the process mask if needed */
+      sys.getThreadManager()->acquireDefaultCPUs( ws->getItemsLeft(wsd) - 1 );
    }
-
-   // Converting original workdescriptor to a regular tied one and submitting it
-   work.convertToRegularWD();
-   work.tieTo( *last_thread );
-   ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) work.getData() );
-   last_thread->addNextWD( (WorkDescriptor *) &work );
-
 }
 
 /* \brief Dequeue a Replicate WorkDescriptor
@@ -86,26 +85,46 @@ void SlicerReplicate::submit ( WorkDescriptor &work )
 bool SlicerReplicate::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice)
 {
    debug0 ( "Dequeueing sliced work: Replicate start" );
-   *slice = wd;
-   return true;
+
+   /* dequeue_wd will only be true if there is only one chunk left in the WS */
+   nanos_ws_desc_t *wsd = *(nanos_ws_desc_t **)wd->getData();
+   WorkSharing *ws = (WorkSharing *)wsd->ws;
+   bool dequeue_wd = ws->getItemsLeft( wsd ) <= 1;
+
+   if (dequeue_wd) {
+      /* This is the last slice of the WD */
+      *slice = wd;
+   } else {
+      /* Otherwise, duplicate */
+      WorkDescriptor *nwd = NULL;
+      sys.duplicateWD( &nwd, wd );
+      sys.setupWD( *nwd, wd );
+      ws->duplicateWS( wsd, (nanos_ws_desc_t **)nwd->getData() );
+      *slice = nwd;
+   }
+
+   /* Tie slice always */
+   (*slice)->tieTo( *myThread );
+
+   return dequeue_wd;
 }
 
 namespace ext {
 
 class SlicerReplicatePlugin : public Plugin {
    public:
-      SlicerReplicatePlugin () : Plugin("Slicer which replicate a given wd into a list of a given threads",1) {}
+      SlicerReplicatePlugin () : Plugin("Slicer for WorkSharings", 1) {}
       ~SlicerReplicatePlugin () {}
 
       virtual void config( Config& cfg ) {}
 
       void init ()
       {
-         sys.registerSlicer("replicate", NEW SlicerReplicate() );	
+         sys.registerSlicer("replicate", NEW SlicerReplicate() );
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-DECLARE_PLUGIN( "placeholder-name", nanos::ext::SlicerReplicatePlugin );
+DECLARE_PLUGIN( "slicer-replicate", nanos::ext::SlicerReplicatePlugin );
