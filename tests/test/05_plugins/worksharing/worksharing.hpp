@@ -57,12 +57,11 @@ void execute(nanos_omp_sched_t sched, int lower, int upper, int offset, int step
    for (int i = 0; i < NUM_ITERS; i++) {
       /* Set up worksharing */
       nanos_ws_desc_t *wsd_1 = NULL;;
-      nanos_ws_info_loop_t nanos_setup_info_loop = {
-         .lower_bound = lower + offset,
-         .upper_bound = upper + offset,
-         .loop_step = step,
-         .chunk_size = chunk
-      };
+      nanos_ws_info_loop_t nanos_setup_info_loop;
+      nanos_setup_info_loop.lower_bound = lower + offset;
+      nanos_setup_info_loop.upper_bound = upper + offset;
+      nanos_setup_info_loop.loop_step = step;
+      nanos_setup_info_loop.chunk_size = chunk;
       nanos_ws_t current_ws_policy = nanos_omp_find_worksharing(sched);
       nanos_worksharing_create(&wsd_1, current_ws_policy, (void **)&nanos_setup_info_loop, 0);
 
@@ -70,12 +69,14 @@ void execute(nanos_omp_sched_t sched, int lower, int upper, int offset, int step
       static nanos_slicer_t replicate = nanos_find_slicer("replicate");
       nanos_wd_t nanos_wd = 0;
       struct nanos_args_0_t *ol_args = NULL;
-      static nanos_smp_args_t smp_ol_main_0_args = {
-         .outline = (void (*)(void *))(void (*)(struct nanos_args_0_t *))&main__loop_1
-      };
+      static nanos_smp_args_t smp_ol_main_0_args;
+      smp_ol_main_0_args.outline =
+         (void (*)(void *))(void (*)(struct nanos_args_0_t *))&main__loop_1;
       nanos_wd_dyn_props_t nanos_wd_dyn_props = {0};
       static nanos_device_t devices[1] = {{ &nanos_smp_factory, &smp_ol_main_0_args }};
-      static nanos_wd_props_t props = { .mandatory_creation = 1, .tied = 1 };
+      static nanos_wd_props_t props;
+      props.mandatory_creation = 1;
+      props.tied = 1;
       nanos_create_sliced_wd(&nanos_wd, 1, devices, sizeof(struct nanos_args_0_t),
             __alignof__(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(),
             replicate, &props, &nanos_wd_dyn_props, 0, NULL, 0, NULL);
