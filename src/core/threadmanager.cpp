@@ -236,13 +236,16 @@ void ThreadManager::lendCpu( BaseThread *thread )
 #ifdef DLB
    // Lend CPU only if my_cpu has been cleared from the active mask
    int my_cpu = thread->getCpuId();
-   if ( _useDLB && !_cpuActiveMask.isSet(my_cpu) ) {
-      int dlb_err = DLB_LendCpu( my_cpu );
-      if ( dlb_err == DLB_ERR_DISBLD && _cpuProcessMask.isSet(my_cpu) ) {
-         /* If DLB is disabled at this point, we need to keep track
-          * of lent CPUs since DLB will be unaware of them
-          */
-         _self_managed_cpus.push_front( my_cpu );
+   if ( _useDLB ) {
+      LockBlock lock( _lock );
+      if ( !_cpuActiveMask.isSet(my_cpu) ) {
+         int dlb_err = DLB_LendCpu( my_cpu );
+         if ( dlb_err == DLB_ERR_DISBLD && _cpuProcessMask.isSet(my_cpu) ) {
+            /* If DLB is disabled at this point, we need to keep track
+             * of lent CPUs since DLB will be unaware of them
+             */
+            _self_managed_cpus.push_front( my_cpu );
+         }
       }
    }
 #endif
