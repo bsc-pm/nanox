@@ -97,6 +97,9 @@ void SMPThread::wait()
    INS->createStateEvent( &events[2], NANOS_WAKINGUP );
 #endif
 
+   /* Lend CPU to DLB if possible */
+   sys.getThreadManager()->lendCpu(this);
+
    _pthread.mutexLock();
 
    if ( isSleeping() && !hasNextWD() && canBlock() ) {
@@ -114,9 +117,6 @@ void SMPThread::wait()
       /* Add event cpuid = 0 and state STOPPED */
       INS->addEventList( 2, events );
 #endif
-
-      /* Lend CPU to DLB if possible */
-      sys.getThreadManager()->lendCpu(this);
 
       /* It is recommended to wait under a while loop to handle spurious wakeups
        * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
