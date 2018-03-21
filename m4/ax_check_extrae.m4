@@ -10,6 +10,8 @@
 
 AC_DEFUN([AX_CHECK_EXTRAE],
 [
+   AC_REQUIRE([AC_PROG_AWK])
+
    MPITRACE_HOME=""
    MPITRACE_INC=""
    MPITRACE_LIB=""
@@ -33,32 +35,20 @@ AC_DEFUN([AX_CHECK_EXTRAE],
       extrae_version_h="$with_extrae/include/extrae_version.h"
       AS_IF([test -e "$extrae_version_h"], [
          # Obtain version through Extrae header
-         AC_LANG_PUSH([C])
-         AC_LANG_CONFTEST([
-            AC_LANG_SOURCE([[
-               #include <stdio.h>
-               #include "$extrae_version_h"
-               int main()
-               {
-                  #ifdef EXTRAE_VERSION_MAJOR /* <= 3.4 */
-                     printf("%1d.%1d.%1d\n", EXTRAE_VERSION_MAJOR(EXTRAE_VERSION),
-                                             EXTRAE_VERSION_MINOR(EXTRAE_VERSION),
-                                             EXTRAE_VERSION_REVISION(EXTRAE_VERSION));
-                  #else /* >= 3.5.3 */
-                     printf("%s\n", EXTRAE_VERSION);
-                  #endif
-                  return 0;
-               }
-            ]])
+         extrae_version=$($AWK -v FS='[[(),]]' \
+            '/EXTRAE_VERSION_NUMBER\([[0-9]],[[0-9]],[[0-9]]\)/{print $[2]"."$[3]"."$[4];}' \
+            $extrae_version_h)
+         AS_IF([test -z "$extrae_version"], [
+            extrae_version=$($AWK \
+               '
+               BEGIN{major=""; minor=""; micro="";}
+               /EXTRAE_MAJOR [[0-9]]/{major=$[3];}
+               /EXTRAE_MINOR [[0-9]]/{minor=$[3];}
+               /EXTRAE_MICRO [[0-9]]/{micro=$[3];}
+               END{if (length(major)>0 && length(minor)>0 && length(micro)>0)
+                     print major"."minor"."micro;}
+               ' $extrae_version_h)
          ])
-         AC_LANG_POP([C])
-
-         AS_IF([$CC conftest.c -o conftest \
-                  -lnanostrace -L$with_extrae/lib -Wl,-rpath,$with_extrae/lib \
-                  2>&AS_MESSAGE_LOG_FD 1>&2], [
-            extrae_version=$(./conftest)
-         ])
-         rm -f conftest
       ], [
          # Obtain version through Extrae API
          AC_LANG_PUSH([C])
