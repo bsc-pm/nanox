@@ -65,6 +65,7 @@ namespace nanos {
          std::string getDescription( void ) { return _description; }
 
          bool isMalleable( void ) const { return _malleable; }
+         bool isOmpSs( void ) const { return _malleable; }
 
          virtual int getMaxThreads() const { return 0; }
          virtual void setNumThreads( int nthreads ) {}

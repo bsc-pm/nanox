@@ -116,8 +116,11 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_barrier, ( void ))
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_barrier",NANOS_SYNCHRONIZATION) );
 
    try {
+      if ( sys.getPMInterface().isOmpSs() ) {
+         return NANOS_UNIMPLEMENTED;
+      }
+
       WD &wd = *myThread->getCurrentWD();
-    
       wd.waitCompletion();
       if ( wd.isImplicit() ) {
          myThread->getTeam()->barrier();
