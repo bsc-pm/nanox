@@ -56,8 +56,8 @@ extern "C"
       omp_set_num_threads(*nthreads);
    }
 
-   int nanos_omp_set_num_threads ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
-   int nanos_omp_set_num_threads_ ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
+   void nanos_omp_set_num_threads ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
+   void nanos_omp_set_num_threads_ ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
 
    NANOS_API_DEF(int, omp_get_thread_num, ( void ))
    {

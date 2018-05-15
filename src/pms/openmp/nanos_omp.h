@@ -45,7 +45,7 @@ NANOS_API_DECL(nanos_err_t, nanos_omp_set_implicit, ( nanos_wd_t uwd ));
 NANOS_API_DECL(int, nanos_omp_get_max_threads, ( void ));
 NANOS_API_DECL(int, nanos_omp_get_num_threads, ( void ));
 NANOS_API_DECL(int, nanos_omp_get_thread_num, ( void ));
-NANOS_API_DECL(int, nanos_omp_set_num_threads, ( int nthreads ));
+NANOS_API_DECL(void, nanos_omp_set_num_threads, ( int nthreads ));
 
 NANOS_API_DECL(nanos_ws_t, nanos_omp_find_worksharing, ( nanos_omp_sched_t kind ));
 NANOS_API_DECL(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, int *modifier ));
