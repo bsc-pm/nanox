@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
    assert((set1 + set2).size()==4);    /* 1111 */
    assert((set1 & set2).size()==1);    /* 0001 */
    assert((set1 * set2).size()==1);    /* 0001 */
+   assert((set1 - set2).size()==2);    /* 0110 */
 
    // Compound assignment operators
    set2 = set1;   /* 0111 */

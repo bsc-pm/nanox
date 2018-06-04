@@ -67,6 +67,8 @@ class CpuSet
       // Default constructor
       CpuSet(): _mask() {}
 
+      CpuSet( int cpuid ): _mask() { set(cpuid); }
+
       // Destructor
       ~CpuSet() {}
 
@@ -105,6 +107,7 @@ class CpuSet
       friend CpuSet operator&( const CpuSet& lhs, const CpuSet& rhs );
       friend CpuSet operator+( const CpuSet& lhs, const CpuSet& rhs );
       friend CpuSet operator*( const CpuSet& lhs, const CpuSet& rhs );
+      friend CpuSet operator-( const CpuSet& lhs, const CpuSet& rhs );
       friend bool operator==( const CpuSet& lhs, const CpuSet& rhs );
       friend bool operator!=( const CpuSet& lhs, const CpuSet& rhs );
 
@@ -233,6 +236,14 @@ inline CpuSet operator+( const CpuSet& lhs, const CpuSet& rhs )
 inline CpuSet operator*( const CpuSet& lhs, const CpuSet& rhs )
 {
    return lhs & rhs;
+}
+
+inline CpuSet operator-( const CpuSet& lhs, const CpuSet& rhs )
+{
+   CpuSet result;
+   CPU_XOR( &result._mask, &lhs._mask, &rhs._mask );
+   CPU_AND( &result._mask, &lhs._mask, &result._mask );
+   return result;
 }
 
 inline bool operator==( const CpuSet& lhs, const CpuSet& rhs )
