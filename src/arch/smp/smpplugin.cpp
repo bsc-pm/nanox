@@ -59,6 +59,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
                  , _smpHostCpus( 0 )
                  , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
+                 , _threadsPerCore( 0 )
                  , _cpuSystemMask()
                  , _cpuProcessMask()
                  , _cpuActiveMask()
@@ -150,6 +151,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "SMP sync transfers." );
       cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
       cfg.registerEnvOption( "smp-sync-transfers", "NX_SMP_SYNC_TRANSFERS" );
+
+      cfg.registerConfigOption( "smp-threads-per-core", NEW Config::PositiveVar( _threadsPerCore ),
+            "Limit the number of threads per core on SMT processors." );
+      cfg.registerArgOption( "smp-threads-per-core", "smp-threads-per-core" );
    }
 
    void SMPPlugin::init()
@@ -192,22 +197,68 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
 
-      //! \note Fill _bindings vector with the active CPUs first, then the not active
-      _bindings.reserve( _availableCPUs );
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( _cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
+      std::map<int, CpuSet> bindings_list;
+      // If --smp-threads-per-core option is used, adjust CPUs used
+      if ( _threadsPerCore > 0 ) {
+         fatal_cond0( !sys._hwloc.isHwlocAvailable(),
+               "Option --smp-threads-per-core requires HWLOC" );
+
+         std::list<CpuSet> core_cpusets = sys._hwloc.getCoreCpusetsOf( _cpuProcessMask );
+         fatal_cond0( core_cpusets.size() == 0, "Process mask [" << _cpuProcessMask <<
+               "] does not contain a full core cpuset. Cannot run with --smp-threads-per-core" );
+         {
+            // Append not owned CPUs to core list
+            CpuSet cpus_not_owned = _cpuSystemMask - _cpuProcessMask;
+            std::list<CpuSet> core_cpusets_not_owned =
+               sys._hwloc.getCoreCpusetsOf( cpus_not_owned );
+            core_cpusets.splice( core_cpusets.end(), core_cpusets_not_owned );
          }
-      }
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( !_cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
+         for ( std::list<CpuSet>::iterator it = core_cpusets.begin();
+               it != core_cpusets.end(); ++it) {
+            CpuSet& core = *it;
+            unsigned int nthreads = std::min<unsigned int>( _threadsPerCore, core.size() );
+            unsigned int offset = core.size() / nthreads;
+            unsigned int steps_left = 0;
+            unsigned int inserted = 0;
+            int last_binding = -1;
+            // Iterate core cpuset up to nthreads and add them to the _bindings list
+            for ( CpuSet::const_iterator cit = core.begin(); cit != core.end(); ++cit ) {
+               int cpuid = *cit;
+               // We try to evenly distribute CPUs inside Core
+               if ( steps_left == 0 && inserted < nthreads) {
+                  _bindings.push_back(cpuid);
+                  last_binding = cpuid;
+                  bindings_list.insert( std::pair<int,CpuSet>(last_binding, CpuSet(cpuid)) );
+                  steps_left += offset - 1;
+                  ++inserted;
+               } else {
+                  --steps_left;
+                  bindings_list[last_binding].set(cpuid);
+               }
+            }
+         }
+         _availableCPUs = _bindings.size();
+      } else {
+
+         //! \note Fill _bindings vector with the active CPUs first, then the not active
+         _bindings.reserve( _availableCPUs );
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( _cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+               bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+            }
+         }
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( !_cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+               bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+            }
          }
       }
 
       //! \note Load & check NUMA config (_cpus vectors must be created before)
       _cpus = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
-      _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
+      _cpusByCpuId = NEW std::map<int, SMPProcessor *>();
 
       loadNUMAInfo();
 
@@ -234,37 +285,42 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       //! \note Create the SMPProcessors in _cpus array
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
+         int cpuid = *it;
          SMPProcessor *cpu;
-         bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
+         bool active = (count < _currentCPUs) && _cpuProcessMask.isSet(cpuid);
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
-         if ( !sys._hwloc.isCpuAvailable( *it ) ) {
+         if ( !sys._hwloc.isCpuAvailable( cpuid ) ) {
             /* There's a problem: we can't query it's numa
             node. Let's give it 0 (ticket #1090), consider throwing a warning */
             numaNode = 0;
          }
          else
-            numaNode = getNodeOfPE( *it );
+            numaNode = getNodeOfPE( cpuid );
          unsigned socket = numaNode;   /* FIXME: socket */
 
+         memory_space_id_t id;
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
+            id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(),
+                  _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
-            cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
-
-            cpu = NEW SMPProcessor( *it, mem_id, active, numaNode, socket );
+            id = mem_id;
          }
+
+         // Create SMPProcessor object
+         cpu = NEW SMPProcessor( cpuid, bindings_list[cpuid], id, active, numaNode, socket );
+
          if ( active ) {
             _cpuActiveMask.set( cpu->getBindingId() );
          }
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
-         (*_cpusByCpuId)[ *it ] = cpu;
+         (*_cpusByCpuId)[cpuid] = cpu;
          count += 1;
       }
 
@@ -785,7 +841,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    void SMPPlugin::updateCpuStatus( int cpuid )
    {
-      SMPProcessor *cpu = _cpusByCpuId->at(cpuid);
+      SMPProcessor *cpu = (*_cpusByCpuId)[cpuid];
       if ( cpu->getRunningThreads() > 0 ) {
          _cpuActiveMask.set( cpuid );
       } else {
@@ -951,31 +1007,36 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
       // Initialize rank limits with the first cpu in the list
       int a0 = -1, aN = -1, i0 = -1, iN = -1;
-      SMPProcessor *first_cpu = _cpusByCpuId->front();
+      SMPProcessor *first_cpu = _cpusByCpuId->begin()->second;
       first_cpu->isActive() ? a0 = first_cpu->getBindingId() : i0 = first_cpu->getBindingId();
 
       // Iterate through begin+1..end
-      for ( std::vector<SMPProcessor *>::iterator curr = _cpusByCpuId->begin()+1; curr != _cpusByCpuId->end(); curr++ ) {
+      std::map<int,SMPProcessor*>::iterator prev_it = _cpusByCpuId->begin();  /* begin() */
+      std::map<int,SMPProcessor*>::iterator curr_it = prev_it; ++curr_it;     /* begin() + 1 */
+      while ( curr_it != _cpusByCpuId->end() ) {
          /* Detect whether there is a state change (a->i/i->a). If so,
           * close the rank and start a new one. If it's the last iteration
           * close it anyway.
           */
-         std::vector<SMPProcessor *>::iterator prev = curr-1;
-         if ( (*curr)->isActive() && !(*prev)->isActive() ) {
+         SMPProcessor *prev = prev_it->second;
+         SMPProcessor *curr = curr_it->second;
+         if ( curr->isActive() && !prev->isActive() ) {
             // change, i->a
-            iN = (*prev)->getBindingId();
-            a0 = (*curr)->getBindingId();
+            iN = prev->getBindingId();
+            a0 = curr->getBindingId();
             ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
-         } else if ( !(*curr)->isActive() && (*prev)->isActive() ) {
+         } else if ( !curr->isActive() && prev->isActive() ) {
             // change, a->i
-            aN = (*prev)->getBindingId();
-            i0 = (*curr)->getBindingId();
+            aN = prev->getBindingId();
+            i0 = curr->getBindingId();
             ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
          }
+         ++prev_it;
+         ++curr_it;
       }
 
       // close ranks and append strings according to the last cpu
-      SMPProcessor *last_cpu = _cpusByCpuId->back();
+      SMPProcessor *last_cpu = prev_it->second;
       if ( last_cpu->isActive() ) {
          aN = last_cpu->getBindingId();
          ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";

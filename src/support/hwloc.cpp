@@ -21,6 +21,7 @@
 #include "debug.hpp"
 
 #ifdef HWLOC
+ #include <hwloc/glibc-sched.h>
  #ifdef GPU_DEV
   #include <hwloc/cudart.h>
  #endif
@@ -70,8 +71,10 @@ void Hwloc::loadHwloc ()
       fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
    }
 
+#if (HWLOC_API_VERSION >> 16) == 1
    // Enable GPU detection
    hwloc_topology_set_flags( _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
+#endif
 
    // Perform the topology detection.
    hwloc_topology_load( _hwlocTopology );
@@ -174,4 +177,42 @@ bool Hwloc::isCpuAvailable( unsigned int cpu ) const
    return hwloc_get_pu_obj_by_os_index( _hwlocTopology, cpu ) != NULL;
 #endif
 }
+
+CpuSet Hwloc::getCoreCpusetOf( unsigned int cpu )
+{
+   CpuSet core_cpuset;
+#ifdef HWLOC
+   hwloc_obj_t pu = hwloc_get_pu_obj_by_os_index( _hwlocTopology, cpu );
+   hwloc_obj_t core = hwloc_get_ancestor_obj_by_type( _hwlocTopology, HWLOC_OBJ_CORE, pu );
+   hwloc_cpuset_to_glibc_sched_affinity( _hwlocTopology, core->cpuset,
+         core_cpuset.get_cpu_set_pointer(), sizeof(cpu_set_t));
+#endif
+   return core_cpuset;
+}
+
+std::list<CpuSet> Hwloc::getCoreCpusetsOf( const CpuSet& parent )
+{
+   std::list<CpuSet> core_cpusets;
+#ifdef HWLOC
+   // Covert parent cpuset to hwlocset
+   hwloc_cpuset_t hwlocset = hwloc_bitmap_alloc();
+   hwloc_cpuset_from_glibc_sched_affinity( _hwlocTopology, hwlocset,
+         parent.get_cpu_set_pointer(), sizeof(cpu_set_t));
+
+   // Iterate cores inside parent cpuset
+   hwloc_obj_t core = NULL;
+   while ( (core = hwloc_get_next_obj_inside_cpuset_by_type(
+               _hwlocTopology, hwlocset, HWLOC_OBJ_CORE, core)) != NULL ) {
+      CpuSet core_cpuset;
+      hwloc_cpuset_to_glibc_sched_affinity( _hwlocTopology, core->cpuset,
+            core_cpuset.get_cpu_set_pointer(), sizeof(cpu_set_t));
+      // Append core cpuset to list
+      core_cpusets.push_back( core_cpuset );
+   }
+
+   hwloc_bitmap_free(hwlocset);
+#endif
+   return core_cpusets;
+}
+
 }
