@@ -55,16 +55,15 @@ AS_IF([test "x$with_hwloc" != xyes dnl
          -o "x$with_hwloc" != xno dnl
          -o "x$with_hwloc" != x dnl
 ],[
-  hwlocinc="-I $with_hwloc/include"
-  hwloc_h="$with_hwloc/include/hwloc.h"
-  AS_IF([test -d $with_hwloc/lib64],
-    [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath,$with_hwloc/lib64"],
-    [hwloclib="-L$with_hwloc/lib -Wl,-rpath,$with_hwloc/lib"])dnl
-])dnl
-
-AS_IF([test "x$with_hwloc_include" != x],[
-  hwlocinc="-isystem $with_hwloc_include"
-  hwloc_h="$with_hwloc_include/hwloc.h"
+  AS_IF([test -d $with_hwloc/include], [
+    hwlocinc="-I $with_hwloc/include"
+    hwloc_h="$with_hwloc/include/hwloc.h"
+  ])
+  AS_IF([test -d $with_hwloc/lib64], [
+    hwloclib="-L$with_hwloc/lib64 -Wl,-rpath,$with_hwloc/lib64"
+  ], [test -d $with_hwloc/lib], [
+    hwloclib="-L$with_hwloc/lib -Wl,-rpath,$with_hwloc/lib"
+  ])dnl
 ])dnl
 
 AS_IF([test "x$with_hwloc_lib" != x],[
@@ -73,7 +72,7 @@ AS_IF([test "x$with_hwloc_lib" != x],[
 
 # This condition is satisfied even if $with_hwloc="yes" 
 # This happens when user leaves --with-value alone
-AS_IF([test "x$with_hwloc$with_hwloc_include$with_hwloc_lib" != x],[
+AS_IF([test "x$with_hwloc$with_hwloc_lib" != x],[
   AC_LANG_PUSH([C++])
 
   #tests if provided headers and libraries are usable and correct
