@@ -70,8 +70,10 @@ void Hwloc::loadHwloc ()
       fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
    }
 
+#if (HWLOC_API_VERSION >> 16) == 1
    // Enable GPU detection
    hwloc_topology_set_flags( _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
+#endif
 
    // Perform the topology detection.
    hwloc_topology_load( _hwlocTopology );
