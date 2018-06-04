@@ -64,6 +64,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _smpHostCpus;
    std::size_t                  _smpPrivateMemorySize;
    bool                         _workersCreated;
+   int                          _threadsPerCore;
 
    // Nanos++ scheduling domain
    CpuSet                       _cpuSystemMask;   /*!< \brief system's default cpu_set */

@@ -59,6 +59,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
                  , _smpHostCpus( 0 )
                  , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
+                 , _threadsPerCore( 0 )
                  , _cpuSystemMask()
                  , _cpuProcessMask()
                  , _cpuActiveMask()
@@ -150,6 +151,10 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
             "SMP sync transfers." );
       cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
       cfg.registerEnvOption( "smp-sync-transfers", "NX_SMP_SYNC_TRANSFERS" );
+
+      cfg.registerConfigOption( "smp-threads-per-core", NEW Config::PositiveVar( _threadsPerCore ),
+            "Limit the number of threads per core on SMT processors." );
+      cfg.registerArgOption( "smp-threads-per-core", "smp-threads-per-core" );
    }
 
    void SMPPlugin::init()
@@ -192,19 +197,62 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
 
-      //! \note Fill _bindings vector with the active CPUs first, then the not active
       std::map<int, CpuSet> bindings_list;
-      _bindings.reserve( _availableCPUs );
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( _cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
-            bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+      // If --smp-threads-per-core option is used, adjust CPUs used
+      if ( _threadsPerCore > 0 ) {
+         fatal_cond0( !sys._hwloc.isHwlocAvailable(),
+               "Option --smp-threads-per-core requires HWLOC" );
+
+         std::list<CpuSet> core_cpusets = sys._hwloc.getCoreCpusetsOf( _cpuProcessMask );
+         fatal_cond0( core_cpusets.size() == 0, "Process mask [" << _cpuProcessMask <<
+               "] does not contain a full core cpuset. Cannot run with --smp-threads-per-core" );
+         {
+            // Append not owned CPUs to core list
+            CpuSet cpus_not_owned = _cpuSystemMask - _cpuProcessMask;
+            std::list<CpuSet> core_cpusets_not_owned =
+               sys._hwloc.getCoreCpusetsOf( cpus_not_owned );
+            core_cpusets.splice( core_cpusets.end(), core_cpusets_not_owned );
          }
-      }
-      for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( !_cpuProcessMask.isSet(i) ) {
-            _bindings.push_back(i);
-            bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+         for ( std::list<CpuSet>::iterator it = core_cpusets.begin();
+               it != core_cpusets.end(); ++it) {
+            CpuSet& core = *it;
+            unsigned int nthreads = std::min<unsigned int>( _threadsPerCore, core.size() );
+            unsigned int offset = core.size() / nthreads;
+            unsigned int steps_left = 0;
+            unsigned int inserted = 0;
+            int last_binding = -1;
+            // Iterate core cpuset up to nthreads and add them to the _bindings list
+            for ( CpuSet::const_iterator cit = core.begin(); cit != core.end(); ++cit ) {
+               int cpuid = *cit;
+               // We try to evenly distribute CPUs inside Core
+               if ( steps_left == 0 && inserted < nthreads) {
+                  _bindings.push_back(cpuid);
+                  last_binding = cpuid;
+                  bindings_list.insert( std::pair<int,CpuSet>(last_binding, CpuSet(cpuid)) );
+                  steps_left += offset - 1;
+                  ++inserted;
+               } else {
+                  --steps_left;
+                  bindings_list[last_binding].set(cpuid);
+               }
+            }
+         }
+         _availableCPUs = _bindings.size();
+      } else {
+
+         //! \note Fill _bindings vector with the active CPUs first, then the not active
+         _bindings.reserve( _availableCPUs );
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( _cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+               bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+            }
+         }
+         for ( int i = 0; i < _availableCPUs; i++ ) {
+            if ( !_cpuProcessMask.isSet(i) ) {
+               _bindings.push_back(i);
+               bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
+            }
          }
       }
 
