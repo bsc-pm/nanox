@@ -193,15 +193,18 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
 
       //! \note Fill _bindings vector with the active CPUs first, then the not active
+      std::map<int, CpuSet> bindings_list;
       _bindings.reserve( _availableCPUs );
       for ( int i = 0; i < _availableCPUs; i++ ) {
          if ( _cpuProcessMask.isSet(i) ) {
             _bindings.push_back(i);
+            bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
          }
       }
       for ( int i = 0; i < _availableCPUs; i++ ) {
          if ( !_cpuProcessMask.isSet(i) ) {
             _bindings.push_back(i);
+            bindings_list.insert( std::pair<int,CpuSet>(i, CpuSet(i)) );
          }
       }
 
@@ -234,37 +237,42 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       //! \note Create the SMPProcessors in _cpus array
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
+         int cpuid = *it;
          SMPProcessor *cpu;
-         bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
+         bool active = (count < _currentCPUs) && _cpuProcessMask.isSet(cpuid);
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
-         if ( !sys._hwloc.isCpuAvailable( *it ) ) {
+         if ( !sys._hwloc.isCpuAvailable( cpuid ) ) {
             /* There's a problem: we can't query it's numa
             node. Let's give it 0 (ticket #1090), consider throwing a warning */
             numaNode = 0;
          }
          else
-            numaNode = getNodeOfPE( *it );
+            numaNode = getNodeOfPE( cpuid );
          unsigned socket = numaNode;   /* FIXME: socket */
 
+         memory_space_id_t id;
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
+            id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(),
+                  _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
-            cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
-
-            cpu = NEW SMPProcessor( *it, mem_id, active, numaNode, socket );
+            id = mem_id;
          }
+
+         // Create SMPProcessor object
+         cpu = NEW SMPProcessor( cpuid, bindings_list[cpuid], id, active, numaNode, socket );
+
          if ( active ) {
             _cpuActiveMask.set( cpu->getBindingId() );
          }
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
-         (*_cpusByCpuId)[ *it ] = cpu;
+         (*_cpusByCpuId)[cpuid] = cpu;
          count += 1;
       }
 
