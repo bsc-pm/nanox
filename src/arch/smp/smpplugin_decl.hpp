@@ -54,7 +54,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _currentCPUs;
    int                          _requestedWorkers;
    std::vector<SMPProcessor *> *_cpus;
-   std::vector<SMPProcessor *> *_cpusByCpuId;
+   std::map<int,SMPProcessor*> *_cpusByCpuId;
    std::vector<SMPThread *>     _workers;
    int                          _bindingStart;
    int                          _bindingStride;

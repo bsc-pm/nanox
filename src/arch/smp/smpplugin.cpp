@@ -207,7 +207,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
       //! \note Load & check NUMA config (_cpus vectors must be created before)
       _cpus = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
-      _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
+      _cpusByCpuId = NEW std::map<int, SMPProcessor *>();
 
       loadNUMAInfo();
 
@@ -785,7 +785,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    void SMPPlugin::updateCpuStatus( int cpuid )
    {
-      SMPProcessor *cpu = _cpusByCpuId->at(cpuid);
+      SMPProcessor *cpu = (*_cpusByCpuId)[cpuid];
       if ( cpu->getRunningThreads() > 0 ) {
          _cpuActiveMask.set( cpuid );
       } else {
@@ -951,31 +951,36 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
       // Initialize rank limits with the first cpu in the list
       int a0 = -1, aN = -1, i0 = -1, iN = -1;
-      SMPProcessor *first_cpu = _cpusByCpuId->front();
+      SMPProcessor *first_cpu = _cpusByCpuId->begin()->second;
       first_cpu->isActive() ? a0 = first_cpu->getBindingId() : i0 = first_cpu->getBindingId();
 
       // Iterate through begin+1..end
-      for ( std::vector<SMPProcessor *>::iterator curr = _cpusByCpuId->begin()+1; curr != _cpusByCpuId->end(); curr++ ) {
+      std::map<int,SMPProcessor*>::iterator prev_it = _cpusByCpuId->begin();  /* begin() */
+      std::map<int,SMPProcessor*>::iterator curr_it = prev_it; ++curr_it;     /* begin() + 1 */
+      while ( curr_it != _cpusByCpuId->end() ) {
          /* Detect whether there is a state change (a->i/i->a). If so,
           * close the rank and start a new one. If it's the last iteration
           * close it anyway.
           */
-         std::vector<SMPProcessor *>::iterator prev = curr-1;
-         if ( (*curr)->isActive() && !(*prev)->isActive() ) {
+         SMPProcessor *prev = prev_it->second;
+         SMPProcessor *curr = curr_it->second;
+         if ( curr->isActive() && !prev->isActive() ) {
             // change, i->a
-            iN = (*prev)->getBindingId();
-            a0 = (*curr)->getBindingId();
+            iN = prev->getBindingId();
+            a0 = curr->getBindingId();
             ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
-         } else if ( !(*curr)->isActive() && (*prev)->isActive() ) {
+         } else if ( !curr->isActive() && prev->isActive() ) {
             // change, a->i
-            aN = (*prev)->getBindingId();
-            i0 = (*curr)->getBindingId();
+            aN = prev->getBindingId();
+            i0 = curr->getBindingId();
             ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
          }
+         ++prev_it;
+         ++curr_it;
       }
 
       // close ranks and append strings according to the last cpu
-      SMPProcessor *last_cpu = _cpusByCpuId->back();
+      SMPProcessor *last_cpu = prev_it->second;
       if ( last_cpu->isActive() ) {
          aN = last_cpu->getBindingId();
          ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
