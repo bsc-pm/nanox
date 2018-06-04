@@ -23,6 +23,7 @@
 
 #include <config.hpp>
 #include <string>
+#include "cpuset.hpp"
 
 #ifdef HWLOC
 #include <hwloc.h>
@@ -63,6 +64,8 @@ class Hwloc {
        */
       bool isCpuAvailable( unsigned int cpu ) const;
 
+      CpuSet getCoreCpusetOf( unsigned int cpu );
+      std::list<CpuSet> getCoreCpusetsOf( const CpuSet& parent );
 };
 
 } // namespace nanos
