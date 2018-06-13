@@ -65,10 +65,16 @@ void ThreadManager::init()
 
 #ifdef DLB
    if ( _useDLB ) {
-      DLB_Init( 0, &_cpuProcessMask, NULL );
-      sys.getPMInterface().registerCallbacks();
-      _maxThreads = OS::getMaxProcessors();
-   } else {
+      int err = DLB_Init( 0, &_cpuProcessMask, NULL );
+      if (err == DLB_SUCCESS) {
+         sys.getPMInterface().registerCallbacks();
+         _maxThreads = OS::getMaxProcessors();
+      } else {
+         warning0( "DLB Init failed: " << DLB_Strerror(err) );
+         _useDLB = false;
+      }
+   }
+   if ( !_useDLB ) {
 #endif
       _maxThreads = sys.getSMPPlugin()->getRequestedWorkers();
 #ifdef DLB
@@ -219,7 +225,8 @@ void ThreadManager::unblockThread( BaseThread* thread )
              * in both cases we continue as if DLB were not involved
              */
          } else {
-            warning( "DLB returned error: " << DLB_Strerror(dlb_err) );
+            warning( "DLB returned error: " << DLB_Strerror(dlb_err) << " for cpuid " << cpuid );
+
          }
       }
    }
