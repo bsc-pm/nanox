@@ -64,9 +64,13 @@ namespace ext {
 
          ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
          if ( core == NULL ) {
-            fatal0("Unable to get a core to run the GPU thread.");
+            core = sys.getSMPPlugin()->getLastSMPProcessor();
+            if ( core == NULL ) {
+               fatal0("Unable to get a core to run the OpenCL host thread.");
+            }
+            warning0("Unable to get an exclusive cpu to run the OpenCL thread. The thread will run on PE " << core->getId() << " and share the cpu");
          }
-         core->setNumFutureThreads( 1 );
+         core->setNumFutureThreads( core->getNumFutureThreads() + 1 );
 
          _opencls.push_back( NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory ) );
       }
