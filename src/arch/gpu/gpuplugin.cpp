@@ -61,7 +61,7 @@ class GPUPlugin : public ArchPlugin
             ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
             gpuMemory.setSpecificData( gpuMemSpace );
 
-            int node = getNumaNodeOfGPU( gpuC );
+            unsigned int node = getNumaNodeOfGPU( gpuC );
 
             ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnodeAndReserve(node);
             if ( core == NULL ) {
