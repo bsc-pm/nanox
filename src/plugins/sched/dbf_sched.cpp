@@ -114,7 +114,7 @@ namespace nanos {
                   pred->setPriority( succ->getPriority() );
 
                   // Reorder
-                  ThreadData &tdata = (ThreadData &) *myThread->getTeam()->getScheduleData();
+                  ThreadData &tdata = (ThreadData &) *myThread->getTeamData()->getScheduleData();
                   WDPriorityQueue<> *q = (WDPriorityQueue<> *) tdata._readyQueue;
                   q->reorderWD( pred );
                }
