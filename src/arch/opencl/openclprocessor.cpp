@@ -96,12 +96,15 @@ OpenCLAdapter::~OpenCLAdapter()
                               ++i )
     clReleaseProgram( i->second );
 
-  errCode = clReleaseContext( _ctx );
-  
-  //Invalid context means it was already released by another thread
-  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
-     warning0( "Unable to release the context" );
-  }
+
+  /* Disabling context relase. See #1244
+   */
+  /* errCode = clReleaseContext( _ctx ); */
+
+  /* //Invalid context means it was already released by another thread */
+  /* if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){ */
+  /*    warning0( "Unable to release the context" ); */
+  /* } */
 }
 
 bool OpenCLAdapter::outOfOrderSupport(){
