@@ -518,8 +518,10 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
 
    removeAllTaskReductions();
 
-   myThread->getTeam()->computeVectorReductions();
-   myThread->getTeam()->cleanUpReductionList();
+   if ( sys.getPMInterface().isOmpSs() ) {
+      myThread->getTeam()->computeVectorReductions();
+      myThread->getTeam()->cleanUpReductionList();
+   }
 
    _depsDomain->clearDependenciesDomain();
 }
