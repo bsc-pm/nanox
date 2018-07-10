@@ -518,6 +518,9 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
 
    removeAllTaskReductions();
 
+   myThread->getTeam()->computeVectorReductions();
+   myThread->getTeam()->cleanUpReductionList();
+
    _depsDomain->clearDependenciesDomain();
 }
 
