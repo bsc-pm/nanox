@@ -98,13 +98,14 @@ int main( int argc, char *argv[] )
 
    pid_t pid = getpid();
 
-   const CpuSet& cpu_set = do_all ? sys.getCpuProcessMask() : sys.getCpuActiveMask();
-
    char hostname[HOST_NAME_MAX];
    gethostname( hostname, HOST_NAME_MAX );
 
    std::cout << "Nanos++: " << hostname << "::" << pid
-      << " [ " << cpu_set.toString() << " ]" << std::endl;
+      << " [ " << ( do_all ?
+                     sys.getCpuProcessMask().toString() :
+                     sys.getSMPPlugin()->getBindingStrings().first )
+      << " ]" << std::endl;
 
    exit( EXIT_SUCCESS );
 }

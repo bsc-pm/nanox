@@ -205,11 +205,7 @@ class SMPPlugin : public SMPBasePlugin
     */
    void createWorker( std::map<unsigned int, BaseThread *> &workers );
 
-   /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
-    *       format e.g.,
-    *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
-    */
-   virtual std::string getBindingMaskString() const;
+   virtual std::pair<std::string, std::string> getBindingStrings() const;
 
 protected:
 

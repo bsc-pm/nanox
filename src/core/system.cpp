@@ -1382,6 +1382,10 @@ void System::environmentSummary()
          break;
    }
 
+   std::pair<std::string, std::string> bindings = _smpPlugin->getBindingStrings();
+   std::string system_cpus =
+      "active[ " + bindings.first + " ] - inactive[ " + bindings.second + " ]";
+
    std::ostringstream output;
    output << "Nanos++ Initial Environment Summary" << std::endl;
    output << "==========================================================" << std::endl;
@@ -1389,7 +1393,7 @@ void System::environmentSummary()
    output << "=== Nanos++ version:     " << PACKAGE_VERSION << std::endl;
    output << "=== PID:                 " << getpid() << std::endl;
    output << "=== Num. worker threads: " << _workers.size() << std::endl;
-   output << "=== System CPUs:         " << _smpPlugin->getBindingMaskString() << std::endl;
+   output << "=== System CPUs:         " << system_cpus << std::endl;
    output << "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() << std::endl;
    output << "=== Prog. Model:         " << prog_model << std::endl;
    output << "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed")

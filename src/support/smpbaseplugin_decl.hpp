@@ -64,7 +64,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual int getRequestedWorkers() const = 0;
       virtual unsigned int getMaxWorkers() const = 0;
       virtual void createWorker( std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual std::string getBindingMaskString() const = 0;
+      virtual std::pair<std::string, std::string> getBindingStrings() const = 0;
       virtual bool asyncTransfersEnabled() const = 0;
 };
 

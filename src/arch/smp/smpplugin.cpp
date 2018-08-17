@@ -995,63 +995,49 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
       }
    }
 
-   /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
-    *       format e.g.,
-    *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
+   /*! \brief returns human readable strings containing the active and inactive masks
+    *
+    * The first value of the pair contains the active mask.
+    * The second value of the pair contains the inactive mask
     */
-   std::string SMPPlugin::getBindingMaskString() const {
-      if ( _cpusByCpuId->empty() ) return "";
+   std::pair<std::string, std::string> SMPPlugin::getBindingStrings() const
+   {
+      CpuSet active, inactive;
+      std::string multiple;
+      bool multiple_binding = false;
+      for ( std::map<int,SMPProcessor*>::const_iterator it = _cpusByCpuId->begin();
+            it != _cpusByCpuId->end(); ++it) {
+         SMPProcessor *cpu = it->second;
+         if ( cpu->isActive() ) {
+            // Append binding set to multiple string
+            CpuSet binding_list = cpu->getBindingList();
+            if ( binding_list.size() > 1 ) {
+               multiple_binding = true;
+               multiple += "(" + binding_list.toString() + "), ";
+            } else {
+               multiple += binding_list.toString() + ", ";
+            }
 
-      // inactive/active cpus list
-      std::ostringstream a, i;
-
-      // Initialize rank limits with the first cpu in the list
-      int a0 = -1, aN = -1, i0 = -1, iN = -1;
-      SMPProcessor *first_cpu = _cpusByCpuId->begin()->second;
-      first_cpu->isActive() ? a0 = first_cpu->getBindingId() : i0 = first_cpu->getBindingId();
-
-      // Iterate through begin+1..end
-      std::map<int,SMPProcessor*>::iterator prev_it = _cpusByCpuId->begin();  /* begin() */
-      std::map<int,SMPProcessor*>::iterator curr_it = prev_it; ++curr_it;     /* begin() + 1 */
-      while ( curr_it != _cpusByCpuId->end() ) {
-         /* Detect whether there is a state change (a->i/i->a). If so,
-          * close the rank and start a new one. If it's the last iteration
-          * close it anyway.
-          */
-         SMPProcessor *prev = prev_it->second;
-         SMPProcessor *curr = curr_it->second;
-         if ( curr->isActive() && !prev->isActive() ) {
-            // change, i->a
-            iN = prev->getBindingId();
-            a0 = curr->getBindingId();
-            ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
-         } else if ( !curr->isActive() && prev->isActive() ) {
-            // change, a->i
-            aN = prev->getBindingId();
-            i0 = curr->getBindingId();
-            ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
+            // Add to active cpuset
+            active.add( binding_list );
+         } else {
+            // Add to inactive cpuset
+            inactive.add( cpu->getBindingList() );
          }
-         ++prev_it;
-         ++curr_it;
       }
 
-      // close ranks and append strings according to the last cpu
-      SMPProcessor *last_cpu = prev_it->second;
-      if ( last_cpu->isActive() ) {
-         aN = last_cpu->getBindingId();
-         ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
-      } else {
-         iN = last_cpu->getBindingId();
-         ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
+      // remove last ', ' from the string multiple
+      if ( !multiple.empty() ) {
+         multiple.resize( multiple.size() - 2 );
       }
 
-      // remove last comma
-      std::string sa = a.str(), si = i.str();
-      if (!sa.empty()) sa.erase(sa.length()-2);
-      if (!si.empty()) si.erase(si.length()-2);
+      // construct return pair
+      std::pair<std::string, std::string> strings;
+      strings.first = multiple_binding ? multiple : active.toString();
+      strings.second = inactive.toString();
 
-      return "active[ " + sa + " ] - inactive[ " + si + " ]";
-    }
+      return strings;
+   }
 
    void SMPPlugin::applyCpuMask ( std::map<unsigned int, BaseThread *> &workers )
    {
