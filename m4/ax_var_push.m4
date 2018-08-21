@@ -1,33 +1,32 @@
+# ===========================================================================
+#       https://www.gnu.org/software/autoconf-archive/ax_var_push.html
+# ===========================================================================
 #
 # SYNOPSIS
 #
 #   AX_VAR_PUSHVALUE(VARIABLE, [VALUE])
-#   Stores a copy of variable_name's value and assigns it to 'value'
-#   If no value is given, its original value is kept.
-#
-#   AX_VAR_POPVALUE(VARIABLE)
-#   Restores a variable_name's original value
 #
 # DESCRIPTION
 #
-#   Compile, link and running tests usually require the programmer to
-#   provide additional flags. However, it is strongly recommended not
-#   to override flags defined by the user through the configure command.
-#   AX_VAR_PUSHVALUE and AX_VAR_POPVALUE are clean way to temporarily
-#   store a variable's value and restore it later, using a stack-like
-#   behaviour.
-#   These macros support nested push/pop levels
+#   Stores a copy of variable_name's value and assigns it to 'value' If no
+#   value is given, its original value is kept. Compile, link and running
+#   tests usually require the programmer to provide additional flags.
+#   However, it is strongly recommended not to override flags defined by the
+#   user through the configure command. AX_VAR_PUSHVALUE and AX_VAR_POPVALUE
+#   are clean way to temporarily store a variable's value and restore it
+#   later, using a stack-like behaviour. This macro supports nesting.
 #
 #   Example:
-#   AX_VAR_PUSHVALUE([CXXFLAGS],["my test flags"])
-#   perform some checks with CXXFLAGS...
-#   CXXFLAGS value will be "my test flags"
-#   AX_VAR_POPVALUE([CXXFLAGS])
-#   CXXFLAGS is restored to its original value
+#
+#     AX_VAR_PUSHVALUE([CXXFLAGS],["my test flags"])
+#     perform some checks with CXXFLAGS...
+#     CXXFLAGS value will be "my test flags"
+#     AX_VAR_POPVALUE([CXXFLAGS])
+#     CXXFLAGS is restored to its original value
 #
 # LICENSE
 #
-#   Copyright (c) 2015 Jorge Bellon <jbellon@bsc.es>
+#   Copyright (c) 2015 Jorge Bellon <jbelloncastro@gmail.com>
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -40,7 +39,7 @@
 #   Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 #   As a special exception, the respective Autoconf Macro's copyright owner
 #   gives unlimited permission to copy, distribute and modify the configure
@@ -54,35 +53,9 @@
 #   Macro released by the Autoconf Archive. When you make and distribute a
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
-#
-# Auxiliary macros
-#
-# -------------------------
-# increment
-# Increment the value of a named counter.
-# Initialize to 1 if not defined
-# -------------------------
-m4_define([increment],[dnl
-  m4_ifdef([$1],dnl
-    [m4_define([$1],m4_incr($1))],dnl
-    [m4_define([$1],[1])]dnl
-  )dnl
-])dnl
-# -------------------------
-# decrement
-# Decrement the value of a named counter.
-# Throws an error if counter not defined
-# or value reaches zero.
-# -------------------------
-m4_define([decrement],[dnl
- m4_ifdef([$1],dnl
-   [m4_if(m4_eval($1 > 0),
-     [1],m4_define([$1],m4_decr($1)),dnl
-     [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])]dnl
-   )],dnl
-   [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])])dnl
-])dnl
-# Main macros
+
+#serial 3
+
 AC_DEFUN([AX_VAR_PUSHVALUE],[
   increment([$1_counter])
 
@@ -106,3 +79,36 @@ AC_DEFUN([AX_VAR_POPVALUE],[
   AS_VAR_POPDEF([variable]) dnl
   AS_VAR_POPDEF([backup]) dnl
 ])dnl AX_POP_VAR
+
+# -------------------------
+# Auxiliary macro
+# -------------------------
+# increment(counter_name)
+#
+# Increment the value of a named counter.
+# Initialize to 1 if not defined
+# -------------------------
+m4_define([increment],[dnl
+  m4_ifdef([$1],dnl
+    [m4_define([$1],m4_incr($1))],dnl
+    [m4_define([$1],[1])]dnl
+  )dnl
+])dnl
+
+# -------------------------
+# Auxiliary macro
+# -------------------------
+# decrement(counter_name)
+#
+# Decrement the value of a named counter.
+# Throws an error if counter not defined
+# or value reaches zero.
+# -------------------------
+m4_define([decrement],[dnl
+ m4_ifdef([$1],dnl
+   [m4_if(m4_eval($1 > 0),
+     [1],m4_define([$1],m4_decr($1)),dnl
+     [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])]dnl
+   )],dnl
+   [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])])dnl
+])dnl
