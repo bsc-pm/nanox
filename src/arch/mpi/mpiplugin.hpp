@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2009-2018 Barcelona Supercomputing Center                          */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -14,7 +14,7 @@
 /*      GNU Lesser General Public License for more details.                          */
 /*                                                                                   */
 /*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*      along with NANOS++.  If not, see <https://www.gnu.org/licenses/>.            */
 /*************************************************************************************/
 
 #ifndef _NANOS_MPIPLUGIN_HPP
