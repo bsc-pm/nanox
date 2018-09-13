@@ -15,7 +15,7 @@ The runtime provides several services to support task parallelism using a
 synchronization mechanism based on **data-dependencies**. Data parallelism is
 also supported by means of services mapped on top of its task support. Task are
 implemented as **user-level threads** when possible (currently x86, x86-64,
-ia64, arm, ppc32 and ppc64 are supported). It also provides support for
+ia64, arm, aarch64, ppc32 and ppc64 are supported). It also provides support for
 maintaining coherence across different address spaces (such as with GPUs or
 cluster nodes) by means of a **directory/cache** mechanism.
 
