@@ -45,8 +45,8 @@ PLUGINS="@PLUGINS@"
 
 # Common to all versions
 cat << EOF
-test_CC=@MCC@
-test_CXX=@MCXX@
+test_CC="@MCC@"
+test_CXX="@MCXX@"
 EOF
 
 # Specific to each version

@@ -44,8 +44,8 @@ LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -Xlinker --as-need
 
 # Common to all versions
 cat << EOF
-test_CC=@CC@
-test_CXX=@CXX@
+test_CC="@CC@"
+test_CXX="@CXX@"
 EOF
 
 # Specific to each version
