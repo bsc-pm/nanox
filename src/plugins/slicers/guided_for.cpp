@@ -68,6 +68,7 @@ bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor**
 {
    bool retval = false;
 
+   //! nli represents the chunk of iterations pending to be executed
    nanos_loop_info_t *nli = ( nanos_loop_info_t * ) wd->getData();
 
    int64_t _niters = ((( nli->upper - nli->lower) / nli->step ) + 1 );
@@ -75,18 +76,20 @@ bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor**
    int64_t _upper = nli->lower + _chunk * nli->step ;
 
    //! Computing empty iteration spaces to avoid infinite task generation
-   bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;
-   empty = empty || (( nli->step < 0 ) && (nli->lower < nli->upper )) ? true : false;
-
-   if ( (_upper >= nli->upper) || empty ) {
+   bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ||
+                (( nli->step < 0 ) && (nli->lower < nli->upper ));
+   if (empty ||
+         (_upper >= nli->upper && nli->step > 0) ||
+         (_upper <= nli->upper && nli->step < 0)) {
       *slice = wd; retval = true;
    } else {
       WorkDescriptor *nwd = NULL;
       sys.duplicateWD( &nwd, wd );
+      // Advance the lower bound of the chunk of iterations pending to be executed
       nli->lower = _upper + nli->step;
 
-      nli = ( nanos_loop_info_t * ) nwd->getData();
-      nli->upper = _upper;
+      nanos_loop_info_t *current_nli = ( nanos_loop_info_t * ) nwd->getData();
+      current_nli->upper = _upper;
       sys.setupWD(*nwd, wd );
 
       *slice = nwd;
