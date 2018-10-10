@@ -23,24 +23,6 @@ test_generator=gens/core-generator
 </testinfo>
 */
 
-#include "config.hpp"
-#include <nanos.h>
-#include <iostream>
-#include "smpprocessor.hpp"
-#include "system.hpp"
-#include "slicer.hpp"
-#include "plugin.hpp"
-#include "slicer_for.h"
-
-using namespace std;
-
-using namespace nanos;
-using namespace nanos::ext;
-
-#define NUM_ITERS      20
-#define VECTOR_SIZE    1000
-#define VECTOR_MARGIN  20
-
 // The program will create all possible permutation using NUM_{A,B,C}
 // for step and chunk. For a complete testing purpose they have to be:
 // -  single step/chunk: 1 ('one')
@@ -50,86 +32,39 @@ using namespace nanos::ext;
 #define NUM_B          5
 #define NUM_C          13
 
-#define STEP_ERROR     17
+// Mandatory definitions before including "slicer_for.hpp"
+#define NUM_ITERS      20
+#define VECTOR_SIZE    1000
+#define VECTOR_MARGIN  20
 
-// Output information level:
+// Optional definitions before including "slicer_for.hpp"
 //#define VERBOSE
 //#define EXTRA_VERBOSE
+//#define INVERT_LOOP_BOUNDARIES
 
-int *A;
-
-void print_vector();
-
-typedef struct {
-   nanos_loop_info_t loop_info;
-   int offset;
-} main__loop_1_data_t;
-
-void main__loop_1 ( void *args );
-
-void main__loop_1 ( void *args )
-{
-   int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
-#ifdef VERBOSE
-   fprintf(stderr,"[%d..%d:%d/%d]",
-      hargs->loop_info.lower, hargs->loop_info.upper, hargs->loop_info.step, hargs->offset);
-#endif
-   if ( hargs->loop_info.step > 0 )
-   {
-      for ( i = hargs->loop_info.lower; i <= hargs->loop_info.upper; i += hargs->loop_info.step) {
-         A[i+hargs->offset]++;
-      }
-   }
-   else if ( hargs->loop_info.step < 0 )
-   {
-      for ( i = hargs->loop_info.lower; i >= hargs->loop_info.upper; i += hargs->loop_info.step) {
-         A[i+hargs->offset]++;
-      }
-   }
-   else {A[-VECTOR_MARGIN] = STEP_ERROR; }
-
-}
-
-void print_vector ()
-{
-#ifdef EXTRA_VERBOSE
-   for ( int j = -5; j < 0; j++ ) fprintf(stderr,"%d:",A[j]);
-   fprintf(stderr,"[");
-   for ( int j = 0; j <= VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
-   fprintf(stderr,"]");
-   for ( int j = VECTOR_SIZE+1; j < VECTOR_SIZE+6; j++ ) fprintf(stderr,"%d:",A[j]);
-   fprintf(stderr,"\n");
-#endif
-}
+#include "slicer_for.hpp"
+#include <iostream>
 
 int main ( int argc, char **argv )
 {
-   int i;
-   bool check = true; 
-   bool p_check = true, out_of_range = false, race_condition = false, step_error= false;
-   int I[VECTOR_SIZE+2*VECTOR_MARGIN];
-   main__loop_1_data_t _loop_data;
-   
-   A = &I[VECTOR_MARGIN];
-
-#ifdef VERBOSE
-   fprintf(stderr,"SLICER_FOR: Initializing vector.\n");
-#endif
-
-   // initialize vector
-   for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
+   int error = 0;
 
 #ifdef VERBOSE
    fprintf(stderr,"SLICER_FOR: guided_for begins.\n");
 #endif
-   TEST_SLICER("guided_for", SlicerDataFor)
+   error += slicer_test("guided_for", "sched_guided (A,A)", NUM_A, NUM_A);
+   error += slicer_test("guided_for", "sched_guided (B,A)", NUM_B, NUM_A);
+   error += slicer_test("guided_for", "sched_guided (C,A)", NUM_C, NUM_A);
+   error += slicer_test("guided_for", "sched_guided (A,B)", NUM_A, NUM_B);
+   error += slicer_test("guided_for", "sched_guided (B,B)", NUM_B, NUM_B);
+   error += slicer_test("guided_for", "sched_guided (C,B)", NUM_C, NUM_B);
+   error += slicer_test("guided_for", "sched_guided (A,C)", NUM_A, NUM_C);
+   error += slicer_test("guided_for", "sched_guided (B,C)", NUM_B, NUM_C);
+   error += slicer_test("guided_for", "sched_guided (C,C)", NUM_C, NUM_C);
 #ifdef VERBOSE
    fprintf(stderr,"SLICER_FOR: guided_for ends.\n");
 #endif
 
-   // final result
-   //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");
-   if (check) { return 0; } else { return -1; }
+   std::cout << argv[0] << (!error ? ": successful" : ": unsuccessful") << std::endl;
+   return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }
-

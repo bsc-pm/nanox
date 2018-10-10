@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <https://www.gnu.org/licenses/>.            */
 /*************************************************************************************/
 
-#ifndef WORKSHARING_HPP
-#define WORKSHARING_HPP
+#ifndef _SLICER_FOR_H
+#define _SLICER_FOR_H
 
 #if !defined(NUM_ITERS) || \
    !defined(VECTOR_SIZE) || \
@@ -30,62 +30,97 @@
 #endif
 
 #include "nanos.h"
-#include "nanos_omp.h"
+#include "system_decl.hpp"
+#include "slicer_decl.hpp"
+#include "smpprocessor.hpp"
+#include "plugin.hpp"
 #include <stdio.h>
+#include <string>
+
+using namespace nanos;
+using namespace nanos::ext;
 
 enum { STEP_ERR = -17 };
 
-struct nanos_args_0_t {
-   nanos_ws_desc_t *wsd_1;
-   int step;
+typedef struct {
+   nanos_loop_info_t loop_info;
    int offset;
-};
+} main__loop_1_data_t;
 
-void execute(nanos_omp_sched_t sched, int lower, int upper, int offset, int step, int chunk);
+void main__loop_1(void *args);
+void execute(std::string slicer_name, int lower, int upper, int offset, int step, int chunk);
 int check(const char *desc, const char *lower, const char *upper,
       const char *offset, int step, int chunk);
-int ws_test(nanos_omp_sched_t sched, const char *desc, int step, int chunk);
-void main__loop_1(struct nanos_args_0_t *const args);
+int slicer_test(std::string slicer, const char *desc, int step, int chunk);
 void print_vector();
 
 static int I[VECTOR_SIZE+2*VECTOR_MARGIN] = {0};
 static int *A = &I[VECTOR_MARGIN];
 
-void execute(nanos_omp_sched_t sched, int lower, int upper, int offset, int step, int chunk)
-{
-   for (int i = 0; i < NUM_ITERS; i++) {
-      /* Set up worksharing */
-      nanos_ws_desc_t *wsd_1 = NULL;;
-      nanos_ws_info_loop_t nanos_setup_info_loop;
-      nanos_setup_info_loop.lower_bound = lower + offset;
-      nanos_setup_info_loop.upper_bound = upper + offset;
-      nanos_setup_info_loop.loop_step = step;
-      nanos_setup_info_loop.chunk_size = chunk;
-      nanos_ws_t current_ws_policy = nanos_omp_find_worksharing(sched);
-      nanos_worksharing_create(&wsd_1, current_ws_policy, (void **)&nanos_setup_info_loop, 0);
 
-      /* Set up Slicer WD */
-      static nanos_slicer_t replicate = nanos_find_slicer("replicate");
-      nanos_wd_t nanos_wd = 0;
-      struct nanos_args_0_t *ol_args = NULL;
-      static nanos_smp_args_t smp_ol_main_0_args;
-      smp_ol_main_0_args.outline =
-         (void (*)(void *))(void (*)(struct nanos_args_0_t *))&main__loop_1;
-      nanos_wd_dyn_props_t nanos_wd_dyn_props = {0};
-      static nanos_device_t devices[1] = {{ &nanos_smp_factory, &smp_ol_main_0_args }};
-      static nanos_wd_props_t props;
-      props.mandatory_creation = 1;
-      props.tied = 1;
-      nanos_create_sliced_wd(&nanos_wd, 1, devices, sizeof(struct nanos_args_0_t),
-            __alignof__(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(),
-            replicate, &props, &nanos_wd_dyn_props, 0, NULL, 0, NULL);
-      /* Set up outline arguments */
-      (*ol_args).wsd_1 = wsd_1;
-      (*ol_args).step = step;
-      (*ol_args).offset = -offset;
+void main__loop_1 ( void *args )
+{
+   main__loop_1_data_t *hargs = (main__loop_1_data_t*) args;
+   int lower = hargs->loop_info.lower;
+   int upper = hargs->loop_info.upper;
+   int step = hargs->loop_info.step;
+   int offset = hargs->offset;
+
+#ifdef VERBOSE
+   fprintf(stderr,"[%d..%d:%d/%d]", lower, upper, step, offset);
+#endif
+
+   if ( step > 0 ) {
+      for ( int i = lower; i <= upper; i += step) {
+         A[i+offset]++;
+      }
+   }
+   else if ( step < 0 ) {
+      for ( int i = lower; i >= upper; i += step) {
+         A[i+offset]++;
+      }
+   }
+   else {
+      A[-VECTOR_MARGIN] = STEP_ERR;
+   }
+}
+
+void execute(std::string slicer_name, int lower, int upper, int offset, int step, int chunk)
+{
+#ifdef INVERT_LOOP_BOUNDARIES
+   int _lower = lower;
+   lower = upper;
+   upper = _lower;
+#endif
+
+   for (int i = 0; i < NUM_ITERS; i++) {
+      /* Load plugin */
+      sys.loadPlugin( "slicer-" + slicer_name );
+      Slicer *slicer = sys.getSlicer ( slicer_name );
+
+      /* set up Work Descriptor */
+      main__loop_1_data_t _loop_data;
+      _loop_data.offset = -offset;
+      WD * wd = new WorkDescriptor( new SMPDD( main__loop_1 ), sizeof( _loop_data ),
+            __alignof__(nanos_loop_info_t),( void * ) &_loop_data, 0, NULL, NULL );
+      wd->setSlicer( slicer );
+      _loop_data.loop_info.lower = lower + offset;
+      _loop_data.loop_info.upper = upper + offset;
+      _loop_data.loop_info.step = step;
+      _loop_data.loop_info.chunk = chunk;
+
       /* Submit and wait completion */
-      nanos_submit(nanos_wd, 0, 0, 0);
-      nanos_wg_wait_completion(nanos_current_wd(), 0);
+      WD *wg = getMyThreadSafe()->getCurrentWD();
+      wg->addWork( *wd );
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+         sys.getPMInterface().initInternalData( idata );
+         wd->setInternalData( idata );
+      }
+      sys.setupWD( *wd, (nanos::WD *) wg );
+      sys.submit( *wd );
+      wg->waitCompletion();
+
       /* Undo increment done by the worksharing */
       if (step > 0)
          for (int j = lower+offset; j <= upper+offset; j+= step)
@@ -128,74 +163,32 @@ int check(const char *desc, const char *lower, const char *upper,
    return error;
 }
 
-int ws_test(nanos_omp_sched_t sched, const char *desc, int step, int chunk)
+int slicer_test(std::string slicer, const char *desc, int step, int chunk)
 {
    int error = 0;
 
-   execute(sched, 0, VECTOR_SIZE, 0, +step, chunk);
+   execute(slicer, 0, VECTOR_SIZE, 0, +step, chunk);
    error += check(desc, "0", "+", "+0000", +step, chunk);
-   execute(sched, VECTOR_SIZE-1, -1, 0, -step, chunk);
+   execute(slicer, VECTOR_SIZE-1, -1, 0, -step, chunk);
    error += check(desc, "+", "0", "+0000", -step, chunk);
-   execute(sched, 0, VECTOR_SIZE, -VECTOR_SIZE, +step, chunk);
+   execute(slicer, 0, VECTOR_SIZE, -VECTOR_SIZE, +step, chunk);
    error += check(desc, "-", "0", "-VS  ", +step, chunk);
-   execute(sched, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -step, chunk);
+   execute(slicer, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -step, chunk);
    error += check(desc, "0", "-", "-VS  ", -step, chunk);
-   execute(sched, 0, VECTOR_SIZE, VECTOR_SIZE/2, +step, chunk);
+   execute(slicer, 0, VECTOR_SIZE, VECTOR_SIZE/2, +step, chunk);
    error += check(desc, "+", "+", "+VS/2", +step, chunk);
-   execute(sched, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -step, chunk);
+   execute(slicer, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -step, chunk);
    error += check(desc, "+", "+", "+VS/2", -step, chunk);
-   execute(sched, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +step, chunk);
+   execute(slicer, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +step, chunk);
    error += check(desc, "-", "+", "-VS/2", +step, chunk);
-   execute(sched, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -step, chunk);
+   execute(slicer, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -step, chunk);
    error += check(desc, "+", "-", "-VS/2", -step, chunk);
-   execute(sched, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +step, chunk);
+   execute(slicer, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +step, chunk);
    error += check(desc, "-", "-", "-VS  ", +step, chunk);
-   execute(sched, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -step, chunk);
+   execute(slicer, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -step, chunk);
    error += check(desc, "-", "-", "-VS  ", -step, chunk);
 
    return error;
-}
-
-void main__loop_1(struct nanos_args_0_t *const args)
-{
-   nanos_ws_desc_t *wsd_1 = (*args).wsd_1;
-   int step = (*args).step;
-   int offset = (*args).offset;
-
-   int i;
-   nanos_ws_item_loop_t nanos_item_loop;
-
-   nanos_worksharing_next_item(wsd_1, (void**)&nanos_item_loop);
-#ifdef VERBOSE
-   fprintf(stderr,"First item: [%d..%d:%d/%d]\n",
-         nanos_item_loop.lower,
-         nanos_item_loop.upper,
-         step,
-         offset);
-#endif
-
-   while (nanos_item_loop.execute)
-   {
-      if (step > 0)
-      {
-         for (i = nanos_item_loop.lower; i <= nanos_item_loop.upper; i += step)
-         {
-            A[i+offset]++;
-         }
-      }
-      else if (step < 0)
-      {
-         for (i = nanos_item_loop.lower; i >= nanos_item_loop.upper; i += step)
-         {
-            A[i+offset]++;
-         }
-      }
-      else
-      {
-         I[0] = STEP_ERR;
-      }
-      nanos_worksharing_next_item(wsd_1, (void**)&nanos_item_loop);
-   }
 }
 
 void print_vector()
@@ -210,4 +203,4 @@ void print_vector()
 #endif
 }
 
-#endif /* WORKSHARING_HPP */
+#endif /* SLICER_FOR_HPP */
