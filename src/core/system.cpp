@@ -1293,10 +1293,9 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 
    //! \note Getting rest of the members 
    while ( remaining_threads > 0 ) {
-
       BaseThread *thread = getUnassignedWorker();
       // Check if we don't have a worker because it needs to be created
-      if ( !thread && _workers.size() < nthreads ) {
+      if ( !thread ) {
          _smpPlugin->createWorker( _workers );
          continue;
       }
