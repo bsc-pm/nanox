@@ -430,6 +430,9 @@ void ThreadManager::waitForCpuAvailability()
          /* CPU is not yet available */
          OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
          sched_yield();
+      } else if ( dlb_err == DLB_NOUPDT ) {
+         /* CPU is not reclaimed, ask again */
+         DLB_AcquireCpu( my_cpu );
       }
    }
 #endif
