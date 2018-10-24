@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include "system.hpp"
+#include "os.hpp"
 
 /*
 <testinfo>
@@ -45,13 +46,15 @@ int main ( int argc, char *argv[])
    );
    if ( myThread->getTeam()->getFinalSize() != NTHREADS_PHASE_1 ) error++;
 
-   sys.updateActiveWorkers( NTHREADS_PHASE_2 );
+   if ( OS::getMaxProcessors() >= NTHREADS_PHASE_2 ) {
+      sys.updateActiveWorkers( NTHREADS_PHASE_2 );
 
-   fprintf(stdout,"Thread team final size is %d and %d is expected\n",
-      (int) myThread->getTeam()->getFinalSize(),
-            NTHREADS_PHASE_2
-   );
-   if ( myThread->getTeam()->getFinalSize() != NTHREADS_PHASE_2 ) error++;
+      fprintf(stdout,"Thread team final size is %d and %d is expected\n",
+         (int) myThread->getTeam()->getFinalSize(),
+               NTHREADS_PHASE_2
+      );
+      if ( myThread->getTeam()->getFinalSize() != NTHREADS_PHASE_2 ) error++;
+   }
 
    fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
 

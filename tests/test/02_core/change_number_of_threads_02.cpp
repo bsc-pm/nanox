@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include "system.hpp"
+#include "os.hpp"
 
 /*
 <testinfo>
@@ -38,11 +39,11 @@ int main ( int argc, char *argv[])
 {
    int i, error = 0;
    unsigned nths = 0;
-   
+   int max_threads = std::min( OS::getMaxProcessors(), 4 );
 
    for ( i=0; i<ITERS; i++ ) {
 
-      nths = ((nths) % 4) + 1;
+      nths = (nths % max_threads) + 1;
 
       sys.updateActiveWorkers( nths );
 
