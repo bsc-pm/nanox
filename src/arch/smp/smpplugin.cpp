@@ -1079,12 +1079,6 @@ nanos::PE * smpProcessorFactory ( int id, int uid )
 
    void SMPPlugin::createWorker( ext::SMPProcessor *target, std::map<unsigned int, BaseThread *> &workers )
    {
-      /* Max threads will be either the max number of PEs
-       * or the requested --smp-threads in case of oversubscription */
-      int max_threads = std::max( _requestedWorkers, _availableCPUs );
-      fatal_cond( workers.size() >= static_cast<unsigned int>(max_threads),
-            "Thread limit reached at " << max_threads << " threads" );
-
       NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
       if ( !target->isActive() ) {
          target->setActive();
