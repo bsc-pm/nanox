@@ -28,6 +28,8 @@
 
 #include "libxdma.h"
 
+#warning "The FPGA arch is no longer maintained here. The development has been moved to a Nanos++ fork"
+
 namespace nanos {
 namespace ext {
 
@@ -51,6 +53,12 @@ class FPGAPlugin : public ArchPlugin
        */
       void init()
       {
+         fatal0( "=================================================================" );
+         fatal0( "== The FPGA support is no longer maintained here.              ==" );
+         fatal0( "== The development has been moved to a Nanos++ fork.           ==" );
+         fatal0( "== Visit https://pm.bsc.es/ompss-at-fpga for more information. ==" );
+         fatal0( "=================================================================" );
+
          FPGAConfig::apply();
          _fpgas = NEW std::vector< FPGAProcessor* >( FPGAConfig::getNumFPGAThreads(),( FPGAProcessor* )NULL) ;
          _fpgaThreads = NEW std::vector< FPGAThread* >( FPGAConfig::getNumFPGAThreads(),( FPGAThread* )NULL) ;
