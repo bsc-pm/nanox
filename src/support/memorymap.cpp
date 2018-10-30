@@ -59,7 +59,7 @@ void MemoryMap< uint64_t >::insertWithOverlapButNotGenerateIntersects( const Mem
    MemoryChunk iterKey = key;
    bool reuseFirstPos = false;
    int firstCase = 0;
-   
+
    if ( !this->empty() )
    {
       if ( hint != this->begin() )
@@ -269,6 +269,11 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
                ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
             val = it->second;
             exact = false;
+         } else {
+            conflictAddr = it->first.getAddress();
+            conflictSize = it->first.getLength();
+            val = valIfNotValid;
+            exact = false;
          }
       }
    } else if ( this->key_comp()( key, it->first ) ) {
@@ -290,11 +295,12 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
                   ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
                val = it->second;
                exact = false;
+            } else {
+               conflictAddr = it->first.getAddress();
+               conflictSize = it->first.getLength();
+               val = valIfNotValid;
+               exact = false;
             }
-
-            //it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
-            //val = it->second;
-            //exact = true;
          }
       } else {
          conflictAddr = it->first.getAddress();
