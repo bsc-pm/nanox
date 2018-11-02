@@ -201,7 +201,14 @@ support_sources = \
 	dbmanager.hpp \
 	$(END)
 
+sqlite3_cppflags =
+sqlite3_ldflags =
+sqlite3_libadd =
+if OPENCL_SUPPORT
 if SQLITE3_SUPPORT
+sqlite3_cppflags += @sqlite3inc@
+sqlite3_ldflags += @sqlite3lib@
+sqlite3_libadd += @sqlite3libs@
 support_sources += \
 	dbmanager_sqlite3.hpp \
 	dbmanager_sqlite3.cpp \
@@ -210,6 +217,7 @@ else
 	dbmanager_sqlite3_empty.hpp \
 	dbmanager_sqlite3_empty.cpp \
 	$(END)
+endif
 endif
 
 debug_sources = \
@@ -233,40 +241,40 @@ noinst_LTLIBRARIES =
 if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsupport.la
 
-debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @cudainc@ @sqlite3inc@
+debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @cudainc@ $(sqlite3_cppflags)
 debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @sqlite3lib@
-debug_libsupport_la_LIBADD=@sqlite3libs@
+debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ $(sqlite3_ldflags)
+debug_libsupport_la_LIBADD=$(sqlite3_libadd)
 endif
 
 if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
-instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @cudainc@ @sqlite3inc@
+instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @cudainc@ $(sqlite3_cppflags)
 instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
-instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @sqlite3lib@
-instrumentation_debug_libsupport_la_LIBADD=@sqlite3libs@
+instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ $(sqlite3_ldflags)
+instrumentation_debug_libsupport_la_LIBADD=$(sqlite3_libadd)
 endif
 
 if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libsupport.la
 
-instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @cudainc@ @sqlite3inc@
+instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @cudainc@ $(sqlite3_cppflags)
 instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @sqlite3lib@
-instrumentation_libsupport_la_LIBADD=@sqlite3libs@
+instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ $(sqlite3_ldflags)
+instrumentation_libsupport_la_LIBADD=$(sqlite3_libadd)
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libsupport.la
 
-performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @cudainc@ @sqlite3inc@
+performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @cudainc@ $(sqlite3_cppflags)
 performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
-performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @sqlite3lib@
-performance_libsupport_la_LIBADD=@sqlite3libs@
+performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @cudalib@ $(sqlite3_ldflags)
+performance_libsupport_la_LIBADD=$(sqlite3_libadd)
 endif
 
