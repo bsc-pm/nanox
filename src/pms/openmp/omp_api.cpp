@@ -62,7 +62,11 @@ extern "C"
    NANOS_API_DEF(int, omp_get_thread_num, ( void ))
    {
       //! \todo check if master always gets a 0 -> ensure condition ?
-      return myThread->getTeamData()->getId();
+      if (myThread && myThread->getTeamData()) {
+         return myThread->getTeamData()->getId();
+      } else {
+         return -1;
+      }
    }
 
    int nanos_omp_get_thread_num ( void ) __attribute__ ((alias ("omp_get_thread_num")));
