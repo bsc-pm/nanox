@@ -792,13 +792,19 @@ endif
 ######################################################################################################
 #### Instrumentation #################################################################################
 ######################################################################################################
-mpitrace_cxxflags=-I@MPITRACE_INC@ -DMPITRACE_BIN='"@MPITRACE_BIN@"' -DPREFIX='"$(prefix)"'
-mpitrace_ldflags=-L@MPITRACE_LIB@ -lnanostrace
+if instrumentation_EXTRAE
+extrae_cppflags=-I@EXTRAE_INC@
+extrae_ldflags=-L@EXTRAE_LIB@ -lnanostrace
+endif
 
-ayudame_cxxflags=-I@AYUDAME_INC@ -DPREFIX='"$(prefix)"'
+if instrumentation_AYUDAME
+ayudame_cppflags=-I@AYUDAME_INC@ -DPREFIX='"$(prefix)"'
 ayudame_ldflags=-L@AYUDAME_LIB@ -layudame
+endif
 
-nextsim_cxxflags=-I@NEXTSIM_INC@ -DPREFIX='"$(prefix)"'
+if instrumentation_NEXTSIM
+nextsim_cppflags=-I@NEXTSIM_INC@ -DPREFIX='"$(prefix)"'
+endif
 
 empty_sources=\
 	instrumentation/empty_trace.cpp \
@@ -838,11 +844,6 @@ ompt_sources=\
 	instrumentation/ompt-headers/ompt-types-callbacks.h \
     $(END)
 
-if instrumentation_EXTRAE
-extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
-extrae_mpitrace_ldflags=$(mpitrace_ldflags)
-endif
-
 if is_debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-instrumentation-empty_trace.la \
@@ -874,15 +875,15 @@ debug_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 debug_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
 if instrumentation_EXTRAE
-debug_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(extrae_mpitrace_cxxflags)
-debug_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_debug_CXXFLAGS) $(extrae_mpitrace_cxxflags)
-debug_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
+debug_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_debug_CPPFLAGS)
+debug_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_debug_CXXFLAGS)
+debug_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 debug_libnanox_instrumentation_extrae_la_SOURCES=$(extrae_sources)
 endif
 
 if instrumentation_AYUDAME
-debug_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(ayudame_cxxflags)
-debug_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_debug_CXXFLAGS) $(ayudame_cxxflags)
+debug_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(ayudame_cppflags)
+debug_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_instrumentation_ayudame_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(ayudame_ldflags)
 debug_libnanox_instrumentation_ayudame_la_SOURCES=$(ayudame_sources)
 endif
@@ -924,15 +925,15 @@ instrumentation_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugi
 instrumentation_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
 if instrumentation_EXTRAE
-instrumentation_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(extrae_mpitrace_cxxflags)
-instrumentation_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS) $(extrae_mpitrace_cxxflags)
-instrumentation_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
+instrumentation_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(extrae_cppflags)
+instrumentation_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_ldflags)
 instrumentation_libnanox_instrumentation_extrae_la_SOURCES=$(extrae_sources)
 endif
 
 if instrumentation_AYUDAME
-instrumentation_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(ayudame_cxxflags)
-instrumentation_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS) $(ayudame_cxxflags)
+instrumentation_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(ayudame_cppflags)
+instrumentation_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libnanox_instrumentation_ayudame_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(ayudame_ldflags)
 instrumentation_libnanox_instrumentation_ayudame_la_LIBADD=$(top_builddir)/src/apis/instrumentation/libnanox-c.la
 instrumentation_libnanox_instrumentation_ayudame_la_SOURCES=$(ayudame_sources)
@@ -940,8 +941,8 @@ instrumentation_libnanox_instrumentation_ayudame_la_DEPENDENCIES=$(top_builddir)
 endif
 
 if instrumentation_NEXTSIM
-instrumentation_libnanox_instrumentation_nextsim_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(nextsim_cxxflags)
-instrumentation_libnanox_instrumentation_nextsim_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS) $(nextsim_cxxflags)
+instrumentation_libnanox_instrumentation_nextsim_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(nextsim_cppflags)
+instrumentation_libnanox_instrumentation_nextsim_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libnanox_instrumentation_nextsim_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_nextsim_la_SOURCES=$(nextsim_sources)
 endif
@@ -985,15 +986,15 @@ instrumentation_debug_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld
 instrumentation_debug_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
 if instrumentation_EXTRAE
-instrumentation_debug_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(extrae_mpitrace_cxxflags)
-instrumentation_debug_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS) $(extrae_mpitrace_cxxflags)
-instrumentation_debug_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
+instrumentation_debug_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(extrae_cppflags)
+instrumentation_debug_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_ldflags)
 instrumentation_debug_libnanox_instrumentation_extrae_la_SOURCES=$(extrae_sources)
 endif
 
 if instrumentation_AYUDAME
-instrumentation_debug_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(ayudame_cxxflags)
-instrumentation_debug_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS) $(ayudame_cxxflags)
+instrumentation_debug_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(ayudame_cppflags)
+instrumentation_debug_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libnanox_instrumentation_ayudame_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(ayudame_ldflags)
 instrumentation_debug_libnanox_instrumentation_ayudame_la_SOURCES=$(ayudame_sources)
 endif
@@ -1036,15 +1037,15 @@ performance_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_fl
 performance_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
 if instrumentation_EXTRAE
-performance_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(extrae_mpitrace_cxxflags)
-performance_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_performance_CXXFLAGS) $(extrae_mpitrace_cxxflags)
-performance_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
+performance_libnanox_instrumentation_extrae_la_CPPFLAGS=$(common_performance_CPPFLAGS)
+performance_libnanox_instrumentation_extrae_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libnanox_instrumentation_extrae_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 performance_libnanox_instrumentation_extrae_la_SOURCES=$(extrae_sources)
 endif
 
 if instrumentation_AYUDAME
-performance_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(ayudame_cxxflags)
-performance_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_performance_CXXFLAGS) $(ayudame_cxxflags)
+performance_libnanox_instrumentation_ayudame_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(ayudame_cppflags)
+performance_libnanox_instrumentation_ayudame_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libnanox_instrumentation_ayudame_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(ayudame_ldflags)
 performance_libnanox_instrumentation_ayudame_la_SOURCES=$(ayudame_sources)
 endif

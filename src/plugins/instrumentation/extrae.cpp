@@ -21,8 +21,6 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "instrumentationcontext_decl.hpp"
-#include <extrae_types.h>
-#include <mpitrace_user_events.h>
 #include "debug.hpp"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -39,6 +37,10 @@
 #include "errno.h"
 #include <unistd.h>
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#include <extrae_types.h>
+#include <mpitrace_user_events.h>
+
 #define extrae_size_t unsigned int
 
 extern "C" {
@@ -50,6 +52,7 @@ extern "C" {
    void         nanos_ompitrace_instrumentation_barrier();
    void         Extrae_change_num_threads (unsigned nthreads);
 }
+#endif
 
 namespace nanos {
 

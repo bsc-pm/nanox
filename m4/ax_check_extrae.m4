@@ -31,10 +31,9 @@ AC_DEFUN([AX_CHECK_EXTRAE],
 [
    AC_REQUIRE([AC_PROG_AWK])
 
-   MPITRACE_HOME=""
-   MPITRACE_INC=""
-   MPITRACE_LIB=""
-   MPITRACE_BIN=""
+   EXTRAE_HOME=""
+   EXTRAE_INC=""
+   EXTRAE_LIB=""
 
    AC_MSG_CHECKING([for Extrae])
    AC_ARG_WITH([extrae],
@@ -102,23 +101,21 @@ AC_DEFUN([AX_CHECK_EXTRAE],
 
       AC_MSG_CHECKING([if Extrae library is compatible])
       AX_COMPARE_VERSION([$extrae_version],[ge],[2.4], [
-         MPITRACE_HOME="$withval"
-         MPITRACE_INC="$withval/include"
-         MPITRACE_LIB="$withval/lib"
-         AS_IF([test -d "$MPITRACE_HOME/lib64"],[
-            MPITRACE_LIB="$MPITRACE_HOME/lib64"
+         EXTRAE_HOME="$withval"
+         EXTRAE_INC="$withval/include"
+         EXTRAE_LIB="$withval/lib"
+         AS_IF([test -d "$EXTRAE_HOME/lib64"],[
+            EXTRAE_LIB="$EXTRAE_HOME/lib64"
          ])
-         MPITRACE_BIN="$withval/bin"
          AC_MSG_RESULT([yes])
       ],[
          AC_MSG_ERROR([no (Extrae >= 2.4 needed)])
       ])
    ])
 
-   AC_SUBST([MPITRACE_HOME])
-   AC_SUBST([MPITRACE_INC])
-   AC_SUBST([MPITRACE_LIB])
-   AC_SUBST([MPITRACE_BIN])
+   AC_SUBST([EXTRAE_HOME])
+   AC_SUBST([EXTRAE_INC])
+   AC_SUBST([EXTRAE_LIB])
 
-   AM_CONDITIONAL([instrumentation_EXTRAE], test x"$MPITRACE_HOME" != x)
+   AM_CONDITIONAL([instrumentation_EXTRAE], test x"$EXTRAE_HOME" != x)
 ])
