@@ -288,6 +288,7 @@ class InstrumentationExtrae: public Instrumentation
 
         /* Keep current number of threads */
         _maxThreads = sys.getSMPPlugin()->getNumThreads();
+        Extrae_change_num_threads( _maxThreads );
       }
       void doLs(std::string dest)
       {
