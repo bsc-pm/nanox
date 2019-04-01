@@ -42,3 +42,4 @@ m4/lt~obsolete.m4
 nbproject
 ar-lib
 nanox-config.h
+*.pyc
