@@ -19,6 +19,34 @@
 
 SUBDIRS = .
 
+LIT_EXTRA = lit/PKG-INFO \
+	    lit/README.txt \
+	    lit/lit.py \
+	    lit/lit/BooleanExpression.py \
+	    lit/lit/LitConfig.py \
+	    lit/lit/LitTestCase.py \
+	    lit/lit/ProgressBar.py \
+	    lit/lit/ShCommands.py \
+	    lit/lit/ShUtil.py \
+	    lit/lit/Test.py \
+	    lit/lit/TestRunner.py \
+	    lit/lit/TestingConfig.py \
+	    lit/lit/__init__.py \
+	    lit/lit/discovery.py \
+	    lit/lit/main.py \
+	    lit/lit/run.py \
+	    lit/lit/util.py \
+	    lit/lit/builtin_commands/__init__.py \
+	    lit/lit/builtin_commands/cat.py \
+	    lit/lit/formats/__init__.py \
+	    lit/lit/formats/base.py \
+	    lit/lit/formats/googletest.py \
+	    lit/lit/formats/shtest.py \
+	    lit/lit/llvm/__init__.py \
+	    lit/lit/llvm/config.py \
+	    lit/lit/llvm/subst.py
+	    $(END)
+
 EXTRA_DIST=\
 	astyle-nanox.sh \
 	bets \
@@ -30,6 +58,7 @@ EXTRA_DIST=\
 	debian/source/format \
 	debian/rules \
 	debian/control \
+	$(LIT_EXTRA) \
 	$(END)
 
 dist_bin_SCRIPTS=\

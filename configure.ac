@@ -95,6 +95,13 @@ AC_C_CONST
 # Compiler dependent Configuration flags
 AX_CONFIG_CC
 
+# --------------------------------
+# Python for lit check
+# --------------------------------
+AM_PATH_PYTHON
+AX_COMPARE_VERSION([$PYTHON_VERSION], [ge], [2.7], [lit=yes], [lit=no])
+AM_CONDITIONAL([LIT_SUPPORT], [test "x$lit" = xyes])
+
 ## -----------------------
 ## Check host architecture
 ## -----------------------
