@@ -24,7 +24,11 @@ EXTRA_DIST = gens/config.py \
 	     litsupport/__init__.py \
 	     litsupport/bets.py
 
+if LIT_SUPPORT
+check-local: lit-check
+else
 check-local: bets-check
+endif
 
 LIT_OPTIONS = --xunit-xml-output=tests.log.xml -sv
 LIT = PYTHONPATH=$(top_srcdir)/tests $(top_srcdir)/scripts/lit/lit.py $(LIT_OPTIONS)
