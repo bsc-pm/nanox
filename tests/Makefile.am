@@ -17,13 +17,22 @@
 #      along with NANOS++.  If not, see <https://www.gnu.org/licenses/>.            #
 #####################################################################################
 
-CLEANFILES=
+CLEANFILES = tests.log tests.log.xml
 
-CLEANFILES+=tests.log
+EXTRA_DIST = gens/config.py \
+	     lit.site.cfg \
+	     litsupport/__init__.py \
+	     litsupport/bets.py
 
-EXTRA_DIST = gens/config.py
+check-local: bets-check
 
-check-local: $(top_srcdir)/scripts/bets
+LIT_OPTIONS = --xunit-xml-output=tests.log.xml -sv
+LIT = PYTHONPATH=$(top_srcdir)/tests $(top_srcdir)/scripts/lit/lit.py $(LIT_OPTIONS)
+
+lit-check:
+	$(LIT) $(srcdir)/test
+
+bets-check: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 
 dist-hook:
