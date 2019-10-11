@@ -414,7 +414,7 @@ namespace nanos
 
          if ( parent != NULL ) {
             OmpSsData *parentData = (OmpSsData *) parent->getInternalData();
-            ensure(data,"parent OmpSs data is missing!");
+            ensure(parentData,"parent OmpSs data is missing!");
 
             *data = *parentData;
          } else {
