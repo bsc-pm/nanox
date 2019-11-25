@@ -40,6 +40,8 @@ EXTRA_DIST= \
 	aarch64/stack_asm.s \
 	tile64/stack.cpp \
 	tile64/stack_asm.s \
+	riscv64/stack.cpp \
+	riscv64/stack_asm.s \
 	smp_ult.hpp \
 	$(END)
 
