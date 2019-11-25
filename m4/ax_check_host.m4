@@ -161,6 +161,12 @@ AS_CASE([$host],
       fi
     fi
   ],
+  [riscv64-*-linux-gnu],
+  [
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=riscv64
+  ],
   [
     # Default
     OS=unix-os
