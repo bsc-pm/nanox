@@ -27,6 +27,10 @@
 #include "schedule.hpp"
 #include <string>
 
+#ifdef NANOS_DEBUG_ENABLED
+#include <valgrind/valgrind.h>
+#endif
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -37,6 +41,13 @@ SMPDevice &nanos::ext::getSMPDevice() {
 }
 
 size_t SMPDD::_stackSize = 256*1024;
+
+inline SMPDD::~SMPDD() {
+   if ( _stack ) delete[] (char *) _stack;
+#ifdef NANOS_DEBUG_ENABLED
+   VALGRIND_STACK_DEREGISTER( _valgrind_stack_id );
+#endif
+}
 
 //! \brief Registers the Device's configuration options
 //! \param reference to a configuration object.
@@ -88,6 +99,10 @@ void SMPDD::lazyInit ( WD &wd, bool isUserLevelThread, WD *previous )
    if (isUserLevelThread) {
       if (previous == NULL) {
          _stack = (void *) NEW char[_stackSize];
+#ifdef NANOS_DEBUG_ENABLED
+         _valgrind_stack_id = VALGRIND_STACK_REGISTER(
+                 _stack, (void*)(((uintptr_t)_stack)+_stackSize) );
+#endif
          verbose0("   new stack created: " << _stackSize << " bytes");
       } else {
          verbose0("   reusing stacks");

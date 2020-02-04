@@ -21,6 +21,9 @@ api_includes=\
  -I$(top_srcdir)/src/apis/c\
  -I$(top_builddir)/src/apis/c
 
+thirdparty_includes=\
+ -I$(top_srcdir)/include
+
 devincludedir = $(prefix)/include/nanox-dev
 
 AM_CPPFLAGS=-D_NANOS_INTERNAL @cc_dep_CPPFLAGS@ @hwlocinc@ $(common_includes) -DLIBDIR='$(libdir)'

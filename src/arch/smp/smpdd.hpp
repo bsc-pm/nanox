@@ -38,6 +38,9 @@ namespace ext {
          void               *_stack;             //!< Stack base
          void               *_state;             //!< Stack pointer
          static size_t       _stackSize;         //!< Stack size
+#ifdef NANOS_DEBUG_ENABLED
+         unsigned int        _valgrind_stack_id;
+#endif
       protected:
          SMPDD( work_fct w, Device *dd ) : DD( dd, w ),_stack( 0 ),_state( 0 ) {}
          SMPDD( Device *dd ) : DD( dd, NULL ), _stack( 0 ),_state( 0 ) {}
@@ -51,7 +54,7 @@ namespace ext {
          //! \brief Assignment operator
          const SMPDD & operator= ( const SMPDD &wd );
          //! \brief Destructor
-         virtual ~SMPDD() { if ( _stack ) delete[] (char *) _stack; }
+         virtual ~SMPDD();
 
          bool hasStack() { return _state != NULL; }
 
