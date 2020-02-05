@@ -19,7 +19,7 @@
 
 SUBDIRS = . src tests doc scripts
 DIST_SUBDIRS = tests doc src scripts
-EXTRA_DIST = ChangeLog
+EXTRA_DIST = ChangeLog include
 
 ACLOCAL_AMFLAGS=-I m4
 

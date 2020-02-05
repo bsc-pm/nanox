@@ -95,7 +95,7 @@ if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsmp.la
 debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 
-debug_libsmp_la_CPPFLAGS=$(common_debug_CPPFLAGS)
+debug_libsmp_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(thirdparty_includes)
 debug_libsmp_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsmp_la_CCASFLAGS=$(common_debug_CCASFLAGS)
 debug_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
@@ -127,7 +127,7 @@ if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsmp.la
 instrumentation_debug_LTLIBRARIES = instrumentation-debug/libnanox-pe-smp.la
 
-instrumentation_debug_libsmp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
+instrumentation_debug_libsmp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(thirdparty_includes)
 instrumentation_debug_libsmp_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libsmp_la_CCASFLAGS=$(common_instrumentation_debug_CCASFLAGS)
 instrumentation_debug_libsmp_la_SOURCES=$(smp_sources) $(ult_sources)
