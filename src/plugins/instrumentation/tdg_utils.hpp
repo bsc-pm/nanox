@@ -133,7 +133,7 @@ namespace nanos {
     struct Node {
         // Class members
         int64_t _wd_id;
-        int _func_id;
+        int64_t _func_id;
         NodeType _type;
         std::vector<Edge*> _entry_edges;
         std::vector<Edge*> _exit_edges;
@@ -146,7 +146,7 @@ namespace nanos {
         bool _critical;
  
         // Constructor
-        Node( int64_t wd_id, int func_id, NodeType type )
+        Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
               _entry_edges( ), _exit_edges( ), 
               _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
@@ -156,7 +156,7 @@ namespace nanos {
             return _wd_id;
         }
         
-        int get_funct_id( ) const {
+        int64_t get_funct_id( ) const {
             return _func_id;
         }
         
