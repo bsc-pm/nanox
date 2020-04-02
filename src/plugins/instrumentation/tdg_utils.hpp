@@ -24,8 +24,6 @@
 #include "lock.hpp"
 #include <tr1/unordered_map>
 
-#define HASH_SIZE 655
-
 namespace nanos {
 
     struct Node;
@@ -321,7 +319,7 @@ namespace nanos {
         }
     };
 
-    std::string node_colors[HASH_SIZE] = {
+    std::string node_colors[] = {
         "aliceblue", "antiquewhite", "antiquewhite1", "antiquewhite2", "antiquewhite3",
         "antiquewhite4", "aquamarine", "aquamarine1", "aquamarine2", "aquamarine3",
         "aquamarine4", "azure", "azure1", "azure2", "azure3",
@@ -415,7 +413,7 @@ namespace nanos {
         "maroon1", "maroon2", "maroon3", "maroon4", "mediumaquamarine",
         "mediumblue", "mediumorchid", "mediumorchid1", "mediumorchid2", "mediumorchid3",
         "mediumorchid4", "mediumpurple", "mediumpurple1", "mediumpurple2", "mediumpurple3",
-        "mediumpurple4", "mediumseagreen", "mediumslateblue", "mediumspringgreen mediumturquoise",
+        "mediumpurple4", "mediumseagreen", "mediumslateblue", "mediumspringgreen", "mediumturquoise",
         "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "mistyrose1",
         "mistyrose2", "mistyrose3", "mistyrose4", "moccasin", "navajowhite",
         "navajowhite1", "navajowhite2", "navajowhite3", "navajowhite4", "navy",
@@ -457,8 +455,9 @@ namespace nanos {
 
     inline std::string &wd_to_color_hash(std::string description)
     {
+        int const node_color_count = sizeof(node_colors) / sizeof(node_colors[0]);
         std::tr1::hash<std::string> hash_fn;
-        return node_colors[ hash_fn(description) % HASH_SIZE ];
+        return node_colors[ hash_fn(description) % node_color_count ];
     }
 
 } // namespace nanos
