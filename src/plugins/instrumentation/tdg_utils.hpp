@@ -24,8 +24,6 @@
 #include "lock.hpp"
 #include <tr1/unordered_map>
 
-#define HASH_SIZE 655
-
 namespace nanos {
 
     struct Node;
@@ -133,7 +131,7 @@ namespace nanos {
     struct Node {
         // Class members
         int64_t _wd_id;
-        int _func_id;
+        int64_t _func_id;
         NodeType _type;
         std::vector<Edge*> _entry_edges;
         std::vector<Edge*> _exit_edges;
@@ -146,7 +144,7 @@ namespace nanos {
         bool _critical;
  
         // Constructor
-        Node( int64_t wd_id, int func_id, NodeType type )
+        Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
               _entry_edges( ), _exit_edges( ), 
               _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
@@ -156,7 +154,7 @@ namespace nanos {
             return _wd_id;
         }
         
-        int get_funct_id( ) const {
+        int64_t get_funct_id( ) const {
             return _func_id;
         }
         
@@ -321,7 +319,7 @@ namespace nanos {
         }
     };
 
-    std::string node_colors[HASH_SIZE] = {
+    std::string node_colors[] = {
         "aliceblue", "antiquewhite", "antiquewhite1", "antiquewhite2", "antiquewhite3",
         "antiquewhite4", "aquamarine", "aquamarine1", "aquamarine2", "aquamarine3",
         "aquamarine4", "azure", "azure1", "azure2", "azure3",
@@ -415,7 +413,7 @@ namespace nanos {
         "maroon1", "maroon2", "maroon3", "maroon4", "mediumaquamarine",
         "mediumblue", "mediumorchid", "mediumorchid1", "mediumorchid2", "mediumorchid3",
         "mediumorchid4", "mediumpurple", "mediumpurple1", "mediumpurple2", "mediumpurple3",
-        "mediumpurple4", "mediumseagreen", "mediumslateblue", "mediumspringgreen mediumturquoise",
+        "mediumpurple4", "mediumseagreen", "mediumslateblue", "mediumspringgreen", "mediumturquoise",
         "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "mistyrose1",
         "mistyrose2", "mistyrose3", "mistyrose4", "moccasin", "navajowhite",
         "navajowhite1", "navajowhite2", "navajowhite3", "navajowhite4", "navy",
@@ -457,8 +455,9 @@ namespace nanos {
 
     inline std::string &wd_to_color_hash(std::string description)
     {
+        int const node_color_count = sizeof(node_colors) / sizeof(node_colors[0]);
         std::tr1::hash<std::string> hash_fn;
-        return node_colors[ hash_fn(description) % HASH_SIZE ];
+        return node_colors[ hash_fn(description) % node_color_count ];
     }
 
 } // namespace nanos
