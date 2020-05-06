@@ -66,36 +66,22 @@ namespace nanos {
             _data_size(data_size)
         {}
         
-        Node* get_source( ) const {
-            return _source;
+        Node* get_source() const {return _source;}
+        Node* get_target() const {return _target;}
+        EdgeKind get_kind() const {return _kind;}
+        DependencyType get_dependency_type() const {return _dep_type;}
+        uint64_t get_data_size() const {return _data_size;}
+        
+        bool is_nesting() const {
+           return _kind == Nesting;
         }
         
-        Node* get_target( ) const {
-            return _target;
+        bool is_synchronization() const {
+           return _kind == Synchronization;
         }
         
-        EdgeKind get_kind( ) const {
-            return _kind;
-        }
-        
-        bool is_nesting( ) const {
-            return _kind == Nesting;
-        }
-        
-        uint64_t get_data_size( ) {
-           return _data_size;
-        }
-        
-        bool is_synchronization( ) const {
-            return _kind == Synchronization;
-        }
-        
-        bool is_dependency( ) const {
-            return _kind == Dependency;
-        }
-        
-        DependencyType get_dependency_type( ) const {
-            return _dep_type;
+        bool is_dependency() const {
+           return _kind == Dependency;
         }
         
         bool is_true_dependency( ) const {
@@ -159,36 +145,16 @@ namespace nanos {
               _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
         {}
         
-        int64_t get_wd_id( ) const {
-            return _wd_id;
-        }
-        
-        int64_t get_funct_id( ) const {
-            return _func_id;
-        }
-        
-        std::vector<Edge*> const &get_entries( ) {
-            return _entry_edges;
-        }
-        
-        std::vector<Edge*> const &get_exits( ) {
-            return _exit_edges;
-        }
-        
-        double get_last_time( ) const {
-            return _last_time;
-        }
-        
-        void set_last_time( double time ) {
-            _last_time = time;
-        }
-        
-        double get_total_time( ) const {
-            return _total_time;
-        }
+        int64_t get_wd_id() const {return _wd_id;}
+        int64_t get_funct_id() const {return _func_id;}
+        std::vector<Edge*> const &get_entries() {return _entry_edges;}
+        std::vector<Edge*> const &get_exits() {return _exit_edges;}
+        double get_last_time() const {return _last_time;}
+        void set_last_time(double time) {_last_time = time;}
+        double get_total_time() const {return _total_time;}
         
         void add_total_time( double time ) {
-            _total_time += time;
+           _total_time += time;
         }
         
         Node* get_parent_task( ) {
