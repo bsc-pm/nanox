@@ -29,7 +29,7 @@ namespace nanos {
     struct Node;
 
     int used_edge_types[5] = {0, 0, 0, 0, 0};
-    
+
     enum DependencyType {
         Null,
         True,
@@ -42,13 +42,13 @@ namespace nanos {
         InAny,
         OutAny
     };
-    
+
     enum EdgeKind{
         Nesting,
         Synchronization,
         Dependency
     };
-    
+
     struct Edge {
         // Class members
         EdgeKind _kind;
@@ -56,64 +56,64 @@ namespace nanos {
         Node* _source;
         Node* _target;
         uint64_t _data_size;
-        
+
         // Constructor
-        Edge(EdgeKind kind, DependencyType dep_type, Node* source, Node* target, uint64_t data_size) : 
-            _kind(kind), 
+        Edge(EdgeKind kind, DependencyType dep_type, Node* source, Node* target, uint64_t data_size) :
+            _kind(kind),
             _dep_type(dep_type),
-            _source(source), 
-            _target(target), 
+            _source(source),
+            _target(target),
             _data_size(data_size)
         {}
-        
+
         Node* get_source() const {return _source;}
         Node* get_target() const {return _target;}
         EdgeKind get_kind() const {return _kind;}
         DependencyType get_dependency_type() const {return _dep_type;}
         uint64_t get_data_size() const {return _data_size;}
-        
+
         bool is_nesting() const {
            return _kind == Nesting;
         }
-        
+
         bool is_synchronization() const {
            return _kind == Synchronization;
         }
-        
+
         bool is_dependency() const {
            return _kind == Dependency;
         }
-        
+
         bool is_true_dependency( ) const {
-            return ( ( _kind == Dependency ) && 
+            return ( ( _kind == Dependency ) &&
                      ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) || ( _dep_type == InAny ) ) );
         }
-        
+
         bool is_anti_dependency( ) const {
             return ( ( _kind == Dependency ) && ( _dep_type == Anti ) );
         }
-        
+
         bool is_output_dependency( ) const {
-            return ( ( _kind == Dependency ) && 
+            return ( ( _kind == Dependency ) &&
                      ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) || ( _dep_type == OutAny ) ) );
         }
-        
+
         bool is_concurrent_dep( ) const {
-            return ( ( _kind == Dependency ) && 
+            return ( ( _kind == Dependency ) &&
                      ( ( _dep_type == InConcurrent ) || ( _dep_type == OutConcurrent ) ) );
         }
-        
+
         bool is_commutative_dep( ) const {
-            return ( ( _kind == Dependency ) && 
+            return ( ( _kind == Dependency ) &&
                      ( ( _dep_type == InCommutative ) || ( _dep_type == OutCommutative ) ) );
         }
-        
+
         bool is_any_dep( ) const {
-            return ( ( _kind == Dependency ) && 
+            return ( ( _kind == Dependency ) &&
                      ( ( _dep_type == InAny ) || ( _dep_type == OutAny ) ) );
         }
     };
-    
+
     enum NodeType {
         Root,
         BarrierNode,
@@ -122,7 +122,7 @@ namespace nanos {
         TaskNode,
         TaskwaitNode
     };
-    
+
     struct Node {
         // Class members
         int64_t _wd_id;
@@ -134,17 +134,17 @@ namespace nanos {
         double _last_time;
         Lock _entry_lock;
         Lock _exit_lock;
-        
+
         bool _printed;
         bool _critical;
- 
+
         // Constructor
         Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
-              _entry_edges( ), _exit_edges( ), 
+              _entry_edges( ), _exit_edges( ),
               _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
         {}
-        
+
         int64_t get_wd_id() const {return _wd_id;}
         int64_t get_funct_id() const {return _func_id;}
         std::vector<Edge*> const &get_entries() {return _entry_edges;}
@@ -152,11 +152,11 @@ namespace nanos {
         double get_last_time() const {return _last_time;}
         void set_last_time(double time) {_last_time = time;}
         double get_total_time() const {return _total_time;}
-        
+
         void add_total_time( double time ) {
            _total_time += time;
         }
-        
+
         Node* get_parent_task( ) {
             Node* res = NULL;
             _entry_lock.acquire();
@@ -169,7 +169,7 @@ namespace nanos {
             _entry_lock.release();
             return res;
         }
-        
+
         //called in finalize, and connect_nodes (with _exit_lock acquired)
         bool is_connected_with( Node* target ) const {
             bool res = false;
@@ -181,7 +181,7 @@ namespace nanos {
             }
             return res;
         }
-       
+
         //called in connect_nodes (with _exit_lock acquired)
         Edge* get_connection( Node* target ) const {
             Edge* result = NULL;
@@ -193,7 +193,7 @@ namespace nanos {
             }
             return result;
         }
-        
+
         //only called in finalize
         bool is_previous_synchronized( ) const {
             bool res = false;
@@ -205,7 +205,7 @@ namespace nanos {
             }
             return res;
         }
-        
+
         bool is_next_synchronized( ) {
             bool res = false;
             _exit_lock.acquire();
@@ -218,12 +218,12 @@ namespace nanos {
             _exit_lock.release();
             return res;
         }
-        
-        //! Only connect the nodes if they are not previously connected or 
+
+        //! Only connect the nodes if they are not previously connected or
         //! the new type of connection is different from the existing one
         static void connect_nodes( Node* source, Node* target, EdgeKind kind, DependencyType dep_type = Null ) {
             source->_exit_lock.acquire();
-            if( !source->is_connected_with( target ) || 
+            if( !source->is_connected_with( target ) ||
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
                 Edge* new_edge = new Edge( kind, dep_type, source, target, 0 );
@@ -256,7 +256,7 @@ namespace nanos {
             }
             source->_exit_lock.release();
         }
-        
+
         bool is_task( ) const {
             return _type == TaskNode;
         }
@@ -264,23 +264,23 @@ namespace nanos {
         bool is_taskwait( ) const {
             return _type == TaskwaitNode;
         }
-        
+
         bool is_barrier( ) const {
             return _type == BarrierNode;
         }
-        
+
         bool is_concurrent( ) const {
             return _type == ConcurrentNode;
         }
-        
+
         bool is_commutative( ) const {
             return _type == CommutativeNode;
         }
-        
+
         bool is_printed( ) const {
             return _printed;
         }
-        
+
         void set_printed( ) {
             _printed = true;
         }

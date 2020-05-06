@@ -70,9 +70,9 @@ private:
         else if(current_thread->getCurrentWD() == NULL) return 0;
         return current_thread->getCurrentWD()->getId();
     }
-    
+
     inline std::string print_node(Node* n, std::string indentation) {
-        
+
         std::string node_attrs = "";
         // Get the label of the node
 //         std::stringstream ss; ss << n->get_wd_id();
@@ -82,12 +82,12 @@ private:
         } else if (n->is_barrier()) {
             node_attrs += "label=\"Barrier\", ";
         }
-        
+
         // Get the style of the node
         node_attrs += "style=\"";
         node_attrs += (!n->is_task() ? "bold" : "filled");
         node_attrs += (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
-        
+
         // Get the color of the node
  //       if(n->is_task() && n->is_critical()) {
  //           node_attrs += "\", color=\"black\", fillcolor=red\"";// + wd_to_color_hash(n->get_funct_id());
@@ -96,42 +96,42 @@ private:
             std::string description = _funct_id_to_decl_map[n->get_funct_id()];
             node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(description);
         }
-        
+
         // Set the size of the node
         node_attrs += "\", width=\"1\", height=\"1\"";
-        
+
         // Output execution time
         node_attrs += ", execution_time=\"" + toString(n->get_total_time()) + "\"";
-                
+
         // Build and return the whole node info
         std::stringstream ss; ss << n->get_wd_id();
         return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
     }
-    
+
     inline std::string print_edge(Edge* e, std::string indentation)
     {
 
         std::string edge_attrs = "style=\"";
-        
+
         // Compute the style of the edge
-        edge_attrs += ((!e->is_dependency() || 
+        edge_attrs += ((!e->is_dependency() ||
                         e->is_true_dependency()) ? "solid" : (e->is_anti_dependency() ? "dashed" : "dotted"));
 
         //Mark the edges of the critical path as bold
         edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" );
- 
+
         // Compute the color of the edge
         edge_attrs += "\", color=";
         edge_attrs += (e->is_nesting() ? "\"gray47\"" : "\"black\"");
-        
+
         edge_attrs += ", data_size=\"" + toString(e->get_data_size()) + "\"";
-        
+
         // Print the edge
         std::stringstream sss; sss << e->get_source()->get_wd_id();
         std::stringstream sst; sst << e->get_target()->get_wd_id();
         return std::string(indentation + sss.str() + " -> " + sst.str() + " [" + edge_attrs + "];\n");
     }
-    
+
     inline std::string print_nested_nodes(Node* n, std::string indentation) {
         std::string nested_nodes_info = "";
         std::vector<Edge*> const& exits = n->get_exits();
@@ -148,9 +148,9 @@ private:
         }
         return nested_nodes_info;
     }
-    
+
     inline std::string print_edges_legend() {
-        std::stringstream ss; 
+        std::stringstream ss;
         lock.acquire();
             ss << cluster_id++;
         lock.release();
@@ -209,7 +209,7 @@ private:
 
         return edges_legend;
     }
-    
+
     inline std::string print_nodes_legend() {
         std::stringstream ssc;
         lock.acquire();
@@ -257,7 +257,7 @@ private:
         nodes_legend += "  }\n";
         return nodes_legend;
     }
-    
+
     inline Node* find_node_from_wd_id(int64_t wd_id) const {
         Node* result = NULL;
         for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
@@ -268,7 +268,7 @@ private:
         }
         return result;
     }
-    
+
     inline std::string print_node_and_its_nested(Node* n, std::string indentation) {
         std::string result = "";
         // Print the current node
@@ -276,7 +276,7 @@ private:
         n->set_printed();
         // Print all nested nodes
         std::string nested_nodes_info = print_nested_nodes(n, /*indentation*/"    ");
-        
+
         if(nested_nodes_info.empty()) {
             result = node_info;
         } else {
@@ -294,13 +294,13 @@ private:
         // Generate the name of the dot file from the name of the binary
         std::string result = partial_file_name + "_full";
         std::string file_name = result + ".dot";
-        
+
         // Open the file and start the graph
         std::ofstream dot_file;
         dot_file.open(file_name.c_str());
         if(!dot_file.is_open())
             exit(EXIT_FAILURE);
-        
+
         // Print the graph
         std::map<int, int> node_to_cluster;
         dot_file << "digraph {\n";
@@ -414,25 +414,25 @@ private:
                     }
                 }
             }
-            
+
             // Print the legends
             dot_file << "  node [shape=plaintext];\n";
             dot_file << print_nodes_legend();
             dot_file << print_edges_legend();
         dot_file << "}";
-        
+
         std::cerr << "Task Dependency Graph printed to file '" << file_name << "' in DOT format" << std::endl;
         return result;
     }
-    
+
 #ifndef NANOS_INSTRUMENTATION_ENABLED
 public:
     // constructor
     InstrumentationTGDump() : Instrumentation(),
-                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _graph_nodes(), _funct_id_to_decl_map(),
                                           _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
     {}
-    
+
     // destructor
     ~InstrumentationTGDump() {}
 
@@ -448,23 +448,23 @@ public:
     void threadFinish (BaseThread &thread) {}
 #else
 public:
-    
+
     // constructor
     InstrumentationTGDump() : Instrumentation(*new InstrumentationContextDisabled()),
-                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _graph_nodes(), _funct_id_to_decl_map(),
                                           _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
                                           _next_tw_id(0), _next_conc_id(0)
     {}
-    
+
     // destructor
     ~InstrumentationTGDump () {}
 
     // low-level instrumentation interface (mandatory functions)
-    void initialize(void) 
+    void initialize(void)
     {
         _root = new Node(0, 0, Root);
     }
-    
+
     void finalize(void)
     {
         // So far, taskwaits have been synchronized with the tasks created previously
@@ -500,7 +500,7 @@ public:
                 }
             }
         }
-        
+
         // Get partial name of the file that will contain the dot graph
         std::string unique_key_name;
         time_t t = time(NULL);
@@ -518,22 +518,22 @@ public:
                 unique_key_name = std::string(outstr);
             }
         }
-        
+
         std::string file_name = OS::getArg(0);
         size_t slash_pos = file_name.find_last_of("/");
         if(slash_pos != std::string::npos)
             file_name = file_name.substr(slash_pos+1, file_name.size()-slash_pos);
         file_name = file_name + "_" + unique_key_name;
-        
+
         // Print the full graph
         std::string full_dot_name = print_full_graph(file_name);
-        
+
         // Generate the PDF containing the graph
         std::string dot_to_pdf_command = "dot -Tpdf " + full_dot_name + ".dot -o " + full_dot_name + ".pdf";
         if ( system( dot_to_pdf_command.c_str( ) ) != 0 )
             warning( "Could not create the pdf file." );
         std::cerr << "Task Dependency Graph printed to file '" << full_dot_name << ".pdf' in PDF format" << std::endl;
-        
+
         // TODO
         // Print the summarized graph
 //         print_summarized_graph(file_name);
@@ -646,7 +646,7 @@ public:
                 // Get the identifiers of the sender and the receiver
                 int64_t sender_wd_id = (int64_t) ((e.getValue() >> 32) & 0xFFFFFFFF);
                 int64_t receiver_wd_id = (int64_t) (e.getValue() & 0xFFFFFFFF);
-                
+
                 // Get the type of dependence
                 e = events[++i];
                 assert(e.getKey() == dep_direction);
@@ -690,7 +690,7 @@ public:
                 if(sender == NULL || receiver == NULL) {
                     // Compute the type for the new node
                     NodeType nt = (((dep_type == InConcurrent) || (dep_type == OutConcurrent)) ? ConcurrentNode : CommutativeNode);
-                    
+
                     // Create the new sender node, if necessary
                     if(sender == NULL) {
                         sender = new Node(sender_wd_id, 0, nt);
@@ -698,7 +698,7 @@ public:
                         _graph_nodes.insert(sender);
                         _graph_nodes_lock.release();
                     }
-                    
+
                     // Create the new receiver node, if necessary
                     if(receiver == NULL) {
                         receiver = new Node(receiver_wd_id, 0, nt);
@@ -742,23 +742,23 @@ public:
 };
 
 namespace ext {
-    
+
     class InstrumentationTGDumpPlugin : public Plugin {
     public:
         InstrumentationTGDumpPlugin () : Plugin("Instrumentation plugin which prints the graph to a dot file.", 1) {}
         ~InstrumentationTGDumpPlugin () {}
-        
-        void config(Config &cfg) 
+
+        void config(Config &cfg)
         {
-           
+
         }
-        
+
         void init ()
         {
             sys.setInstrumentation(new InstrumentationTGDump());
         }
     };
-    
+
 } // namespace ext
 
 } // namespace nanos
