@@ -55,10 +55,15 @@ namespace nanos {
         DependencyType _dep_type;
         Node* _source;
         Node* _target;
+        uint64_t _data_size;
         
         // Constructor
-        Edge( EdgeKind kind, DependencyType dep_type, Node* source, Node* target )
-            : _kind( kind ), _dep_type( dep_type ), _source( source ), _target( target )
+        Edge(EdgeKind kind, DependencyType dep_type, Node* source, Node* target, uint64_t data_size) : 
+            _kind(kind), 
+            _dep_type(dep_type),
+            _source(source), 
+            _target(target), 
+            _data_size(data_size)
         {}
         
         Node* get_source( ) const {
@@ -75,6 +80,10 @@ namespace nanos {
         
         bool is_nesting( ) const {
             return _kind == Nesting;
+        }
+        
+        uint64_t get_data_size( ) {
+           return _data_size;
         }
         
         bool is_synchronization( ) const {
@@ -251,7 +260,7 @@ namespace nanos {
             if( !source->is_connected_with( target ) || 
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
-                Edge* new_edge = new Edge( kind, dep_type, source, target );
+                Edge* new_edge = new Edge( kind, dep_type, source, target, 0 );
                 source->_exit_edges.push_back( new_edge );
                 target->_entry_lock.acquire();
                 target->_entry_edges.push_back( new_edge );
