@@ -121,10 +121,10 @@ private:
         edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" );
  
         // Compute the color of the edge
-        edge_attrs += "\", color=\"";
-        edge_attrs += (e->is_nesting() ? "gray47" 
-                                       : "black");
-        edge_attrs += "\"";
+        edge_attrs += "\", color=";
+        edge_attrs += (e->is_nesting() ? "\"gray47\"" : "\"black\"");
+        
+        edge_attrs += ", data_size=\"" + toString(e->get_data_size()) + "\"";
         
         // Print the edge
         std::stringstream sss; sss << e->get_source()->get_wd_id();
