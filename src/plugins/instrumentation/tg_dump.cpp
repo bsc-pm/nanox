@@ -49,10 +49,6 @@ static unsigned int cluster_id = 1;
 
 class InstrumentationTGDump: public Instrumentation
 {
-public:
-    // public static data-members
-    static std::string _nodeSizeFunc;
-    
 private:
     Node* _root;
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
@@ -100,26 +96,9 @@ private:
             std::string description = _funct_id_to_decl_map[n->get_funct_id()];
             node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(description);
         }
- 
-        // Get the size of the node
-        if(InstrumentationTGDump::_nodeSizeFunc == "constant" || _total_time == 0.0)
-        {
-            node_attrs += "\", width=\"1\", height=\"1\"";
-        }
-        else
-        {
-            double diam = std::sqrt(n->get_total_time() / M_PI) * 2;
-            if(InstrumentationTGDump::_nodeSizeFunc == "linear")
-            {
-                std::stringstream ss; ss << diam / _min_diam;
-                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
-            }
-            else if(InstrumentationTGDump::_nodeSizeFunc == "log")
-            {
-                std::stringstream ss; ss << std::log((diam / _min_diam) * M_E);
-                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
-            }
-        }
+        
+        // Set the size of the node
+        node_attrs += "\", width=\"1\", height=\"1\"";
         
         // Build and return the whole node info
         std::stringstream ss; ss << n->get_wd_id();
@@ -318,20 +297,6 @@ private:
         dot_file.open(file_name.c_str());
         if(!dot_file.is_open())
             exit(EXIT_FAILURE);
-        
-        // Compute the time average to print the nodes size accordingly
-        if(InstrumentationTGDump::_nodeSizeFunc != "constant")
-        {
-            for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-                if((*it)->is_task())
-                {
-                    _min_time = std::min(_min_time, (*it)->get_total_time()); 
-                    _total_time += (*it)->get_total_time();
-                }
-            }
-            _min_diam = std::sqrt(_min_time/M_PI) * 2;
-            
-        }
         
         // Print the graph
         std::map<int, int> node_to_cluster;
@@ -773,8 +738,6 @@ public:
 
 };
 
-std::string InstrumentationTGDump::_nodeSizeFunc = "log";
-
 namespace ext {
     
     class InstrumentationTGDumpPlugin : public Plugin {
@@ -784,23 +747,11 @@ namespace ext {
         
         void config(Config &cfg) 
         {
-            cfg.setOptionsSection("Task Dependency Graph Plugin ", "TGDump plugin specific options" );
-            cfg.registerConfigOption("node-size",  NEW Config::StringVar(InstrumentationTGDump::_nodeSizeFunc),
-                                     "Defines the size of the nodes depending on the execution time of the related task. "
-                                     "Accepted values are: constant (default), linear, log");
-            cfg.registerArgOption("node-size", "node-size");
+           
         }
         
         void init ()
         {
-            if((InstrumentationTGDump::_nodeSizeFunc != "constant") &&
-               (InstrumentationTGDump::_nodeSizeFunc != "linear") && 
-               (InstrumentationTGDump::_nodeSizeFunc != "log"))
-            {
-                std::cerr << "Invalid node-size value \'" << InstrumentationTGDump::_nodeSizeFunc << "\'. "
-                          << "One of the following expected: \'constant\', \'linear\' and \'log\'. "
-                          << "Using default \'log\'." << std::endl;
-            }
             sys.setInstrumentation(new InstrumentationTGDump());
         }
     };
