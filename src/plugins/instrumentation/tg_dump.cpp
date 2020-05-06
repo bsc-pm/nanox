@@ -100,6 +100,9 @@ private:
         // Set the size of the node
         node_attrs += "\", width=\"1\", height=\"1\"";
         
+        // Output execution time
+        node_attrs += ", execution_time=\"" + toString(n->get_total_time()) + "\"";
+                
         // Build and return the whole node info
         std::stringstream ss; ss << n->get_wd_id();
         return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
