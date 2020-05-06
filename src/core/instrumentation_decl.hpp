@@ -675,6 +675,8 @@ namespace nanos {
             /* 71 */ registerEventKey("cache-evict", "Cache eviction", false, EVENT_ADVANCED);
             /* 72 */ registerEventKey("copy-data-alloc","Cache allocation", false, EVENT_ADVANCED);
 
+            /* 73 */ registerEventKey("dep-size", "Number of bytes implied by dependency", true, EVENT_DEVELOPER );
+
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }
 

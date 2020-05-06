@@ -494,9 +494,9 @@ public:
                 }
                 if (last_taskwait_sync != NULL) {
                     if (std::abs(last_taskwait_sync->get_wd_id()) < (*it)->get_wd_id())
-                        Node::connect_nodes(last_taskwait_sync, *it, Synchronization);
+                        Node::connect_nodes(last_taskwait_sync, *it, Synchronization, 0);
                 } else {
-                    Node::connect_nodes(_root, *it, Synchronization);
+                    Node::connect_nodes(_root, *it, Synchronization, 0);
                 }
             }
         }
@@ -573,6 +573,8 @@ public:
         static const nanos_event_key_t create_wd_ptr = iD->getEventKey("create-wd-ptr");
         static const nanos_event_key_t dependence = iD->getEventKey("dependence");
         static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
+        static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
+        static const nanos_event_key_t dep_size = iD->getEventKey("dep-size");
         static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
         static const nanos_event_key_t critical_wd_id = iD->getEventKey("critical-wd-id");
@@ -604,7 +606,7 @@ public:
 
                 // Connect the task with its parent task, if exists
                 if (current_parent != NULL) {
-                    Node::connect_nodes(current_parent, new_node, Nesting);
+                    Node::connect_nodes(current_parent, new_node, Nesting, 0);
                 }
             }
             else if (e.getKey() == critical_wd_id)
@@ -707,7 +709,17 @@ public:
                         _graph_nodes_lock.release();
                     }
                 }
-                Node::connect_nodes(sender, receiver, Dependency, dep_type);
+
+                // Consume dep_address event key that prcedes data_size
+                e = events[++i];
+                assert(e.getKey() == dep_address);
+
+                // Get dependency data size
+                e = events[++i];
+                assert(e.getKey() == dep_size);
+                uint64_t dep_data_size = e.getValue();
+
+                Node::connect_nodes(sender, receiver, Dependency, dep_data_size, dep_type);
             }
             else if (e.getKey() == taskwait)
             {   // A taskwait occurs
@@ -723,7 +735,7 @@ public:
                             && ((*it)->is_task() || (*it)->is_concurrent() || (*it)->is_commutative())) {
                         Node* parent_task = (*it)->get_parent_task();
                         if(current_parent == parent_task) {
-                            Node::connect_nodes(*it, new_node, Synchronization);
+                            Node::connect_nodes(*it, new_node, Synchronization, 0);
                         }
                     }
                 }

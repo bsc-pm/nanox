@@ -42,6 +42,7 @@ namespace nanos {
          Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
          CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
          bool                   _hold; /**< Cannot be erased since it is in use */
+         uint64_t               _data_size; /**< Quantity of data associated with this trackable object */
       public:
 
         /*! \brief TrackableObject default constructor
@@ -49,14 +50,14 @@ namespace nanos {
          *  Creates a TrackableObject with the given address associated.
          */
          TrackableObject ()
-            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _data_size(0) {}
 
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
+            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _data_size(0) {}
 
         /*! \brief TrackableObject destructor
          */
@@ -147,6 +148,9 @@ namespace nanos {
         /*! \brief Returns if the region has no information
          */
          bool isEmpty ( );
+         
+         uint64_t getDataSize() const {return _data_size;}
+         void setDataSize(uint64_t data_size) {_data_size = data_size;}
    };
 
    //! \brief RegionStatus stream formatter

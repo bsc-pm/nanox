@@ -221,12 +221,12 @@ namespace nanos {
 
         //! Only connect the nodes if they are not previously connected or
         //! the new type of connection is different from the existing one
-        static void connect_nodes( Node* source, Node* target, EdgeKind kind, DependencyType dep_type = Null ) {
+        static void connect_nodes( Node* source, Node* target, EdgeKind kind, uint64_t data_size, DependencyType dep_type = Null ) {
             source->_exit_lock.acquire();
             if( !source->is_connected_with( target ) ||
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
-                Edge* new_edge = new Edge( kind, dep_type, source, target, 0 );
+                Edge* new_edge = new Edge( kind, dep_type, source, target, data_size );
                 source->_exit_edges.push_back( new_edge );
                 target->_entry_lock.acquire();
                 target->_entry_edges.push_back( new_edge );
