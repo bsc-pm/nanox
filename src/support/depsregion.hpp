@@ -56,6 +56,13 @@ inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
    return _address < obj._address;
 }
 
+inline uint64_t DepsRegion::overlapSize ( const DepsRegion &other ) const
+{
+   TargetType overlap_start = std::max(other._address, _address);
+   TargetType overlap_end = std::min(other._endAddress, _endAddress);
+   return (uint64_t)overlap_end - (uint64_t)overlap_start;
+}
+
 inline BaseDependency* DepsRegion::clone() const
 {
    return new DepsRegion( _address, _endAddress, _trackable );
