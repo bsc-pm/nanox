@@ -28,6 +28,7 @@
                         "NX_TEST_SCHEDULE=bf"
                         "NX_TEST_ARCH=smp")
    test_exec_command="timeout 1m"
+   test_ignore_fail=yes
 </testinfo>
 */
 
