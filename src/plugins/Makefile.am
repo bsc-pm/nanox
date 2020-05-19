@@ -883,9 +883,9 @@ debug_libnanox_instrumentation_tdg_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 debug_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
-debug_libnanox_instrumentation_tg_dump_la_CPPFLAGS=$(common_debug_CPPFLAGS)
+debug_libnanox_instrumentation_tg_dump_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(tg_dump_cppflags)
 debug_libnanox_instrumentation_tg_dump_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_instrumentation_tg_dump_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
+debug_libnanox_instrumentation_tg_dump_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(tg_dump_ldflags)
 debug_libnanox_instrumentation_tg_dump_la_SOURCES=$(tg_dump_sources)
 
 if instrumentation_EXTRAE
@@ -1063,9 +1063,9 @@ performance_libnanox_instrumentation_tdg_la_CXXFLAGS=$(common_performance_CXXFLA
 performance_libnanox_instrumentation_tdg_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 performance_libnanox_instrumentation_tdg_la_SOURCES=$(tdg_sources)
 
-performance_libnanox_instrumentation_tg_dump_la_CPPFLAGS=$(common_performance_CPPFLAGS)
+performance_libnanox_instrumentation_tg_dump_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(tg_dump_cppflags)
 performance_libnanox_instrumentation_tg_dump_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_instrumentation_tg_dump_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
+performance_libnanox_instrumentation_tg_dump_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) $(tg_dump_ldflags)
 performance_libnanox_instrumentation_tg_dump_la_SOURCES=$(tg_dump_sources)
 
 if instrumentation_EXTRAE
