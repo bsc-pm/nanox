@@ -60,7 +60,8 @@ inline uint64_t DepsRegion::overlapSize ( const DepsRegion &other ) const
 {
    TargetType overlap_start = std::max(other._address, _address);
    TargetType overlap_end = std::min(other._endAddress, _endAddress);
-   return (uint64_t)overlap_end - (uint64_t)overlap_start;
+   uint64_t overlap = (uint64_t)overlap_end - (uint64_t)overlap_start + 1;
+   return this->overlap(other) ? overlap : 0;
 }
 
 inline BaseDependency* DepsRegion::clone() const
