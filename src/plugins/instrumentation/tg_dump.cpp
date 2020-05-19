@@ -25,6 +25,7 @@
 #include "plugin.hpp"
 #include "smpdd.hpp"
 #include "system.hpp"
+#include "papi.h"
 
 #include <cassert>
 #include <cmath>
@@ -463,6 +464,13 @@ public:
     void initialize(void)
     {
         _root = new Node(0, 0, Root);
+        
+        // Initialise PAPI
+        int rc;
+        if((rc = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT) {
+            std::cerr << "Failed to initialise PAPI!\n";
+            exit(1);
+        }
     }
 
     void finalize(void)
@@ -537,6 +545,9 @@ public:
         // TODO
         // Print the summarized graph
 //         print_summarized_graph(file_name);
+
+        // Shut down papi
+        PAPI_shutdown();
     }
 
     void disable(void) {}
