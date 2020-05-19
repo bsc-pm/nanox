@@ -793,7 +793,7 @@ endif
 #### Instrumentation #################################################################################
 ######################################################################################################
 tg_dump_cppflags=-I/home/ac/cluster/install/papi-6.0.0/include
-tg_dump_ldflags=-L/home/ac/cluster/install/papi-6.0.0/lib
+tg_dump_ldflags=-L/home/ac/cluster/install/papi-6.0.0/lib -lpapi
 
 if instrumentation_EXTRAE
 extrae_cppflags=-I@EXTRAE_INC@
