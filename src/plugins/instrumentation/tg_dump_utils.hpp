@@ -23,6 +23,7 @@
 #include "atomic.hpp"
 #include "lock.hpp"
 #include <tr1/unordered_map>
+#include "papi.h"
 
 namespace nanos {
 
@@ -123,6 +124,11 @@ namespace nanos {
         TaskwaitNode
     };
 
+    // Which events will we track with papi counters?
+    char const * const papi_event_ids[] = {"ix86arch::INSTRUCTION_RETIRED"};
+    int const papi_event_count = sizeof(papi_event_ids) / sizeof(char *);
+
+
     struct Node {
         // Class members
         int64_t _wd_id;
@@ -137,12 +143,17 @@ namespace nanos {
 
         bool _printed;
         bool _critical;
+        
+        int _papi_event_set;
+        std::vector<long long> _papi_counter_values;
+
 
         // Constructor
         Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
               _entry_edges( ), _exit_edges( ),
-              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
+              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false ),
+              _papi_event_set( PAPI_NULL ), _papi_counter_values( std::vector<long long>(papi_event_count, 0) )
         {}
 
         int64_t get_wd_id() const {return _wd_id;}
@@ -152,6 +163,7 @@ namespace nanos {
         double get_last_time() const {return _last_time;}
         void set_last_time(double time) {_last_time = time;}
         double get_total_time() const {return _total_time;}
+        std::vector<long long> get_perf_counters() const {return _papi_counter_values;}
 
         void add_total_time( double time ) {
            _total_time += time;
@@ -291,6 +303,40 @@ namespace nanos {
 
         void set_critical( ) {
            _critical = true;
+        }
+        
+        void start_operation_counters()
+        {
+            int rc;
+            
+            if(_papi_event_set == PAPI_NULL) {
+                if((rc = PAPI_create_eventset(&_papi_event_set)) != PAPI_OK) {
+                    fprintf(stderr, "PAPI_create_eventset: (%d): %s\n", rc, PAPI_strerror(rc));
+                }
+
+                for(int i = 0; i < papi_event_count; i++) {
+                    if((rc = PAPI_add_named_event(_papi_event_set, papi_event_ids[i])) != PAPI_OK) {
+                        fprintf(stderr, "PAPI_add_event: (%d): %s\n", rc, PAPI_strerror(rc));
+                    }
+                }
+            }
+            
+            if((rc = PAPI_start(_papi_event_set)) != PAPI_OK) {
+                fprintf(stderr, "PAPI_start: (%d): %s\n", rc, PAPI_strerror(rc));
+            }
+        }
+        
+        void suspend_operation_counters() {
+            int rc;
+            long long counter_values[_papi_counter_values.size()];
+         
+            if((rc = PAPI_stop(_papi_event_set, counter_values)) != PAPI_OK) {
+                fprintf(stderr, "PAPI_stop: (%d): %s\n", rc, PAPI_strerror(rc));
+            }
+            
+            for(int i = 0; i < papi_event_count; i++) {
+                _papi_counter_values[i] += counter_values[i];
+            }
         }
     };
 
