@@ -566,6 +566,7 @@ public:
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
             n->set_last_time(get_current_time());
+            n->start_operation_counters();
         }
     }
 
@@ -573,6 +574,7 @@ public:
     {
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
+            n->suspend_operation_counters();
             double time = (double) get_current_time() - n->get_last_time();
             n->add_total_time(time);
         }
