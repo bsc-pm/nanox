@@ -76,36 +76,34 @@ private:
     }
 
     inline std::string print_node(Node* n, std::string indentation) {
-
-        std::string node_attrs = "";
+        std::stringstream ss;
+        
+        // Create node label and open attribute braces
+        ss << indentation << n->get_wd_id() << "[";
+        
         // Get the label of the node
-//         std::stringstream ss; ss << n->get_wd_id();
         if (n->is_taskwait()) {
-            node_attrs += "label=\"Taskwait\", ";
-//             node_attrs += "label=\"[" + ss.str() + "]Taskwait\", ";
+            ss << "label=\"Taskwait\", ";
         } else if (n->is_barrier()) {
-            node_attrs += "label=\"Barrier\", ";
+            ss << "label=\"Barrier\", ";
         }
 
         // Get the style of the node
-        node_attrs += "style=\"";
-        node_attrs += (!n->is_task() ? "bold" : "filled");
-        node_attrs += (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
+        ss << "style=\"";
+        ss << (!n->is_task() ? "bold" : "filled");
+        ss << (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
 
         // Get the color of the node
- //       if(n->is_task() && n->is_critical()) {
- //           node_attrs += "\", color=\"black\", fillcolor=red\"";// + wd_to_color_hash(n->get_funct_id());
- //       }
         if(n->is_task()) {
             std::string description = _funct_id_to_decl_map[n->get_funct_id()];
-            node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(description);
+            ss << "\", color=\"black\", fillcolor=\"" << wd_to_color_hash(description);
         }
 
         // Set the size of the node
-        node_attrs += "\", width=\"1\", height=\"1\"";
+        ss << "\", width=\"1\", height=\"1\"";
 
         // Output execution time
-        node_attrs += ", execution_time=\"" + toString(n->get_total_time()) + "\"";
+        ss << ", execution_time=\"" << n->get_total_time() << "\"";
 
         // Output papi operation counters
         std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
@@ -121,12 +119,13 @@ private:
                 continue;
             }
             
-            node_attrs += ", " + std::string(papi_event_name) + "=\"" + toString(it->second) + "\"";
+            ss << ", " << std::string(papi_event_name) << "=\"" << toString(it->second) << "\"";
         }
 
-        // Build and return the whole node info
-        std::stringstream ss; ss << n->get_wd_id();
-        return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
+        // Close the braces around the node attributes
+        ss << "];\n";
+        
+        return ss.str();
     }
 
     inline std::string print_edge(Edge* e, std::string indentation)
