@@ -50,6 +50,8 @@ static unsigned int cluster_id = 1;
 
 class InstrumentationTGDump: public Instrumentation
 {
+public:
+    static std::list<std::string> _papi_event_args;
 private:
     Node* _root;
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
@@ -59,6 +61,7 @@ private:
     double _min_time;
     double _total_time;
     double _min_diam;
+    std::vector<int> _papi_event_codes;                     // Event codes to be tracked using PAPI
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
@@ -430,8 +433,8 @@ private:
 public:
     // constructor
     InstrumentationTGDump() : Instrumentation(),
-                                          _graph_nodes(), _funct_id_to_decl_map(),
-                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
+                              _graph_nodes(), _funct_id_to_decl_map(),
+                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
     {}
 
     // destructor
@@ -452,9 +455,9 @@ public:
 
     // constructor
     InstrumentationTGDump() : Instrumentation(*new InstrumentationContextDisabled()),
-                                          _graph_nodes(), _funct_id_to_decl_map(),
-                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
-                                          _next_tw_id(0), _next_conc_id(0)
+                              _graph_nodes(), _funct_id_to_decl_map(),
+                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                              _next_tw_id(0), _next_conc_id(0)
     {}
 
     // destructor
@@ -463,14 +466,56 @@ public:
     // low-level instrumentation interface (mandatory functions)
     void initialize(void)
     {
-        _root = new Node(0, 0, Root);
+        int rc, test_event_set = PAPI_NULL;
         
         // Initialise PAPI
-        int rc;
         if((rc = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT) {
-            std::cerr << "Failed to initialise PAPI!\n";
+            std::cerr << "Failed to initialise PAPI library. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
             exit(1);
         }
+        
+        // Create a test event set
+        if((rc = PAPI_create_eventset(&test_event_set)) != PAPI_OK) {
+            std::cerr << "Failed to create test event set. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+            exit(1);
+        }
+        
+        std::list<std::string>& papi_event_args = InstrumentationTGDump::_papi_event_args;
+        std::list<std::string>::iterator it;
+        
+        // populate list of papi counter IDs
+        for(it = papi_event_args.begin(); it != papi_event_args.end(); ++it) {
+            int event_code;
+            
+            // Is this a valid name? If not, omit it
+            if((rc = PAPI_event_name_to_code((*it).c_str(), &event_code)) != PAPI_OK) {
+                std::cerr << "Failed to get event code for event '" << *it << "'. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "This event will not be tracked.\n";
+                continue;
+            }
+            
+            // Can we add the id to an event list? If not, omit it
+            if((rc = PAPI_add_event(test_event_set, event_code)) != PAPI_OK) {
+                std::cerr << "Failed to add event " << *it << " to test event set. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "This event will not be tracked.\n";
+                continue;
+            }
+            
+            this->_papi_event_codes.push_back(event_code);
+        }
+        
+        // Clean up the test event set (we no longer need it)
+        if((rc = PAPI_cleanup_eventset(test_event_set)) != PAPI_OK) {
+            std::cerr << "Failed to clean up test event set. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+            exit(1);
+        }
+        
+        _root = new Node(0, 0, Root);
     }
 
     void finalize(void)
@@ -566,7 +611,7 @@ public:
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
             n->set_last_time(get_current_time());
-            n->start_operation_counters();
+            n->start_operation_counters(_papi_event_codes);
         }
     }
 
@@ -574,7 +619,7 @@ public:
     {
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
-            n->suspend_operation_counters();
+            n->suspend_operation_counters(last);
             double time = (double) get_current_time() - n->get_last_time();
             n->add_total_time(time);
         }
@@ -766,6 +811,8 @@ public:
 
 };
 
+std::list<std::string> InstrumentationTGDump::_papi_event_args;
+
 namespace ext {
 
     class InstrumentationTGDumpPlugin : public Plugin {
@@ -775,7 +822,17 @@ namespace ext {
 
         void config(Config &cfg)
         {
-
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_FP_OPS");
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_INS");
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_CYC");
+            
+            cfg.setOptionsSection(
+                "Task graph dump plugin ", "tg-dump specific options");
+            cfg.registerConfigOption(
+                "papi-events",  NEW Config::StringVarList(InstrumentationTGDump::_papi_event_args),
+                "Defines which PAPI events to track for tasks.");
+            cfg.registerArgOption(
+                "papi-events", "papi-events");
         }
 
         void init ()
