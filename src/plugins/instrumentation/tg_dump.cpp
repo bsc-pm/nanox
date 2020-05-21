@@ -25,6 +25,7 @@
 #include "plugin.hpp"
 #include "smpdd.hpp"
 #include "system.hpp"
+#include "papi.h"
 
 #include <cassert>
 #include <cmath>
@@ -49,6 +50,8 @@ static unsigned int cluster_id = 1;
 
 class InstrumentationTGDump: public Instrumentation
 {
+public:
+    static std::list<std::string> _papi_event_args;
 private:
     Node* _root;
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
@@ -58,6 +61,7 @@ private:
     double _min_time;
     double _total_time;
     double _min_diam;
+    std::vector<int> _papi_event_codes;                     // Event codes to be tracked using PAPI
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
@@ -72,40 +76,56 @@ private:
     }
 
     inline std::string print_node(Node* n, std::string indentation) {
-
-        std::string node_attrs = "";
+        std::stringstream ss;
+        
+        // Create node label and open attribute braces
+        ss << indentation << n->get_wd_id() << "[";
+        
         // Get the label of the node
-//         std::stringstream ss; ss << n->get_wd_id();
         if (n->is_taskwait()) {
-            node_attrs += "label=\"Taskwait\", ";
-//             node_attrs += "label=\"[" + ss.str() + "]Taskwait\", ";
+            ss << "label=\"Taskwait\", ";
         } else if (n->is_barrier()) {
-            node_attrs += "label=\"Barrier\", ";
+            ss << "label=\"Barrier\", ";
         }
 
         // Get the style of the node
-        node_attrs += "style=\"";
-        node_attrs += (!n->is_task() ? "bold" : "filled");
-        node_attrs += (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
+        ss << "style=\"";
+        ss << (!n->is_task() ? "bold" : "filled");
+        ss << (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
 
         // Get the color of the node
- //       if(n->is_task() && n->is_critical()) {
- //           node_attrs += "\", color=\"black\", fillcolor=red\"";// + wd_to_color_hash(n->get_funct_id());
- //       }
         if(n->is_task()) {
             std::string description = _funct_id_to_decl_map[n->get_funct_id()];
-            node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(description);
+            ss << "\", color=\"black\", fillcolor=\"" << wd_to_color_hash(description);
         }
 
         // Set the size of the node
-        node_attrs += "\", width=\"1\", height=\"1\"";
+        ss << "\", width=\"1\", height=\"1\"";
 
         // Output execution time
-        node_attrs += ", execution_time=\"" + toString(n->get_total_time()) + "\"";
+        ss << ", execution_time=\"" << n->get_total_time() << "\"";
 
-        // Build and return the whole node info
-        std::stringstream ss; ss << n->get_wd_id();
-        return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
+        // Output papi operation counters
+        std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
+        std::vector<std::pair<int, long long> >::iterator it;
+        for(it = perf_counters.begin(); it != perf_counters.end(); ++it) {
+            char papi_event_name[PAPI_MAX_STR_LEN];
+            int rc;
+            
+            if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
+                std::cerr << "Failed to get name for event id " << it->first << ". ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "The associated counter will not be emitted.\n";
+                continue;
+            }
+            
+            ss << ", " << std::string(papi_event_name) << "=\"" << toString(it->second) << "\"";
+        }
+
+        // Close the braces around the node attributes
+        ss << "];\n";
+        
+        return ss.str();
     }
 
     inline std::string print_edge(Edge* e, std::string indentation)
@@ -429,8 +449,8 @@ private:
 public:
     // constructor
     InstrumentationTGDump() : Instrumentation(),
-                                          _graph_nodes(), _funct_id_to_decl_map(),
-                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
+                              _graph_nodes(), _funct_id_to_decl_map(),
+                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
     {}
 
     // destructor
@@ -451,9 +471,9 @@ public:
 
     // constructor
     InstrumentationTGDump() : Instrumentation(*new InstrumentationContextDisabled()),
-                                          _graph_nodes(), _funct_id_to_decl_map(),
-                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
-                                          _next_tw_id(0), _next_conc_id(0)
+                              _graph_nodes(), _funct_id_to_decl_map(),
+                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                              _next_tw_id(0), _next_conc_id(0)
     {}
 
     // destructor
@@ -462,6 +482,55 @@ public:
     // low-level instrumentation interface (mandatory functions)
     void initialize(void)
     {
+        int rc, test_event_set = PAPI_NULL;
+        
+        // Initialise PAPI
+        if((rc = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT) {
+            std::cerr << "Failed to initialise PAPI library. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+            exit(1);
+        }
+        
+        // Create a test event set
+        if((rc = PAPI_create_eventset(&test_event_set)) != PAPI_OK) {
+            std::cerr << "Failed to create test event set. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+            exit(1);
+        }
+        
+        std::list<std::string>& papi_event_args = InstrumentationTGDump::_papi_event_args;
+        std::list<std::string>::iterator it;
+        
+        // populate list of papi counter IDs
+        for(it = papi_event_args.begin(); it != papi_event_args.end(); ++it) {
+            int event_code;
+            
+            // Is this a valid name? If not, omit it
+            if((rc = PAPI_event_name_to_code((*it).c_str(), &event_code)) != PAPI_OK) {
+                std::cerr << "Failed to get event code for event '" << *it << "'. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "This event will not be tracked.\n";
+                continue;
+            }
+            
+            // Can we add the id to an event list? If not, omit it
+            if((rc = PAPI_add_event(test_event_set, event_code)) != PAPI_OK) {
+                std::cerr << "Failed to add event " << *it << " to test event set. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "This event will not be tracked.\n";
+                continue;
+            }
+            
+            this->_papi_event_codes.push_back(event_code);
+        }
+        
+        // Clean up the test event set (we no longer need it)
+        if((rc = PAPI_cleanup_eventset(test_event_set)) != PAPI_OK) {
+            std::cerr << "Failed to clean up test event set. ";
+            std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+            exit(1);
+        }
+        
         _root = new Node(0, 0, Root);
     }
 
@@ -537,6 +606,9 @@ public:
         // TODO
         // Print the summarized graph
 //         print_summarized_graph(file_name);
+
+        // Shut down papi
+        PAPI_shutdown();
     }
 
     void disable(void) {}
@@ -555,6 +627,7 @@ public:
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
             n->set_last_time(get_current_time());
+            n->start_operation_counters(_papi_event_codes);
         }
     }
 
@@ -562,6 +635,7 @@ public:
     {
         Node* n = find_node_from_wd_id(w.getId());
         if(n != NULL) {
+            n->suspend_operation_counters(last);
             double time = (double) get_current_time() - n->get_last_time();
             n->add_total_time(time);
         }
@@ -753,6 +827,8 @@ public:
 
 };
 
+std::list<std::string> InstrumentationTGDump::_papi_event_args;
+
 namespace ext {
 
     class InstrumentationTGDumpPlugin : public Plugin {
@@ -762,7 +838,17 @@ namespace ext {
 
         void config(Config &cfg)
         {
-
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_FP_OPS");
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_INS");
+            InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_CYC");
+            
+            cfg.setOptionsSection(
+                "Task graph dump plugin ", "tg-dump specific options");
+            cfg.registerConfigOption(
+                "papi-events",  NEW Config::StringVarList(InstrumentationTGDump::_papi_event_args),
+                "Defines which PAPI events to track for tasks.");
+            cfg.registerArgOption(
+                "papi-events", "papi-events");
         }
 
         void init ()

@@ -23,6 +23,7 @@
 #include "atomic.hpp"
 #include "lock.hpp"
 #include <tr1/unordered_map>
+#include "papi.h"
 
 namespace nanos {
 
@@ -123,6 +124,7 @@ namespace nanos {
         TaskwaitNode
     };
 
+
     struct Node {
         // Class members
         int64_t _wd_id;
@@ -137,12 +139,16 @@ namespace nanos {
 
         bool _printed;
         bool _critical;
+        
+        int _papi_event_set;
+        std::vector<std::pair<int, long long> > _papi_counters;   // first - event id, second - counter value
 
         // Constructor
         Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
               _entry_edges( ), _exit_edges( ),
-              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
+              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false ),
+              _papi_event_set( PAPI_NULL ), _papi_counters( )
         {}
 
         int64_t get_wd_id() const {return _wd_id;}
@@ -152,6 +158,7 @@ namespace nanos {
         double get_last_time() const {return _last_time;}
         void set_last_time(double time) {_last_time = time;}
         double get_total_time() const {return _total_time;}
+        std::vector<std::pair<int, long long> > get_perf_counters() const {return _papi_counters;}
 
         void add_total_time( double time ) {
            _total_time += time;
@@ -292,7 +299,58 @@ namespace nanos {
         void set_critical( ) {
            _critical = true;
         }
+
+        void start_operation_counters(std::vector<int>& papi_event_codes)
+        {   
+            int rc;
+            
+            if(_papi_event_set == PAPI_NULL) {
+                if((rc = PAPI_create_eventset(&_papi_event_set)) != PAPI_OK) {
+                    std::cerr << "Failed to create node event set. ";
+                    std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
+                }
+                
+                std::vector<int>::iterator it;
+                for(it = papi_event_codes.begin(); it != papi_event_codes.end(); ++it) {
+                    if((rc = PAPI_add_event(_papi_event_set, *it)) != PAPI_OK) {
+                        std::cerr << "Failed to add event with id " << *it << " to node event set. ";
+                        std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
+                    } else {
+                        _papi_counters.push_back(std::make_pair(*it, 0));
+                    }
+                }
+            }
+            
+            if((rc = PAPI_start(_papi_event_set)) != PAPI_OK) {
+                std::cerr << "Failed to start node performance counters. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
+            }
+        }
+        
+        void suspend_operation_counters(bool const last) {
+            int rc;
+            long long counter_values[_papi_counters.size()];
+         
+            if((rc = PAPI_stop(_papi_event_set, counter_values)) != PAPI_OK) {
+                std::cerr << "Failed to get node performance counters. ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
+            } else {
+                for(unsigned i = 0; i < _papi_counters.size(); i++) {
+                    _papi_counters[i].second += counter_values[i];
+                }
+            }
+            
+            if(last) {
+                if((rc = PAPI_cleanup_eventset(_papi_event_set)) != PAPI_OK) {
+                    std::cerr << "Failed to clean up node event set. ";
+                    std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
+                } else {
+                    _papi_event_set = PAPI_NULL;
+                }
+            }
+        }
     };
+
 
     std::string node_colors[] = {
         "aliceblue", "antiquewhite", "antiquewhite1", "antiquewhite2", "antiquewhite3",
