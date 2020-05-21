@@ -597,16 +597,6 @@ public:
         // Print the full graph
         std::string full_dot_name = print_full_graph(file_name);
 
-        // Generate the PDF containing the graph
-        std::string dot_to_pdf_command = "dot -Tpdf " + full_dot_name + ".dot -o " + full_dot_name + ".pdf";
-        if ( system( dot_to_pdf_command.c_str( ) ) != 0 )
-            warning( "Could not create the pdf file." );
-        std::cerr << "Task Dependency Graph printed to file '" << full_dot_name << ".pdf' in PDF format" << std::endl;
-
-        // TODO
-        // Print the summarized graph
-//         print_summarized_graph(file_name);
-
         // Shut down papi
         PAPI_shutdown();
     }
