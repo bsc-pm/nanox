@@ -107,6 +107,23 @@ private:
         // Output execution time
         node_attrs += ", execution_time=\"" + toString(n->get_total_time()) + "\"";
 
+        // Output papi operation counters
+        std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
+        std::vector<std::pair<int, long long> >::iterator it;
+        for(it = perf_counters.begin(); it != perf_counters.end(); ++it) {
+            char papi_event_name[PAPI_MAX_STR_LEN];
+            int rc;
+            
+            if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
+                std::cerr << "Failed to get name for event id " << it->first << ". ";
+                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                std::cerr << "The associated counter will not be emitted.\n";
+                continue;
+            }
+            
+            node_attrs += ", " + std::string(papi_event_name) + "=\"" + toString(it->second) + "\"";
+        }
+
         // Build and return the whole node info
         std::stringstream ss; ss << n->get_wd_id();
         return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
