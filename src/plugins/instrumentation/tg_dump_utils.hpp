@@ -492,5 +492,38 @@ namespace nanos {
         std::tr1::hash<std::string> hash_fn;
         return node_colors[ hash_fn(description) % node_color_count ];
     }
+    
+    inline std::string formatSize(long long bytes) {
+        std::string units[] = {"B","kB","MB","GB","TB","PB","EB","YB"};
+        int const max_units = sizeof(units) / sizeof(units[0]);
+        
+        double size = bytes;
+        int i;
+        for(i = 0; i < max_units && size > 1024; i++) {
+            size /= 1024;
+        }
+        
+        std::stringstream ss;
+        ss.precision(3);
+        ss << size << units[i];
+        return ss.str();
+    }
+
+    inline std::string formatTime(long long us) {
+        std::string units[] = {"us","ms","S","M","H","D"};
+        int const unit_multiples[] = {1000, 1000, 60, 60, 24};
+        int const max_units = sizeof(units) / sizeof(units[0]);
+        
+        double time = us;
+        int i;
+        for(i = 0; i < max_units && time > unit_multiples[i]; i++) {
+            time /= unit_multiples[i];
+        }
+        
+        std::stringstream ss;
+        ss.precision(3);
+        ss << time << units[i];
+        return ss.str();
+    }
 
 } // namespace nanos
