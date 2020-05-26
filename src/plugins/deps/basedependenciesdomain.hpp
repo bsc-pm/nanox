@@ -161,7 +161,7 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
       NANOS_INSTRUMENT ( } )
 
       NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
-      NANOS_INSTRUMENT ( Values[3] = ((nanos_event_value_t) 2); )
+      NANOS_INSTRUMENT ( Values[3] = ((nanos_event_value_t) status.getDataSize() ); )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(4, _insKeyDeps, Values); )
 
       if ( predecessorReader->addSuccessor( depObj ) ) {
@@ -289,7 +289,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
          NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 8); )
       NANOS_INSTRUMENT ( })
       NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
-      NANOS_INSTRUMENT ( Values[3] = ((nanos_event_value_t) 3); )
+      NANOS_INSTRUMENT ( Values[3] = ((nanos_event_value_t) status.getDataSize() ); )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(4, _insKeyDeps, Values); )
    NANOS_INSTRUMENT ( } )
 
@@ -361,4 +361,3 @@ inline void BaseDependenciesDomain::submitDependableObjectInputNoReadDataAccess 
 } // namespace nanos
 
 #endif
-
