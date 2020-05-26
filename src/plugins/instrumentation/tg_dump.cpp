@@ -86,6 +86,39 @@ private:
             ss << "label=\"Taskwait\", ";
         } else if (n->is_barrier()) {
             ss << "label=\"Barrier\", ";
+        } else {
+            // Open html label
+            ss << "label=<<table border=\"0\" cellspacing=\"5\" cellborder=\"0\">";
+            
+            // Output papi operation counters as html label
+            std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
+            std::vector<std::pair<int, long long> >::iterator it;
+            for(it = perf_counters.begin(); it != perf_counters.end(); ++it) {
+                char papi_event_name[PAPI_MAX_STR_LEN];
+                int rc;
+                
+                if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
+                    std::cerr << "Failed to get name for event id " << it->first << ". ";
+                    std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                    std::cerr << "The associated counter will not be emitted.\n";
+                    continue;
+                }
+                
+                // Output row for papi counter
+                ss << "<tr>";
+                ss << "<td>" << std::string(papi_event_name) <<"</td>";
+                ss << "<td>" << it->second << "</td>";
+                ss << "</tr>";
+            }
+            
+            // Output execution time
+            ss << "<tr>";
+            ss << "<td>time</td>";
+            ss << "<td>" << formatTime(n->get_total_time()) << "</td>";
+            ss << "</tr>";
+            
+            // Close html label
+            ss << "</table>>";
         }
 
         // Get the style of the node
@@ -102,26 +135,6 @@ private:
         // Set the size of the node
         ss << "\", width=\"1\", height=\"1\"";
 
-        // Output execution time
-        ss << ", execution_time=\"" << n->get_total_time() << "\"";
-
-        // Output papi operation counters
-        std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
-        std::vector<std::pair<int, long long> >::iterator it;
-        for(it = perf_counters.begin(); it != perf_counters.end(); ++it) {
-            char papi_event_name[PAPI_MAX_STR_LEN];
-            int rc;
-            
-            if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
-                std::cerr << "Failed to get name for event id " << it->first << ". ";
-                std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
-                std::cerr << "The associated counter will not be emitted.\n";
-                continue;
-            }
-            
-            ss << ", " << std::string(papi_event_name) << "=\"" << toString(it->second) << "\"";
-        }
-
         // Close the braces around the node attributes
         ss << "];\n";
         
@@ -130,7 +143,6 @@ private:
 
     inline std::string print_edge(Edge* e, std::string indentation)
     {
-
         std::string edge_attrs = "style=\"";
 
         // Compute the style of the edge
@@ -144,7 +156,7 @@ private:
         edge_attrs += "\", color=";
         edge_attrs += (e->is_nesting() ? "\"gray47\"" : "\"black\"");
 
-        edge_attrs += ", data_size=\"" + toString(e->get_data_size()) + "\"";
+        edge_attrs += ", label=\"" + formatSize(e->get_data_size()) + "\"";
 
         // Print the edge
         std::stringstream sss; sss << e->get_source()->get_wd_id();
@@ -596,6 +608,12 @@ public:
 
         // Print the full graph
         std::string full_dot_name = print_full_graph(file_name);
+
+        // Generate the PDF containing the graph
+        std::string dot_to_pdf_command = "dot -Tpdf " + full_dot_name + ".dot -o " + full_dot_name + ".pdf";
+        if ( system( dot_to_pdf_command.c_str( ) ) != 0 )
+            warning( "Could not create the pdf file." );
+        std::cerr << "Task Dependency Graph printed to file '" << full_dot_name << ".pdf' in PDF format" << std::endl;
 
         // Shut down papi
         PAPI_shutdown();
