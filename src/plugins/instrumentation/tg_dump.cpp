@@ -52,6 +52,7 @@ class InstrumentationTGDump: public Instrumentation
 {
 public:
     static std::list<std::string> _papi_event_args;
+    static std::string _output_mode;
 private:
     Node* _root;
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
@@ -75,7 +76,20 @@ private:
         return current_thread->getCurrentWD()->getId();
     }
 
-    inline std::string print_node(Node* n, std::string indentation) {
+    inline Node* find_node_from_wd_id(int64_t wd_id) const {
+        Node* result = NULL;
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+            if((*it)->get_wd_id() == wd_id) {
+                result = *it;
+                break;
+            }
+        }
+        return result;
+    }
+
+//====[DOT PRINTING]==========================================================================================================//
+
+    inline std::string print_node_dot(Node* n, std::string indentation) {
         std::stringstream ss;
         
         // Create node label and open attribute braces
@@ -141,13 +155,12 @@ private:
         return ss.str();
     }
 
-    inline std::string print_edge(Edge* e, std::string indentation)
+    inline std::string print_edge_dot(Edge* e, std::string indentation)
     {
         std::string edge_attrs = "style=\"";
 
         // Compute the style of the edge
-        edge_attrs += ((!e->is_dependency() ||
-                        e->is_true_dependency()) ? "solid" : (e->is_anti_dependency() ? "dashed" : "dotted"));
+        edge_attrs += ((!e->is_dependency() || e->is_true_dependency()) ? "solid" : (e->is_anti_dependency() ? "dashed" : "dotted"));
 
         //Mark the edges of the critical path as bold
         edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" );
@@ -164,7 +177,7 @@ private:
         return std::string(indentation + sss.str() + " -> " + sst.str() + " [" + edge_attrs + "];\n");
     }
 
-    inline std::string print_nested_nodes(Node* n, std::string indentation) {
+    inline std::string print_nested_nodes_dot(Node* n, std::string indentation) {
         std::string nested_nodes_info = "";
         std::vector<Edge*> const& exits = n->get_exits();
         std::vector<Edge*> nested_exits;
@@ -173,15 +186,15 @@ private:
             if ((*it)->is_nesting())
             {
                 Node* t = (*it)->get_target();
-                nested_nodes_info += print_node(t, indentation) + print_edge(*it, indentation);
+                nested_nodes_info += print_node_dot(t, indentation) + print_edge_dot(*it, indentation);
                 // Call recursively for nodes nested to the current node
-                print_nested_nodes(t, std::string(indentation + "  "));
+                print_nested_nodes_dot(t, std::string(indentation + "  "));
             }
         }
         return nested_nodes_info;
     }
 
-    inline std::string print_edges_legend() {
+    inline std::string print_edges_legend_dot() {
         std::stringstream ss;
         lock.acquire();
             ss << cluster_id++;
@@ -242,7 +255,7 @@ private:
         return edges_legend;
     }
 
-    inline std::string print_nodes_legend() {
+    inline std::string print_nodes_legend_dot() {
         std::stringstream ssc;
         lock.acquire();
         ssc << cluster_id++;
@@ -290,24 +303,13 @@ private:
         return nodes_legend;
     }
 
-    inline Node* find_node_from_wd_id(int64_t wd_id) const {
-        Node* result = NULL;
-        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-            if((*it)->get_wd_id() == wd_id) {
-                result = *it;
-                break;
-            }
-        }
-        return result;
-    }
-
-    inline std::string print_node_and_its_nested(Node* n, std::string indentation) {
+    inline std::string print_node_and_its_nested_dot(Node* n, std::string indentation) {
         std::string result = "";
         // Print the current node
-        std::string node_info = print_node(n, indentation);
+        std::string node_info = print_node_dot(n, indentation);
         n->set_printed();
         // Print all nested nodes
-        std::string nested_nodes_info = print_nested_nodes(n, /*indentation*/"    ");
+        std::string nested_nodes_info = print_nested_nodes_dot(n, /*indentation*/"    ");
 
         if(nested_nodes_info.empty()) {
             result = node_info;
@@ -322,7 +324,7 @@ private:
         return result;
     }
 
-    inline std::string print_full_graph(std::string partial_file_name) {
+    inline std::string print_full_graph_dot(std::string partial_file_name) {
         // Generate the name of the dot file from the name of the binary
         std::string result = partial_file_name + "_full";
         std::string file_name = result + ".dot";
@@ -334,126 +336,420 @@ private:
             exit(EXIT_FAILURE);
 
         // Print the graph
-        std::map<int, int> node_to_cluster;
+        //std::map<int, int> node_to_cluster;
         dot_file << "digraph {\n";
-            // Print attributes of the graph
-            dot_file << "  graph[compound=true];\n";
-            // Print the graph nodes
-            std::queue<Node*> worklist;
-            std::vector<Edge*> const &root_exits = _root->get_exits();
-            for (std::vector<Edge*>::const_iterator it = root_exits.begin(); it != root_exits.end(); ++it)
-                worklist.push((*it)->get_target());
-            while (!worklist.empty())
+        // Print attributes of the graph
+        dot_file << "  graph[compound=true];\n";
+        // Print the graph nodes
+        std::queue<Node*> worklist;
+        std::vector<Edge*> const &root_exits = _root->get_exits();
+        for (std::vector<Edge*>::const_iterator it = root_exits.begin(); it != root_exits.end(); ++it)
+            worklist.push((*it)->get_target());
+        while (!worklist.empty())
+        {
+            Node* n = worklist.front();
+            worklist.pop();
+
+            std::vector<Edge*> const &exits = n->get_exits();
+            if (n->is_printed())
+                continue;
+            if (n->is_commutative() || n->is_concurrent())
             {
-                Node* n = worklist.front();
-                worklist.pop();
-
-                std::vector<Edge*> const &exits = n->get_exits();
-                if (n->is_printed())
-                    continue;
-                if (n->is_commutative() || n->is_concurrent())
+                n->set_printed();
+                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
                 {
-                    n->set_printed();
-                    for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
-                    {
-                        worklist.push((*it)->get_target());
-                    }
-                    continue;
+                    worklist.push((*it)->get_target());
                 }
+                continue;
+            }
 
-                // Check whether there is a block of commutative
-                std::vector<Node*> out_commutatives;
+            // Check whether there is a block of commutative
+            std::vector<Node*> out_commutatives;
+            for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                if ((*it)->is_commutative_dep())
+                    out_commutatives.push_back((*it)->get_target());
+            }
+
+            // Print the current node and, if that is the case, its commutative nodes too
+            if (out_commutatives.empty()) {
+                // Print the node
+                dot_file << print_node_and_its_nested_dot(n, /*indentation*/"  ");
+                std::stringstream sss; sss << n->get_wd_id();
+
+                // Print the relations with its children (or the children of the children if they are a virtual node)
                 for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
-                    if ((*it)->is_commutative_dep())
-                        out_commutatives.push_back((*it)->get_target());
-                }
+                    if ((*it)->is_nesting()) continue;
+                    Node* t = (*it)->get_target();
 
-                // Print the current node and, if that is the case, its commutative nodes too
-                if (out_commutatives.empty()) {
-                    // Print the node
-                    dot_file << print_node_and_its_nested(n, /*indentation*/"  ");
-                    std::stringstream sss; sss << n->get_wd_id();
-
-                    // Print the relations with its children (or the children of the children if they are a virtual node)
-                    for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
-                        if ((*it)->is_nesting()) continue;
-                        Node* t = (*it)->get_target();
-
-                        if (t->is_concurrent() || t->is_commutative()) {
-                            std::vector<Edge*> const &it_exits = t->get_exits();
-                            for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
-                                 itt != it_exits.end(); ++itt) {
-                               std::stringstream sst;
-                               sst << (*itt)->get_target()->get_wd_id();
-                               dot_file << "  " << sss.str() + " -> " + sst.str() + ";\n"; //TODO attributes?
-                               worklist.push((*itt)->get_target());
-                            }
-                        } else {
-                           dot_file << print_edge( *it, /*indentation*/"  " );
-                           worklist.push(t);
-                        }
-                    }
-                } else {
-                    // Since Graphviz does not allow boxes intersections and
-                    // multiple dependencies in a commutative clause may cause that situation,
-                    // we enclose all tasks in the same box and then print the dependencies individually
-                    // 1.- Get all nodes that must be in the commutative box
-                    std::vector<Node*> commutative_box;
-                    for (std::vector<Node*>::const_iterator it = out_commutatives.begin();
-                         it != out_commutatives.end(); ++it) {
-                        // Gather all siblings (parents of the out_commutative nodes)
-                        std::vector<Edge*> const &it_entries = (*it)->get_entries();
-                        for (std::vector<Edge*>::const_iterator itt = it_entries.begin();
-                             itt != it_entries.end(); ++itt) {
-                            commutative_box.push_back((*itt)->get_source());
-                        }
-                    }
-                    // 2.- Print the subgraph with all sibling nodes
-                    std::stringstream ss; ss << cluster_id++;
-                    dot_file << "  subgraph cluster_" << ss.str() << "{\n";
-                        dot_file << "    rank=\"same\"; style=\"rounded\"; label=\"Commutative\";\n";
-                        for (std::vector<Node*>::iterator it = commutative_box.begin();
-                             it != commutative_box.end(); ++it) {
-                            dot_file << print_node_and_its_nested(*it, /*indentation*/"    ");
-                        }
-                    dot_file << "  }\n";
-                    // 3.- Print the edges connecting each sibling node with its corresponding real children
-                    for (std::vector<Node*>::iterator it = commutative_box.begin();
-                         it != commutative_box.end(); ++it) {
-                        std::stringstream sss; sss << (*it)->get_wd_id();
-                        std::vector<Edge*> const &it_exits = (*it)->get_exits();
+                    if (t->is_concurrent() || t->is_commutative()) {
+                        std::vector<Edge*> const &it_exits = t->get_exits();
                         for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
                              itt != it_exits.end(); ++itt) {
-                            Node* t = (*itt)->get_target();
-                            if ((*itt)->is_nesting()) continue;
+                           std::stringstream sst;
+                           sst << (*itt)->get_target()->get_wd_id();
+                           dot_file << "  " << sss.str() + " -> " + sst.str() + ";\n"; //TODO attributes?
+                           worklist.push((*itt)->get_target());
+                        }
+                    } else {
+                       dot_file << print_edge_dot( *it, /*indentation*/"  " );
+                       worklist.push(t);
+                    }
+                }
+            } else {
+                // Since Graphviz does not allow boxes intersections and
+                // multiple dependencies in a commutative clause may cause that situation,
+                // we enclose all tasks in the same box and then print the dependencies individually
+                // 1.- Get all nodes that must be in the commutative box
+                std::vector<Node*> commutative_box;
+                for (std::vector<Node*>::const_iterator it = out_commutatives.begin();
+                     it != out_commutatives.end(); ++it) {
+                    // Gather all siblings (parents of the out_commutative nodes)
+                    std::vector<Edge*> const &it_entries = (*it)->get_entries();
+                    for (std::vector<Edge*>::const_iterator itt = it_entries.begin();
+                         itt != it_entries.end(); ++itt) {
+                        commutative_box.push_back((*itt)->get_source());
+                    }
+                }
+                // 2.- Print the subgraph with all sibling nodes
+                std::stringstream ss; ss << cluster_id++;
+                dot_file << "  subgraph cluster_" << ss.str() << "{\n";
+                    dot_file << "    rank=\"same\"; style=\"rounded\"; label=\"Commutative\";\n";
+                    for (std::vector<Node*>::iterator it = commutative_box.begin();
+                         it != commutative_box.end(); ++it) {
+                        dot_file << print_node_and_its_nested_dot(*it, /*indentation*/"    ");
+                    }
+                dot_file << "  }\n";
+                // 3.- Print the edges connecting each sibling node with its corresponding real children
+                for (std::vector<Node*>::iterator it = commutative_box.begin();
+                     it != commutative_box.end(); ++it) {
+                    std::stringstream sss; sss << (*it)->get_wd_id();
+                    std::vector<Edge*> const &it_exits = (*it)->get_exits();
+                    for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
+                         itt != it_exits.end(); ++itt) {
+                        Node* t = (*itt)->get_target();
+                        if ((*itt)->is_nesting()) continue;
 
-                            if (t->is_commutative() || t->is_concurrent())
-                            {   // If the exit is commutative|concurrent, get the exit of the exit
-                                std::vector<Edge*> const &itt_exits = t->get_exits();
-                                for (std::vector<Edge*>::const_iterator ittt = itt_exits.begin();
-                                     ittt != itt_exits.end(); ++ittt) {
-                                    std::stringstream sst; sst << (*ittt)->get_target()->get_wd_id();
-                                    dot_file << "    " << sss.str() + " -> " + sst.str() + ";\n";
-                                    // Prepare the next iteration
-                                    worklist.push((*ittt)->get_target());
-                                }
-                            } else {
-                                dot_file << print_edge( *itt, /*indentation*/"  " );
+                        if (t->is_commutative() || t->is_concurrent())
+                        {   // If the exit is commutative|concurrent, get the exit of the exit
+                            std::vector<Edge*> const &itt_exits = t->get_exits();
+                            for (std::vector<Edge*>::const_iterator ittt = itt_exits.begin();
+                                 ittt != itt_exits.end(); ++ittt) {
+                                std::stringstream sst; sst << (*ittt)->get_target()->get_wd_id();
+                                dot_file << "    " << sss.str() + " -> " + sst.str() + ";\n";
                                 // Prepare the next iteration
-                                worklist.push(t);
+                                worklist.push((*ittt)->get_target());
                             }
+                        } else {
+                            dot_file << print_edge_dot( *itt, /*indentation*/"  " );
+                            // Prepare the next iteration
+                            worklist.push(t);
                         }
                     }
                 }
             }
+        }
 
-            // Print the legends
-            dot_file << "  node [shape=plaintext];\n";
-            dot_file << print_nodes_legend();
-            dot_file << print_edges_legend();
+        // Print the legends
+        dot_file << "  node [shape=plaintext];\n";
+        dot_file << print_nodes_legend_dot();
+        dot_file << print_edges_legend_dot();
         dot_file << "}";
 
         std::cerr << "Task Dependency Graph printed to file '" << file_name << "' in DOT format" << std::endl;
+        return result;
+    }
+    
+//====[JSON PRINTING]=========================================================================================================//
+
+    //inline std::string print_graph_json(Node* root, std::string indent);
+
+    inline std::string print_node_json(Node* n, std::string indent) {
+        std::stringstream ss;
+        
+        ss << indent << "{\n";
+        
+        printJsonAttribute(indent + "  ", "id", n->get_wd_id(), ss);
+        ss << ",\n";
+        
+        if (n->is_taskwait()) {
+            printJsonAttribute(indent + "  ", "type", "Taskwait", ss);
+        } else if (n->is_barrier()) {
+            printJsonAttribute(indent + "  ", "type", "Barrier", ss);
+        } else {
+            printJsonAttribute(indent + "  ", "type", "Usertask", ss);
+            ss << ",\n";
+            
+            printJsonAttribute(indent + "  ", "description", _funct_id_to_decl_map[n->get_funct_id()], ss);
+            ss << ",\n";
+            
+            printJsonAttribute(indent + "  ", "critical", n->is_critical(), ss);
+            ss << ",\n";
+            
+            // Output papi operation counts
+            std::vector<std::pair<int, long long> > perf_counter_data = n->get_perf_counters();
+            std::vector<std::pair<std::string, long long> > perf_counter_data_printable;
+            
+            perf_counter_data_printable.reserve(perf_counter_data.size());
+            
+            std::vector<std::pair<int, long long> >::iterator it;
+            for(it = perf_counter_data.begin(); it != perf_counter_data.end(); ++it) {
+                char papi_event_name[PAPI_MAX_STR_LEN];
+                int rc;
+                
+                if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
+                    std::cerr << "Failed to get name for event id " << it->first << ". ";
+                    std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
+                    std::cerr << "The associated counter will not be emitted.\n";
+                    continue;
+                }
+                
+                perf_counter_data_printable.push_back(std::make_pair(std::string(papi_event_name), it->second));
+            }
+            
+            perf_counter_data_printable.push_back(std::make_pair("duration_us", n->get_total_time()));
+            
+            printJsonAttributeArray(indent + "  ", "perf_data", perf_counter_data_printable, ss);
+        }
+        ss << ",\n";
+
+        // Get nested exits
+        std::vector<Edge*> const& exits = n->get_exits();
+        std::vector<Edge*> nested_exits;
+        nested_exits.reserve(exits.size());
+        
+        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+            if((*it)->is_nesting()) {
+                nested_exits.push_back(*it);
+            }
+        }
+        
+        // If we have nested exits, print subgraph
+        if(nested_exits.size() != 0) {
+            ss << indent + "  " << "\"subgraph\": {\n";
+            ss << print_graph_objects_json(n, indent + "  " + "  ", true) << "\n";
+            ss << indent + "  " << "}";
+        } else {
+            ss << indent + "  " << "\"subgraph\": null";
+        }
+        
+        ss << "\n" << indent << "}";
+
+        return ss.str();
+    }
+
+    inline std::string print_edge_json(Edge* e, std::string indent)
+    {
+        std::stringstream ss;
+        ss << indent << "{\n";
+        
+        printJsonAttribute(indent + "  ", "from", e->get_source()->get_wd_id(), ss);
+        ss << ",\n";
+        printJsonAttribute(indent + "  ", "to", e->get_target()->get_wd_id(), ss);
+        ss << ",\n";
+        
+        // Print edge type
+        std::string dep_type;
+        dep_type = ((!e->is_dependency() || e->is_true_dependency()) ? "true" : (e->is_anti_dependency() ? "anti" : "output"));
+        printJsonAttribute(indent + "  ", "dependence_type", dep_type, ss);
+        ss << ",\n";
+        
+        printJsonAttribute(indent + "  ", "data_size", e->get_data_size(), ss);
+        
+        ss << "\n" << indent << "}";
+        
+        return ss.str();
+    }
+
+    inline std::string print_graph_objects_json(Node* root, std::string indent, bool nested_only = false) {
+        std::stringstream oss;
+        
+        // Print the graph nodes
+        std::queue<Node*> worklist;
+        std::vector<Edge*> const &root_exits = root->get_exits();
+        
+        // Optionally only print nested nodes
+        for (std::vector<Edge*>::const_iterator it = root_exits.begin(); it != root_exits.end(); ++it) {
+            if(!nested_only || (*it)->is_nesting()) {
+                worklist.push((*it)->get_target());
+            }
+        } 
+            
+        std::vector<Node*> node_print_list;
+        std::vector<Edge*> edge_print_list;
+            
+        while (!worklist.empty()) {
+            Node* n = worklist.front();
+            worklist.pop();
+
+            if (n->is_printed()) {
+                continue;
+            }
+            
+            // If we aren't printing nested nodes, ignore nodes that are nested elsewhere
+            if(!nested_only) {
+                std::vector<Edge*> const &entries = n->get_entries();
+                bool node_is_nested_somewhere = false;
+                
+                for (std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
+                    if((*it)->is_nesting()) {
+                        node_is_nested_somewhere = true;
+                    }
+                }
+                
+                if(node_is_nested_somewhere) {
+                    continue;
+                }
+            }
+
+            std::vector<Edge*> const &exits = n->get_exits();
+
+            if (n->is_commutative() || n->is_concurrent()) {
+                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                    worklist.push((*it)->get_target());
+                }
+                continue;
+            }
+
+            // Check whether there is a block of commutative
+            std::vector<Node*> out_commutatives;
+            for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                if ((*it)->is_commutative_dep()) {
+                    out_commutatives.push_back((*it)->get_target());
+                }
+            }
+
+            // Print the current node and, if that is the case, its commutative nodes too
+            if (out_commutatives.empty()) {
+                // Print the node
+                node_print_list.push_back(n);
+                n->set_printed();
+                std::stringstream sss; sss << n->get_wd_id();
+
+                // Print the relations with its children (or the children of the children if they are a virtual node)
+                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                    if ((*it)->is_nesting()) continue;
+                    Node* t = (*it)->get_target();
+
+                    // TODO this section will still output stuff in dot format
+                    // it needs to be changed, but I don't really understand what is going on here.
+                    if (t->is_concurrent() || t->is_commutative()) {
+                        std::cerr << "Error, commutative/concurrent is not yet implemented for tg-dump in json mode!\n";
+                        exit(1);
+
+                        std::vector<Edge*> const &it_exits = t->get_exits();
+                        for (std::vector<Edge*>::const_iterator itt = it_exits.begin(); itt != it_exits.end(); ++itt) {
+                           std::stringstream sst;
+                           sst << (*itt)->get_target()->get_wd_id();
+                           oss << indent << "  " << sss.str() + " -> " + sst.str() + ";\n"; //TODO attributes?
+                           worklist.push((*itt)->get_target());
+                        }
+                    } else {
+                        edge_print_list.push_back(*it);
+                        worklist.push(t);
+                    }
+                }
+                
+            // TODO this section will still output stuff in dot format
+            // it needs to be changed, but I don't really understand what is going on here.
+            } else {
+                std::cerr << "Error, commutative/concurrent is not yet implemented for tg-dump in json mode!\n";
+                exit(1);
+                // Since Graphviz does not allow boxes intersections and
+                // multiple dependencies in a commutative clause may cause that situation,
+                // we enclose all tasks in the same box and then print the dependencies individually
+                // 1.- Get all nodes that must be in the commutative box
+                std::vector<Node*> commutative_box;
+                for (std::vector<Node*>::const_iterator it = out_commutatives.begin();
+                     it != out_commutatives.end(); ++it) {
+                    // Gather all siblings (parents of the out_commutative nodes)
+                    std::vector<Edge*> const &it_entries = (*it)->get_entries();
+                    for (std::vector<Edge*>::const_iterator itt = it_entries.begin(); itt != it_entries.end(); ++itt) {
+                        commutative_box.push_back((*itt)->get_source());
+                    }
+                }
+                // 2.- Print the subgraph with all sibling nodes
+                std::stringstream ss; ss << cluster_id++;
+                oss << indent << "  subgraph cluster_" << ss.str() << "{\n";
+                    oss << indent << "    rank=\"same\"; style=\"rounded\"; label=\"Commutative\";\n";
+                    for (std::vector<Node*>::iterator it = commutative_box.begin(); it != commutative_box.end(); ++it) {
+                        //os << indent << print_node_and_its_nested_json(*it, /*indentation*/"    ");
+                        oss << print_node_json(*it, indent + "    ");
+                        oss << ",\n";
+                        (*it)->set_printed();
+                    }
+                oss << indent << "  }\n";
+                // 3.- Print the edges connecting each sibling node with its corresponding real children
+                for (std::vector<Node*>::iterator it = commutative_box.begin(); it != commutative_box.end(); ++it) {
+                    std::stringstream sss; sss << (*it)->get_wd_id();
+                    std::vector<Edge*> const &it_exits = (*it)->get_exits();
+                    for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
+                         itt != it_exits.end(); ++itt) {
+                        Node* t = (*itt)->get_target();
+                        if ((*itt)->is_nesting()) continue;
+
+                        if (t->is_commutative() || t->is_concurrent())
+                        {   // If the exit is commutative|concurrent, get the exit of the exit
+                            std::vector<Edge*> const &itt_exits = t->get_exits();
+                            for (std::vector<Edge*>::const_iterator ittt = itt_exits.begin();
+                                 ittt != itt_exits.end(); ++ittt) {
+                                std::stringstream sst; sst << (*ittt)->get_target()->get_wd_id();
+                                oss << indent << "    " << sss.str() + " -> " + sst.str() + ";\n";
+                                // Prepare the next iteration
+                                worklist.push((*ittt)->get_target());
+                            }
+                        } else {
+                            oss << print_edge_json( *itt, indent + "  " );
+                            oss << ",\n";
+                            // Prepare the next iteration
+                            worklist.push(t);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Print nodes
+        oss << indent << "\"nodes\": [\n";
+        for (std::vector<Node*>::iterator it = node_print_list.begin(); it != node_print_list.end();) {
+            oss << print_node_json(*it, indent + "  ");
+            if (++it != node_print_list.end()) {
+                oss << ",";
+            }
+            oss << "\n";
+        }
+        oss << indent << "],\n";
+        
+        // Print edges
+        oss << indent << "\"edges\": [\n";
+        for (std::vector<Edge*>::iterator it = edge_print_list.begin(); it != edge_print_list.end();) {
+            oss << print_edge_json(*it, indent + "  ");
+            if (++it != edge_print_list.end()) {
+                oss << ",";
+            }
+            oss << "\n";
+        }
+        oss << indent << "]";
+        
+        return oss.str();
+    }
+
+    inline std::string print_full_graph_json(std::string partial_file_name) {
+        // Generate the name of the dot file from the name of the binary
+        std::string result = partial_file_name + "_full";
+        std::string file_name = result + ".json";
+
+        // Open the file and start the graph
+        std::ofstream file;
+        file.open(file_name.c_str());
+        if(!file.is_open()) {
+            exit(EXIT_FAILURE);
+        }
+
+        file << "{\n";
+        file << print_graph_objects_json(_root, "  ") << "\n";
+        file << "}\n";
+
+        std::cerr << "Task Dependency Graph printed to file '" << file_name << "' as json" << std::endl;
         return result;
     }
 
@@ -599,21 +895,38 @@ public:
                 unique_key_name = std::string(outstr);
             }
         }
+        
+        std::string base_file_name = OS::getArg(0);
+        size_t slash_pos = base_file_name.find_last_of("/");
+        
+        if(slash_pos != std::string::npos) {
+            base_file_name = base_file_name.substr(slash_pos+1, base_file_name.size()-slash_pos);
+        }
+        
+        base_file_name += "_" + unique_key_name;
 
-        std::string file_name = OS::getArg(0);
-        size_t slash_pos = file_name.find_last_of("/");
-        if(slash_pos != std::string::npos)
-            file_name = file_name.substr(slash_pos+1, file_name.size()-slash_pos);
-        file_name = file_name + "_" + unique_key_name;
+        // If pdf output was enabled, do pdf output
+        if(_output_mode == "pdf") {
+            
+            // Create the dot file
+            std::string const dot_file_name = print_full_graph_dot(base_file_name);
+            std::string const pdf_file_name = base_file_name + ".pdf";
 
-        // Print the full graph
-        std::string full_dot_name = print_full_graph(file_name);
-
-        // Generate the PDF containing the graph
-        std::string dot_to_pdf_command = "dot -Tpdf " + full_dot_name + ".dot -o " + full_dot_name + ".pdf";
-        if ( system( dot_to_pdf_command.c_str( ) ) != 0 )
-            warning( "Could not create the pdf file." );
-        std::cerr << "Task Dependency Graph printed to file '" << full_dot_name << ".pdf' in PDF format" << std::endl;
+            // Generate the PDF from the dot file
+            std::string dot_to_pdf_command = "dot -Tpdf " + dot_file_name + ".dot -o " + pdf_file_name;
+            if ( system( dot_to_pdf_command.c_str( ) ) != 0 ) warning( "Could not create the pdf file." );
+            std::cout << "Task Dependency Graph printed to file '" << pdf_file_name << "' in PDF format" << std::endl;
+        }
+        
+        // Create the json file
+        else if(_output_mode == "json") {
+            print_full_graph_json(base_file_name);
+        }
+        
+        else {
+            std::cerr << "Task Dependency Graph not printed. Output mode '" << _output_mode << "' not recognised";
+            exit(1);
+        }
 
         // Shut down papi
         PAPI_shutdown();
@@ -836,6 +1149,7 @@ public:
 };
 
 std::list<std::string> InstrumentationTGDump::_papi_event_args;
+std::string InstrumentationTGDump::_output_mode;
 
 namespace ext {
 
@@ -846,21 +1160,38 @@ namespace ext {
 
         void config(Config &cfg)
         {
+            cfg.setOptionsSection(
+                "Task graph dump plugin ", "tg-dump specific options");
+                
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_FP_OPS");
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_INS");
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_CYC");
-            
-            cfg.setOptionsSection(
-                "Task graph dump plugin ", "tg-dump specific options");
+
             cfg.registerConfigOption(
-                "papi-events",  NEW Config::StringVarList(InstrumentationTGDump::_papi_event_args),
+                "papi-events", NEW Config::StringVarList(InstrumentationTGDump::_papi_event_args),
                 "Defines which PAPI events to track for tasks.");
             cfg.registerArgOption(
                 "papi-events", "papi-events");
+            
+            InstrumentationTGDump::_output_mode = "json";
+            
+            cfg.registerConfigOption(
+                "tgdump-mode", NEW Config::StringVar(InstrumentationTGDump::_output_mode),
+                "Specifies how tg-dump should output the task graph. "
+                "Accepted options are: json (default), pdf");
+            cfg.registerArgOption(
+                "tgdump-mode", "tgdump-mode");
         }
 
         void init ()
         {
+            if(InstrumentationTGDump::_output_mode != "json" && InstrumentationTGDump::_output_mode != "pdf") {
+                std::cerr << "Invalid tgdump-mode '" << InstrumentationTGDump::_output_mode << "'. ";
+                std::cerr << "One of the following expected: 'json', 'pdf'. ";
+                std::cerr << "Using default 'json'." << std::endl;
+                InstrumentationTGDump::_output_mode = "json";
+            }
+            
             sys.setInstrumentation(new InstrumentationTGDump());
         }
     };

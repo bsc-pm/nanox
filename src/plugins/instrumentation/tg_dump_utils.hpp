@@ -525,5 +525,76 @@ namespace nanos {
         ss << time << units[i];
         return ss.str();
     }
+    
+    template<class T_value>
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        T_value const value,
+        std::ostream& os)
+    {
+        os << indent << "\"" << key << "\": \"" << value << "\"";
+    }
+    
+    // Overload for long long
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        long long const value,
+        std::ostream& os)
+    {
+        os << indent << "\"" << key << "\": " << value;
+    }
+    
+    // Overload for int64_t
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        int64_t const value,
+        std::ostream& os)
+    {
+        os << indent << "\"" << key << "\": " << value;
+    }
+    
+    // Overload for uint64_t
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        uint64_t const value,
+        std::ostream& os)
+    {
+        os << indent << "\"" << key << "\": " << value;
+    }
+    
+    // Overload for boolean
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        bool const value,
+        std::ostream& os)
+    {
+        os << std::boolalpha;
+        os << indent << "\"" << key << "\": " << value;
+        os << std::noboolalpha;
+    }
+    
+    template<class T_value>
+    inline void printJsonAttributeArray(
+        std::string const indent,
+        std::string const name,
+        std::vector<std::pair<std::string, T_value> > const data,
+        std::ostream& os)
+    {   
+        os << indent << "\"" << name << "\": {\n";
+        
+        for(unsigned i = 0; i < data.size(); i++) {
+            printJsonAttribute(indent + "  ", data[i].first, data[i].second, os);
+            if(i < data.size() - 1) {
+                os << ",\n";
+            }
+        }
+        
+        os << "\n" << indent << "}";
+    }
 
 } // namespace nanos
