@@ -533,37 +533,27 @@ namespace nanos {
         T_value const value,
         std::ostream& os)
     {
+        os << indent << "\"" << key << "\": " << value;
+    }
+
+    // Overload for strings
+    inline void printJsonAttribute(
+        std::string const indent,
+        std::string const key,
+        std::string const value,
+        std::ostream& os)
+    {
         os << indent << "\"" << key << "\": \"" << value << "\"";
     }
 
-    // Overload for long long
+    // Overload for c strings
     inline void printJsonAttribute(
         std::string const indent,
         std::string const key,
-        long long const value,
+        char const* value,
         std::ostream& os)
     {
-        os << indent << "\"" << key << "\": " << value;
-    }
-
-    // Overload for int64_t
-    inline void printJsonAttribute(
-        std::string const indent,
-        std::string const key,
-        int64_t const value,
-        std::ostream& os)
-    {
-        os << indent << "\"" << key << "\": " << value;
-    }
-
-    // Overload for uint64_t
-    inline void printJsonAttribute(
-        std::string const indent,
-        std::string const key,
-        uint64_t const value,
-        std::ostream& os)
-    {
-        os << indent << "\"" << key << "\": " << value;
+        os << indent << "\"" << key << "\": \"" << value << "\"";
     }
 
     // Overload for boolean
