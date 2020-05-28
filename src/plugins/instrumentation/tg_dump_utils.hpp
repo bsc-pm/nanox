@@ -139,7 +139,7 @@ namespace nanos {
 
         bool _printed;
         bool _critical;
-        
+
         int _papi_event_set;
         std::vector<std::pair<int, long long> > _papi_counters;   // first - event id, second - counter value
 
@@ -301,15 +301,15 @@ namespace nanos {
         }
 
         void start_operation_counters(std::vector<int>& papi_event_codes)
-        {   
+        {
             int rc;
-            
+
             if(_papi_event_set == PAPI_NULL) {
                 if((rc = PAPI_create_eventset(&_papi_event_set)) != PAPI_OK) {
                     std::cerr << "Failed to create node event set. ";
                     std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
                 }
-                
+
                 std::vector<int>::iterator it;
                 for(it = papi_event_codes.begin(); it != papi_event_codes.end(); ++it) {
                     if((rc = PAPI_add_event(_papi_event_set, *it)) != PAPI_OK) {
@@ -320,17 +320,17 @@ namespace nanos {
                     }
                 }
             }
-            
+
             if((rc = PAPI_start(_papi_event_set)) != PAPI_OK) {
                 std::cerr << "Failed to start node performance counters. ";
                 std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
             }
         }
-        
+
         void suspend_operation_counters(bool const last) {
             int rc;
             long long counter_values[_papi_counters.size()];
-         
+
             if((rc = PAPI_stop(_papi_event_set, counter_values)) != PAPI_OK) {
                 std::cerr << "Failed to get node performance counters. ";
                 std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << "\n";
@@ -339,7 +339,7 @@ namespace nanos {
                     _papi_counters[i].second += counter_values[i];
                 }
             }
-            
+
             if(last) {
                 if((rc = PAPI_cleanup_eventset(_papi_event_set)) != PAPI_OK) {
                     std::cerr << "Failed to clean up node event set. ";
@@ -492,17 +492,17 @@ namespace nanos {
         std::tr1::hash<std::string> hash_fn;
         return node_colors[ hash_fn(description) % node_color_count ];
     }
-    
+
     inline std::string formatSize(long long bytes) {
         std::string units[] = {"B","kB","MB","GB","TB","PB","EB","YB"};
         int const max_units = sizeof(units) / sizeof(units[0]);
-        
+
         double size = bytes;
         int i;
         for(i = 0; i < max_units && size > 1024; i++) {
             size /= 1024;
         }
-        
+
         std::stringstream ss;
         ss.precision(3);
         ss << size << units[i];
@@ -513,19 +513,19 @@ namespace nanos {
         std::string units[] = {"us","ms","S","M","H","D"};
         int const unit_multiples[] = {1000, 1000, 60, 60, 24};
         int const max_units = sizeof(units) / sizeof(units[0]);
-        
+
         double time = us;
         int i;
         for(i = 0; i < max_units && time > unit_multiples[i]; i++) {
             time /= unit_multiples[i];
         }
-        
+
         std::stringstream ss;
         ss.precision(3);
         ss << time << units[i];
         return ss.str();
     }
-    
+
     template<class T_value>
     inline void printJsonAttribute(
         std::string const indent,
@@ -535,7 +535,7 @@ namespace nanos {
     {
         os << indent << "\"" << key << "\": \"" << value << "\"";
     }
-    
+
     // Overload for long long
     inline void printJsonAttribute(
         std::string const indent,
@@ -545,7 +545,7 @@ namespace nanos {
     {
         os << indent << "\"" << key << "\": " << value;
     }
-    
+
     // Overload for int64_t
     inline void printJsonAttribute(
         std::string const indent,
@@ -555,7 +555,7 @@ namespace nanos {
     {
         os << indent << "\"" << key << "\": " << value;
     }
-    
+
     // Overload for uint64_t
     inline void printJsonAttribute(
         std::string const indent,
@@ -565,7 +565,7 @@ namespace nanos {
     {
         os << indent << "\"" << key << "\": " << value;
     }
-    
+
     // Overload for boolean
     inline void printJsonAttribute(
         std::string const indent,
@@ -577,23 +577,23 @@ namespace nanos {
         os << indent << "\"" << key << "\": " << value;
         os << std::noboolalpha;
     }
-    
+
     template<class T_value>
     inline void printJsonAttributeArray(
         std::string const indent,
         std::string const name,
         std::vector<std::pair<std::string, T_value> > const data,
         std::ostream& os)
-    {   
+    {
         os << indent << "\"" << name << "\": {\n";
-        
+
         for(unsigned i = 0; i < data.size(); i++) {
             printJsonAttribute(indent + "  ", data[i].first, data[i].second, os);
             if(i < data.size() - 1) {
                 os << ",\n";
             }
         }
-        
+
         os << "\n" << indent << "}";
     }
 

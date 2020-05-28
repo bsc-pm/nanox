@@ -91,10 +91,10 @@ private:
 
     inline std::string print_node_dot(Node* n, std::string indentation) {
         std::stringstream ss;
-        
+
         // Create node label and open attribute braces
         ss << indentation << n->get_wd_id() << "[";
-        
+
         // Get the label of the node
         if (n->is_taskwait()) {
             ss << "label=\"Taskwait\", ";
@@ -103,34 +103,34 @@ private:
         } else {
             // Open html label
             ss << "label=<<table border=\"0\" cellspacing=\"5\" cellborder=\"0\">";
-            
+
             // Output papi operation counters as html label
             std::vector<std::pair<int, long long> > perf_counters = n->get_perf_counters();
             std::vector<std::pair<int, long long> >::iterator it;
             for(it = perf_counters.begin(); it != perf_counters.end(); ++it) {
                 char papi_event_name[PAPI_MAX_STR_LEN];
                 int rc;
-                
+
                 if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
                     std::cerr << "Failed to get name for event id " << it->first << ". ";
                     std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
                     std::cerr << "The associated counter will not be emitted.\n";
                     continue;
                 }
-                
+
                 // Output row for papi counter
                 ss << "<tr>";
                 ss << "<td>" << std::string(papi_event_name) <<"</td>";
                 ss << "<td>" << it->second << "</td>";
                 ss << "</tr>";
             }
-            
+
             // Output execution time
             ss << "<tr>";
             ss << "<td>time</td>";
             ss << "<td>" << formatTime(n->get_total_time()) << "</td>";
             ss << "</tr>";
-            
+
             // Close html label
             ss << "</table>>";
         }
@@ -151,7 +151,7 @@ private:
 
         // Close the braces around the node attributes
         ss << "];\n";
-        
+
         return ss.str();
     }
 
@@ -458,19 +458,19 @@ private:
         std::cerr << "Task Dependency Graph printed to file '" << file_name << "' in DOT format" << std::endl;
         return result;
     }
-    
+
 //====[JSON PRINTING]=========================================================================================================//
 
     //inline std::string print_graph_json(Node* root, std::string indent);
 
     inline std::string print_node_json(Node* n, std::string indent) {
         std::stringstream ss;
-        
+
         ss << indent << "{\n";
-        
+
         printJsonAttribute(indent + "  ", "id", n->get_wd_id(), ss);
         ss << ",\n";
-        
+
         if (n->is_taskwait()) {
             printJsonAttribute(indent + "  ", "type", "Taskwait", ss);
         } else if (n->is_barrier()) {
@@ -478,36 +478,36 @@ private:
         } else {
             printJsonAttribute(indent + "  ", "type", "Usertask", ss);
             ss << ",\n";
-            
+
             printJsonAttribute(indent + "  ", "description", _funct_id_to_decl_map[n->get_funct_id()], ss);
             ss << ",\n";
-            
+
             printJsonAttribute(indent + "  ", "critical", n->is_critical(), ss);
             ss << ",\n";
-            
+
             // Output papi operation counts
             std::vector<std::pair<int, long long> > perf_counter_data = n->get_perf_counters();
             std::vector<std::pair<std::string, long long> > perf_counter_data_printable;
-            
+
             perf_counter_data_printable.reserve(perf_counter_data.size());
-            
+
             std::vector<std::pair<int, long long> >::iterator it;
             for(it = perf_counter_data.begin(); it != perf_counter_data.end(); ++it) {
                 char papi_event_name[PAPI_MAX_STR_LEN];
                 int rc;
-                
+
                 if((rc = PAPI_event_code_to_name(it->first, papi_event_name)) != PAPI_OK) {
                     std::cerr << "Failed to get name for event id " << it->first << ". ";
                     std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ". ";
                     std::cerr << "The associated counter will not be emitted.\n";
                     continue;
                 }
-                
+
                 perf_counter_data_printable.push_back(std::make_pair(std::string(papi_event_name), it->second));
             }
-            
+
             perf_counter_data_printable.push_back(std::make_pair("duration_us", n->get_total_time()));
-            
+
             printJsonAttributeArray(indent + "  ", "perf_data", perf_counter_data_printable, ss);
         }
         ss << ",\n";
@@ -516,13 +516,13 @@ private:
         std::vector<Edge*> const& exits = n->get_exits();
         std::vector<Edge*> nested_exits;
         nested_exits.reserve(exits.size());
-        
+
         for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
             if((*it)->is_nesting()) {
                 nested_exits.push_back(*it);
             }
         }
-        
+
         // If we have nested exits, print subgraph
         if(nested_exits.size() != 0) {
             ss << indent + "  " << "\"subgraph\": {\n";
@@ -531,7 +531,7 @@ private:
         } else {
             ss << indent + "  " << "\"subgraph\": null";
         }
-        
+
         ss << "\n" << indent << "}";
 
         return ss.str();
@@ -541,42 +541,42 @@ private:
     {
         std::stringstream ss;
         ss << indent << "{\n";
-        
+
         printJsonAttribute(indent + "  ", "from", e->get_source()->get_wd_id(), ss);
         ss << ",\n";
         printJsonAttribute(indent + "  ", "to", e->get_target()->get_wd_id(), ss);
         ss << ",\n";
-        
+
         // Print edge type
         std::string dep_type;
         dep_type = ((!e->is_dependency() || e->is_true_dependency()) ? "true" : (e->is_anti_dependency() ? "anti" : "output"));
         printJsonAttribute(indent + "  ", "dependence_type", dep_type, ss);
         ss << ",\n";
-        
+
         printJsonAttribute(indent + "  ", "data_size", e->get_data_size(), ss);
-        
+
         ss << "\n" << indent << "}";
-        
+
         return ss.str();
     }
 
     inline std::string print_graph_objects_json(Node* root, std::string indent, bool nested_only = false) {
         std::stringstream oss;
-        
+
         // Print the graph nodes
         std::queue<Node*> worklist;
         std::vector<Edge*> const &root_exits = root->get_exits();
-        
+
         // Optionally only print nested nodes
         for (std::vector<Edge*>::const_iterator it = root_exits.begin(); it != root_exits.end(); ++it) {
             if(!nested_only || (*it)->is_nesting()) {
                 worklist.push((*it)->get_target());
             }
-        } 
-            
+        }
+
         std::vector<Node*> node_print_list;
         std::vector<Edge*> edge_print_list;
-            
+
         while (!worklist.empty()) {
             Node* n = worklist.front();
             worklist.pop();
@@ -584,18 +584,18 @@ private:
             if (n->is_printed()) {
                 continue;
             }
-            
+
             // If we aren't printing nested nodes, ignore nodes that are nested elsewhere
             if(!nested_only) {
                 std::vector<Edge*> const &entries = n->get_entries();
                 bool node_is_nested_somewhere = false;
-                
+
                 for (std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
                     if((*it)->is_nesting()) {
                         node_is_nested_somewhere = true;
                     }
                 }
-                
+
                 if(node_is_nested_somewhere) {
                     continue;
                 }
@@ -648,7 +648,7 @@ private:
                         worklist.push(t);
                     }
                 }
-                
+
             // TODO this section will still output stuff in dot format
             // it needs to be changed, but I don't really understand what is going on here.
             } else {
@@ -707,7 +707,7 @@ private:
                 }
             }
         }
-        
+
         // Print nodes
         oss << indent << "\"nodes\": [\n";
         for (std::vector<Node*>::iterator it = node_print_list.begin(); it != node_print_list.end();) {
@@ -718,7 +718,7 @@ private:
             oss << "\n";
         }
         oss << indent << "],\n";
-        
+
         // Print edges
         oss << indent << "\"edges\": [\n";
         for (std::vector<Edge*>::iterator it = edge_print_list.begin(); it != edge_print_list.end();) {
@@ -729,7 +729,7 @@ private:
             oss << "\n";
         }
         oss << indent << "]";
-        
+
         return oss.str();
     }
 
@@ -791,28 +791,28 @@ public:
     void initialize(void)
     {
         int rc, test_event_set = PAPI_NULL;
-        
+
         // Initialise PAPI
         if((rc = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT) {
             std::cerr << "Failed to initialise PAPI library. ";
             std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
             exit(1);
         }
-        
+
         // Create a test event set
         if((rc = PAPI_create_eventset(&test_event_set)) != PAPI_OK) {
             std::cerr << "Failed to create test event set. ";
             std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
             exit(1);
         }
-        
+
         std::list<std::string>& papi_event_args = InstrumentationTGDump::_papi_event_args;
         std::list<std::string>::iterator it;
-        
+
         // populate list of papi counter IDs
         for(it = papi_event_args.begin(); it != papi_event_args.end(); ++it) {
             int event_code;
-            
+
             // Is this a valid name? If not, omit it
             if((rc = PAPI_event_name_to_code((*it).c_str(), &event_code)) != PAPI_OK) {
                 std::cerr << "Failed to get event code for event '" << *it << "'. ";
@@ -820,7 +820,7 @@ public:
                 std::cerr << "This event will not be tracked.\n";
                 continue;
             }
-            
+
             // Can we add the id to an event list? If not, omit it
             if((rc = PAPI_add_event(test_event_set, event_code)) != PAPI_OK) {
                 std::cerr << "Failed to add event " << *it << " to test event set. ";
@@ -828,17 +828,17 @@ public:
                 std::cerr << "This event will not be tracked.\n";
                 continue;
             }
-            
+
             this->_papi_event_codes.push_back(event_code);
         }
-        
+
         // Clean up the test event set (we no longer need it)
         if((rc = PAPI_cleanup_eventset(test_event_set)) != PAPI_OK) {
             std::cerr << "Failed to clean up test event set. ";
             std::cerr << "Papi error: (" << rc << ") - " << PAPI_strerror(rc) << ".\n";
             exit(1);
         }
-        
+
         _root = new Node(0, 0, Root);
     }
 
@@ -895,19 +895,19 @@ public:
                 unique_key_name = std::string(outstr);
             }
         }
-        
+
         std::string base_file_name = OS::getArg(0);
         size_t slash_pos = base_file_name.find_last_of("/");
-        
+
         if(slash_pos != std::string::npos) {
             base_file_name = base_file_name.substr(slash_pos+1, base_file_name.size()-slash_pos);
         }
-        
+
         base_file_name += "_" + unique_key_name;
 
         // If pdf output was enabled, do pdf output
         if(_output_mode == "pdf") {
-            
+
             // Create the dot file
             std::string const dot_file_name = print_full_graph_dot(base_file_name);
             std::string const pdf_file_name = base_file_name + ".pdf";
@@ -917,12 +917,12 @@ public:
             if ( system( dot_to_pdf_command.c_str( ) ) != 0 ) warning( "Could not create the pdf file." );
             std::cout << "Task Dependency Graph printed to file '" << pdf_file_name << "' in PDF format" << std::endl;
         }
-        
+
         // Create the json file
         else if(_output_mode == "json") {
             print_full_graph_json(base_file_name);
         }
-        
+
         else {
             std::cerr << "Task Dependency Graph not printed. Output mode '" << _output_mode << "' not recognised";
             exit(1);
@@ -1162,7 +1162,7 @@ namespace ext {
         {
             cfg.setOptionsSection(
                 "Task graph dump plugin ", "tg-dump specific options");
-                
+
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_FP_OPS");
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_INS");
             InstrumentationTGDump::_papi_event_args.push_back("PAPI_TOT_CYC");
@@ -1172,9 +1172,9 @@ namespace ext {
                 "Defines which PAPI events to track for tasks.");
             cfg.registerArgOption(
                 "papi-events", "papi-events");
-            
+
             InstrumentationTGDump::_output_mode = "json";
-            
+
             cfg.registerConfigOption(
                 "tgdump-mode", NEW Config::StringVar(InstrumentationTGDump::_output_mode),
                 "Specifies how tg-dump should output the task graph. "
@@ -1191,7 +1191,7 @@ namespace ext {
                 std::cerr << "Using default 'json'." << std::endl;
                 InstrumentationTGDump::_output_mode = "json";
             }
-            
+
             sys.setInstrumentation(new InstrumentationTGDump());
         }
     };
