@@ -517,14 +517,17 @@ private:
             printJsonAttribute(indent + "  ", "critical", n->is_critical(), ss);
             ss << ",\n";
 
-            // Output papi operation counts
-            std::vector<std::pair<int, long long> > perf_counter_data = n->get_perf_counters();
-            std::vector<std::pair<std::string, long long> > perf_counter_data_printable;
+            printJsonAttribute(indent + "  ", "duration_us", n->get_total_time(), ss);
+            ss << ",\n";
 
-            perf_counter_data_printable.reserve(perf_counter_data.size());
+            // Output papi operation counts
+            std::vector<std::pair<int, long long> > papi_counter_data = n->get_perf_counters();
+            std::vector<std::pair<std::string, long long> > papi_counter_data_printable;
+
+            papi_counter_data_printable.reserve(papi_counter_data.size());
 
             std::vector<std::pair<int, long long> >::iterator it;
-            for(it = perf_counter_data.begin(); it != perf_counter_data.end(); ++it) {
+            for(it = papi_counter_data.begin(); it != papi_counter_data.end(); ++it) {
                 char papi_event_name[PAPI_MAX_STR_LEN];
                 int rc;
 
@@ -535,12 +538,10 @@ private:
                     continue;
                 }
 
-                perf_counter_data_printable.push_back(std::make_pair(std::string(papi_event_name), it->second));
+                papi_counter_data_printable.push_back(std::make_pair(std::string(papi_event_name), it->second));
             }
 
-            perf_counter_data_printable.push_back(std::make_pair("duration_us", n->get_total_time()));
-
-            printJsonAttributeArray(indent + "  ", "perf_data", perf_counter_data_printable, ss);
+            printJsonAttributeArray(indent + "  ", "papi_counters", papi_counter_data_printable, ss);
         }
         ss << ",\n";
 
