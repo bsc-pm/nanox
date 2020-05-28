@@ -153,6 +153,9 @@ AX_ENABLE_TASK_CALLBACK
 # Extrae check
 AX_CHECK_EXTRAE
 
+# Papi check
+AX_CHECK_PAPI
+
 # Check NextSim support
 AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
