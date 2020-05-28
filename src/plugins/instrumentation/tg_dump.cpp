@@ -1015,24 +1015,30 @@ public:
             {   // A user function has been called
                 int64_t func_id = e.getValue();
                 _funct_id_to_decl_map_lock.acquire();
-                if(func_id != 0 && _funct_id_to_decl_map.find(func_id) == _funct_id_to_decl_map.end()) {
-                    // description = func_type|func_label @ file @ line @ name_type
-                    // If name_type == LABEL -> description = func_type|func_label
-                    // else if name_type == FUNCTION -> description = func_type|func_label @ file @ line
+                if (func_id != 0 && _funct_id_to_decl_map.find(func_id) == _funct_id_to_decl_map.end()) {
                     std::string description = iD->getValueDescription(user_funct_location, func_id);
-                    int pos2 = description.find_first_of("@");
-                    int pos3 = description.find_last_of("@")+1;
-                    int pos4 = description.length();
-                    std::string type = description.substr(pos3, pos4-pos3);
-                    if (type == "LABEL")
-                    {
-                        // description = func_label                -> only store the label
-                        _funct_id_to_decl_map[ func_id ] = description.substr(0, pos2);
-                    }
-                    else    // type == "FUNCTION"
-                    {
-                        // description = func_type @ file @ line   -> store the whole description
-                        _funct_id_to_decl_map[ func_id ] = description.substr(0, pos3);
+                    if (_output_mode == "pdf") {
+                        // description = func_type|func_label @ file @ line @ name_type
+                        // If name_type == LABEL -> description = func_type|func_label
+                        // else if name_type == FUNCTION -> description = func_type|func_label @ file @ line
+                        int pos2 = description.find_first_of("@");
+                        int pos3 = description.find_last_of("@")+1;
+                        int pos4 = description.length();
+                        std::string type = description.substr(pos3, pos4-pos3);
+                        if (type == "LABEL")
+                        {
+                            // description = func_label                -> only store the label
+                            _funct_id_to_decl_map[ func_id ] = description.substr(0, pos2);
+                        }
+                        else    // type == "FUNCTION"
+                        {
+                            // description = func_type @ file @ line   -> store the whole description
+                            _funct_id_to_decl_map[ func_id ] = description.substr(0, pos3);
+                        }
+                    } else if(_output_mode == "json") {
+                        _funct_id_to_decl_map[ func_id ] = description;
+                    } else {
+                        _funct_id_to_decl_map[ func_id ] = description;
                     }
                 }
                 _funct_id_to_decl_map_lock.release();
