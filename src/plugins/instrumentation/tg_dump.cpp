@@ -526,8 +526,7 @@ private:
 
             papi_counter_data_printable.reserve(papi_counter_data.size());
 
-            std::vector<std::pair<int, long long> >::iterator it;
-            for(it = papi_counter_data.begin(); it != papi_counter_data.end(); ++it) {
+            for(std::vector<std::pair<int, long long> >::iterator it = papi_counter_data.begin(); it != papi_counter_data.end(); ++it) {
                 char papi_event_name[PAPI_MAX_STR_LEN];
                 int rc;
 
@@ -542,31 +541,30 @@ private:
             }
 
             printJsonAttributeArray(indent + "  ", "papi_counters", papi_counter_data_printable, ss);
-        }
-        ss << ",\n";
+            ss << ",\n";
 
-        // Get nested exits
-        std::vector<Edge*> const& exits = n->get_exits();
-        std::vector<Edge*> nested_exits;
-        nested_exits.reserve(exits.size());
+            // Get nested exits
+            std::vector<Edge*> const& exits = n->get_exits();
+            std::vector<Edge*> nested_exits;
+            nested_exits.reserve(exits.size());
 
-        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
-            if((*it)->is_nesting()) {
-                nested_exits.push_back(*it);
+            for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                if((*it)->is_nesting()) {
+                    nested_exits.push_back(*it);
+                }
+            }
+
+            // If we have nested exits, print subgraph
+            if(nested_exits.size() != 0) {
+                ss << indent + "  " << "\"subgraph\": {\n";
+                ss << print_graph_objects_json(n, indent + "  " + "  ", true) << "\n";
+                ss << indent + "  " << "}";
+            } else {
+                printJsonNullAttribute(indent + "  ", "subgraph", ss);
             }
         }
 
-        // If we have nested exits, print subgraph
-        if(nested_exits.size() != 0) {
-            ss << indent + "  " << "\"subgraph\": {\n";
-            ss << print_graph_objects_json(n, indent + "  " + "  ", true) << "\n";
-            ss << indent + "  " << "}";
-        } else {
-            printJsonNullAttribute(indent + "  ", "subgraph", ss);
-        }
-
         ss << "\n" << indent << "}";
-
         return ss.str();
     }
 
