@@ -529,7 +529,7 @@ private:
             ss << print_graph_objects_json(n, indent + "  " + "  ", true) << "\n";
             ss << indent + "  " << "}";
         } else {
-            ss << indent + "  " << "\"subgraph\": null";
+            printJsonNullAttribute(indent + "  ", "subgraph", ss);
         }
 
         ss << "\n" << indent << "}";

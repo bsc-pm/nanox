@@ -578,6 +578,14 @@ namespace nanos {
         os << std::noboolalpha;
     }
 
+    inline void printJsonNullAttribute(
+        std::string const indent,
+        std::string const key,
+        std::ostream& os)
+    {
+        os << indent << "\"" << key << "\": null";
+    }
+
     template<class T_value>
     inline void printJsonAttributeArray(
         std::string const indent,
