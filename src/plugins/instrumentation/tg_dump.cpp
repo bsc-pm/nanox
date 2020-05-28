@@ -479,8 +479,40 @@ private:
             printJsonAttribute(indent + "  ", "type", "Usertask", ss);
             ss << ",\n";
 
-            printJsonAttribute(indent + "  ", "description", _funct_id_to_decl_map[n->get_funct_id()], ss);
-            ss << ",\n";
+            std::string description = _funct_id_to_decl_map[n->get_funct_id()];
+            std::vector<std::string> desc_sections;
+            desc_sections.reserve(4);
+
+            size_t end;
+            while ((end = description.find_first_of("@")) != std::string::npos) {
+                desc_sections.push_back(description.substr(0, end));
+                description = description.substr(end + 1);
+            }
+            desc_sections.push_back(description);
+
+            // If the format of the description is correct, print attributes
+            if (desc_sections.size() == 4 && (desc_sections[3] == "LABEL" || desc_sections[3] == "FUNCTION")) {
+                if (desc_sections[3] == "LABEL") {
+                    printJsonAttribute(indent + "  ", "label", desc_sections[0], ss);
+                } else {
+                    printJsonNullAttribute(indent + "  ", "label", ss);
+                }
+                ss << ",\n";
+
+                printJsonAttribute(indent + "  ", "file", desc_sections[1], ss);
+                ss << ",\n";
+
+                int line_number;
+                std::istringstream(desc_sections[2]) >> line_number;
+                printJsonAttribute(indent + "  ", "line", line_number, ss);
+                ss << ",\n";
+            }
+
+            // Else, print the whole description
+            else {
+                printJsonAttribute(indent + "  ", "description", description, ss);
+                ss << ",\n";
+            }
 
             printJsonAttribute(indent + "  ", "critical", n->is_critical(), ss);
             ss << ",\n";
