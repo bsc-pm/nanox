@@ -117,9 +117,9 @@ namespace nanos {
                for ( ; vectorIdx < vectorEnd ; ++vectorIdx ) {
                    std::pair < DepsRegion, TrackableObject*> item=_addressDependencyVector.at(vectorIdx);
                    if ( item.first.overlap(target) ) {
-                       uint64_t overlap_size = item.first.overlapSize(static_cast<const DepsRegion&>(target));
-                       item.second->setDataSize(overlap_size);
-                       objs->push_back(item.second); 
+                     std::pair<void*, void*> overlap_range = item.first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                     item.second->setDataRange(overlap_range);
+                     objs->push_back(item.second);
                    } 
                }
                (*result)=*objs;
@@ -151,8 +151,8 @@ namespace nanos {
                     SizesMap::iterator endIter=_addressDependencySmall.upper_bound(finalAddr);
                     for ( ; startingIter!=_addressDependencySmall.end() && startingIter != endIter; ++startingIter ) {
                         if ( startingIter->first.overlap(target) ) {
-                            uint64_t overlap_size = startingIter->first.overlapSize(static_cast<const DepsRegion&>(target));
-                            startingIter->second->setDataSize(overlap_size);
+                            std::pair<void*, void*> overlap_range = startingIter->first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                            startingIter->second->setDataRange(overlap_range);
                             result->push_back(startingIter->second); 
                         } 
                     }
@@ -170,8 +170,8 @@ namespace nanos {
                     SizesMap::iterator endIter=_addressDependencyMid.upper_bound(finalAddr);
                     for ( ; startingIter!=_addressDependencyMid.end() && startingIter != endIter; ++startingIter ) {
                         if ( startingIter->first.overlap(target) ) {
-                            uint64_t overlap_size = startingIter->first.overlapSize(static_cast<const DepsRegion&>(target));
-                            startingIter->second->setDataSize(overlap_size);
+                            std::pair<void*, void*> overlap_range = startingIter->first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                            startingIter->second->setDataRange(overlap_range);
                             result->push_back(startingIter->second); 
                         } 
                     }

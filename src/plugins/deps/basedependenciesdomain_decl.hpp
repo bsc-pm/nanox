@@ -43,7 +43,7 @@ namespace nanos {
           *  \param[in,out] status status of the base address
           */
          virtual CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
-         NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[4]; ) /**< Instrumentation key dependences */
+         NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[5]; ) /**< Instrumentation key dependences */
 
       protected:         
          /*! \brief Finalizes a reduction if active.
@@ -168,7 +168,8 @@ namespace nanos {
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
             NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-size"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-range-start"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-range-end" ); )
          }
          
          BaseDependenciesDomain ( const BaseDependenciesDomain &depDomain ) : DependenciesDomain( depDomain ), _lastDepObjId ( depDomain._lastDepObjId ) {
@@ -176,11 +177,11 @@ namespace nanos {
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
             NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-size"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-range-start"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-range-end" ); )
          }
    };
 
 } // namespace nanos
 
 #endif
-

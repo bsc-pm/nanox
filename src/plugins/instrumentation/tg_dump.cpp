@@ -584,12 +584,17 @@ private:
         std::string dep_type;
         dep_type = ((!e->is_dependency() || e->is_true_dependency()) ? "true" : (e->is_anti_dependency() ? "anti" : "output"));
         printJsonAttribute(indent + "  ", "dependence_type", dep_type, ss);
-        ss << ",\n";
 
-        printJsonAttribute(indent + "  ", "data_size", e->get_data_size(), ss);
+        if (e->is_dependency()) {
+            ss << ",\n";
+            printJsonAttribute(indent + "  ", "data_start", (uint64_t)e->get_data_range().first , ss);
+            ss << ",\n";
+            printJsonAttribute(indent + "  ", "data_end", (uint64_t)e->get_data_range().second , ss);
+            ss << ",\n";
+            printJsonAttribute(indent + "  ", "data_size", e->get_data_size(), ss);
+        }
 
         ss << "\n" << indent << "}";
-
         return ss.str();
     }
 
@@ -845,9 +850,9 @@ public:
                 }
                 if (last_taskwait_sync != NULL) {
                     if (std::abs(last_taskwait_sync->get_wd_id()) < (*it)->get_wd_id())
-                        Node::connect_nodes(last_taskwait_sync, *it, Synchronization, 0);
+                        Node::connect_nodes(last_taskwait_sync, *it, Synchronization);
                 } else {
-                    Node::connect_nodes(_root, *it, Synchronization, 0);
+                    Node::connect_nodes(_root, *it, Synchronization);
                 }
             }
         }
@@ -943,7 +948,8 @@ public:
         static const nanos_event_key_t dependence = iD->getEventKey("dependence");
         static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
         static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
-        static const nanos_event_key_t dep_size = iD->getEventKey("dep-size");
+        static const nanos_event_key_t dep_overlap_start = iD->getEventKey("dep-range-start");
+        static const nanos_event_key_t dep_overlap_end = iD->getEventKey("dep-range-end");
         static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
         static const nanos_event_key_t critical_wd_id = iD->getEventKey("critical-wd-id");
@@ -975,7 +981,7 @@ public:
 
                 // Connect the task with its parent task, if exists
                 if (current_parent != NULL) {
-                    Node::connect_nodes(current_parent, new_node, Nesting, 0);
+                    Node::connect_nodes(current_parent, new_node, Nesting);
                 }
             }
             else if (e.getKey() == critical_wd_id)
@@ -1085,16 +1091,19 @@ public:
                     }
                 }
 
-                // Consume dep_address event key that prcedes data_size
+                // Consume dep_address event key that prcedes data start and end addresses
                 e = events[++i];
                 assert(e.getKey() == dep_address);
 
-                // Get dependency data size
+                // Get dependency overlap addresses
                 e = events[++i];
-                assert(e.getKey() == dep_size);
-                uint64_t dep_data_size = e.getValue();
+                assert(e.getKey() == dep_overlap_start);
+                void* dep_start = (void*) e.getValue();
+                e = events[++i];
+                assert(e.getKey() == dep_overlap_end);
+                void* dep_end = (void*) e.getValue();
 
-                Node::connect_nodes(sender, receiver, Dependency, dep_data_size, dep_type);
+                Node::connect_nodes(sender, receiver, Dependency, dep_start, dep_end, dep_type);
             }
             else if (e.getKey() == taskwait)
             {   // A taskwait occurs
