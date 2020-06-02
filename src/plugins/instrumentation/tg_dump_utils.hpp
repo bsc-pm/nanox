@@ -115,6 +115,14 @@ namespace nanos {
         }
     };
 
+    inline bool operator==(Edge const& lhs, Edge const& rhs) {
+        return (lhs._kind == rhs._kind &&
+                lhs._dep_type == rhs._dep_type &&
+                lhs._source == rhs._source &&
+                lhs._target == rhs._target &&
+                lhs._data_size == rhs._data_size);
+    }
+
     enum NodeType {
         Root,
         BarrierNode,
@@ -190,12 +198,11 @@ namespace nanos {
         }
 
         //called in connect_nodes (with _exit_lock acquired)
-        Edge* get_connection( Node* target ) const {
-            Edge* result = NULL;
+        std::vector<Edge*> get_connections( Node* target ) const {
+            std::vector<Edge*> result;
             for( std::vector<Edge*>::const_iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->get_target( ) == target ) {
-                    result = *it;
-                    break;
+                    result.push_back(*it);
                 }
             }
             return result;
@@ -230,37 +237,44 @@ namespace nanos {
         //! the new type of connection is different from the existing one
         static void connect_nodes( Node* source, Node* target, EdgeKind kind, uint64_t data_size, DependencyType dep_type = Null ) {
             source->_exit_lock.acquire();
-            if( !source->is_connected_with( target ) ||
-                ( source->get_connection( target )->get_kind( ) != kind ) ||
-                ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
-                Edge* new_edge = new Edge( kind, dep_type, source, target, data_size );
-                source->_exit_edges.push_back( new_edge );
-                target->_entry_lock.acquire();
-                target->_entry_edges.push_back( new_edge );
-                target->_entry_lock.release();
 
-                // store the edge type as used
-                switch (kind)
-                {
-                    case Nesting :          used_edge_types[3] = 1; break;
-                    case Synchronization :  used_edge_types[0] = 1; break;
-                    case Dependency :       {
-                                                switch (dep_type)
-                                                {
-                                                    case True:      used_edge_types[0] = 1; break;
-                                                    case Anti:      used_edge_types[1] = 1; break;
-                                                    case Output:    used_edge_types[2] = 1; break;
-                                                    default:        break;
-                                                };
-                                                break;
-                                            };
-                    default:                break;
-                };
-                if (source->is_critical() && target->is_critical())
-                {
-                    used_edge_types[4] = 1;
+            Edge* new_edge = new Edge( kind, dep_type, source, target, data_size );
+
+            // If the edge is the same, don't connect it again
+            std::vector<Edge*> c = source->get_connections(target);
+            for (std::vector<Edge*>::iterator it = c.begin(); it != c.end(); ++it) {
+                if(*(*it) == *new_edge) {
+                    return;
                 }
             }
+
+            source->_exit_edges.push_back( new_edge );
+            target->_entry_lock.acquire();
+            target->_entry_edges.push_back( new_edge );
+            target->_entry_lock.release();
+
+            // store the edge type as used
+            switch (kind)
+            {
+                case Nesting :          used_edge_types[3] = 1; break;
+                case Synchronization :  used_edge_types[0] = 1; break;
+                case Dependency :       {
+                                            switch (dep_type)
+                                            {
+                                                case True:      used_edge_types[0] = 1; break;
+                                                case Anti:      used_edge_types[1] = 1; break;
+                                                case Output:    used_edge_types[2] = 1; break;
+                                                default:        break;
+                                            };
+                                            break;
+                                        };
+                default:                break;
+            };
+            if (source->is_critical() && target->is_critical())
+            {
+                used_edge_types[4] = 1;
+            }
+
             source->_exit_lock.release();
         }
 
