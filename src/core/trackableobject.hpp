@@ -124,6 +124,16 @@ inline bool TrackableObject::isEmpty ()
    return ( _lastWriter == 0 ) && _versionReaders.empty() && ( _commDO == 0 );
 }
 
+inline std::pair<void*, void*> TrackableObject::getDataRange() const 
+{
+   return _data_range;
+}
+
+inline void TrackableObject::setDataRange(std::pair<void*, void*> const data_range)
+{
+   _data_range = data_range;
+}
+
 inline bool TrackableObject::isOnHold () const
 {
    return _hold;

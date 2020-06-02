@@ -87,7 +87,7 @@ namespace nanos {
          
          bool operator< ( const DepsRegion &obj ) const;
 
-         uint64_t overlapSize( const DepsRegion &obj ) const;
+         std::pair<void*, void*> getOverlapRange( const DepsRegion &obj ) const;
 
          //! \brief Returns dependence base address
          virtual void * getAddress () const;

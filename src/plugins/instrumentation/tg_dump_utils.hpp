@@ -56,22 +56,29 @@ namespace nanos {
         DependencyType _dep_type;
         Node* _source;
         Node* _target;
-        uint64_t _data_size;
+        std::pair<void*, void*> _data_range;    // Overlapping region of memory
 
         // Constructor
-        Edge(EdgeKind kind, DependencyType dep_type, Node* source, Node* target, uint64_t data_size) :
+        Edge(EdgeKind kind, DependencyType dep_type, Node* source, Node* target, std::pair<void*, void*> data_range = std::pair<void*, void*>(NULL, NULL)) :
             _kind(kind),
             _dep_type(dep_type),
             _source(source),
             _target(target),
-            _data_size(data_size)
+            _data_range(data_range)
         {}
 
         Node* get_source() const {return _source;}
         Node* get_target() const {return _target;}
         EdgeKind get_kind() const {return _kind;}
         DependencyType get_dependency_type() const {return _dep_type;}
-        uint64_t get_data_size() const {return _data_size;}
+        std::pair<void*, void*> get_data_range() const {return _data_range;}
+
+        uint64_t get_data_size() const {
+            if(_data_range.first == NULL || _data_range.second == NULL) {
+                return 0;
+            }
+            return ((uint64_t)_data_range.second - (uint64_t)_data_range.first) + 1;
+        }
 
         bool is_nesting() const {
            return _kind == Nesting;
@@ -120,7 +127,7 @@ namespace nanos {
                 lhs._dep_type == rhs._dep_type &&
                 lhs._source == rhs._source &&
                 lhs._target == rhs._target &&
-                lhs._data_size == rhs._data_size);
+                lhs._data_range == rhs._data_range);
     }
 
     enum NodeType {
@@ -235,10 +242,15 @@ namespace nanos {
 
         //! Only connect the nodes if they are not previously connected or
         //! the new type of connection is different from the existing one
-        static void connect_nodes( Node* source, Node* target, EdgeKind kind, uint64_t data_size, DependencyType dep_type = Null ) {
+        static void connect_nodes(
+            Node* source, Node* target,
+            EdgeKind kind,
+            void* data_start = NULL, void* data_end = NULL,
+            DependencyType dep_type = Null )
+        {
             source->_exit_lock.acquire();
 
-            Edge* new_edge = new Edge( kind, dep_type, source, target, data_size );
+            Edge* new_edge = new Edge( kind, dep_type, source, target, std::pair<void*, void*>(data_start, data_end) );
 
             // If the edge is the same, don't connect it again
             std::vector<Edge*> c = source->get_connections(target);
