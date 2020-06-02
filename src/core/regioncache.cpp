@@ -1643,10 +1643,17 @@ void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopie
       //myThread->idle();
    }
 
+   //NOTE: Filter the regions as two copies may use the same region and it should be released once
+   std::set< global_reg_t > released_regions;
+
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
-      AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, true, false, wd, idx );
+      MemCacheCopy &mcopy = memCopies[ idx ];
+      if ( released_regions.count( mcopy._reg /*allocatable_region*/ ) != 0 ) continue;
+      released_regions.insert( mcopy._reg /*allocatable_region*/ );
+
+      AllocatedChunk *chunk = _getAllocatedChunk( mcopy._reg, true, false, wd, idx );
       chunk->removeReference( wd ); //RegionCache::releaseRegions
-      if ( chunk->getReferenceCount() == 0 && ( memCopies[ idx ]._policy == NO_CACHE || memCopies[ idx ]._policy == FPGA ) ) {
+      if ( chunk->getReferenceCount() == 0 && ( mcopy._policy == NO_CACHE || mcopy._policy == FPGA ) ) {
          _chunks.removeChunks( chunk->getHostAddress(), chunk->getSize() );
          //*myThread->_file << "Delete chunk for idx " << idx << std::endl;
          if ( VERBOSE_DEV_OPS ) {
@@ -1654,7 +1661,7 @@ void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopie
          }
          _device.memFree( chunk->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
          _allocatedBytes -= chunk->getSize();
-         RegionDirectory::delAccess( memCopies[ idx ]._reg.key, memCopies[ idx ]._reg.id, getMemorySpaceId() );
+         RegionDirectory::delAccess( mcopy._reg.key, mcopy._reg.id, getMemorySpaceId() );
          delete chunk;
       }
    }
