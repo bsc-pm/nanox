@@ -50,6 +50,9 @@ inline bool DepsRegion::overlap ( const BaseDependency &obj ) const
  
 inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
 {
+   if(_address == obj._address) {
+      return _endAddress < obj._endAddress;
+   }
    return _address < obj._address;
 }
 
