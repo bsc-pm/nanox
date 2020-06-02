@@ -63,6 +63,8 @@ private:
     double _total_time;
     double _min_diam;
     std::vector<int> _papi_event_codes;                     // Event codes to be tracked using PAPI
+    bool _commutative_output_warning_printed = false;
+    bool _commutative_task_warning_printed = false;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
@@ -645,97 +647,38 @@ private:
             std::vector<Node*> out_commutatives;
             for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
                 if ((*it)->is_commutative_dep()) {
-                    out_commutatives.push_back((*it)->get_target());
+                    if(!_commutative_output_warning_printed) {
+                        std::cerr << "Warning, encountered commutative output dependency.\n";
+                        std::cerr << "When in JSON mode, commutative dependencies receieve no special handling.\n";
+                        std::cerr << "This warning will only appear once.\n";
+                        _commutative_output_warning_printed = true;
+                    }
                 }
             }
 
-            // Print the current node and, if that is the case, its commutative nodes too
-            if (out_commutatives.empty()) {
-                // Print the node
-                node_print_list.push_back(n);
-                n->set_printed();
-                std::stringstream sss; sss << n->get_wd_id();
+            // Print the node
+            node_print_list.push_back(n);
+            n->set_printed();
+            std::stringstream sss; sss << n->get_wd_id();
 
-                // Print the relations with its children (or the children of the children if they are a virtual node)
-                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
-                    if ((*it)->is_nesting()) continue;
-                    Node* t = (*it)->get_target();
+            // Print the relations with its children (or the children of the children if they are a virtual node)
+            for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                if ((*it)->is_nesting()) continue;
+                Node* t = (*it)->get_target();
 
-                    // TODO this section will still output stuff in dot format
-                    // it needs to be changed, but I don't really understand what is going on here.
-                    if (t->is_concurrent() || t->is_commutative()) {
-                        std::cerr << "Error, commutative/concurrent is not yet implemented for tg-dump in json mode!\n";
-                        exit(1);
-
-                        std::vector<Edge*> const &it_exits = t->get_exits();
-                        for (std::vector<Edge*>::const_iterator itt = it_exits.begin(); itt != it_exits.end(); ++itt) {
-                           std::stringstream sst;
-                           sst << (*itt)->get_target()->get_wd_id();
-                           oss << indent << "  " << sss.str() + " -> " + sst.str() + ";\n"; //TODO attributes?
-                           worklist.push((*itt)->get_target());
-                        }
-                    } else {
-                        edge_print_list.push_back(*it);
-                        worklist.push(t);
+                // TODO this section will still output stuff in dot format
+                // it needs to be changed, but I don't really understand what is going on here.
+                if (t->is_concurrent() || t->is_commutative()) {
+                    if (!_commutative_task_warning_printed) {
+                        std::cerr << "Warning, encountered commutative/concurrent task.\n";
+                        std::cerr << "When in JSON mode, commutative/concurrent tasks receive no special handling.\n";
+                        std::cerr << "This warning will only appear once.\n";
+                        _commutative_task_warning_printed = true;
                     }
                 }
 
-            // TODO this section will still output stuff in dot format
-            // it needs to be changed, but I don't really understand what is going on here.
-            } else {
-                std::cerr << "Error, commutative/concurrent is not yet implemented for tg-dump in json mode!\n";
-                exit(1);
-                // Since Graphviz does not allow boxes intersections and
-                // multiple dependencies in a commutative clause may cause that situation,
-                // we enclose all tasks in the same box and then print the dependencies individually
-                // 1.- Get all nodes that must be in the commutative box
-                std::vector<Node*> commutative_box;
-                for (std::vector<Node*>::const_iterator it = out_commutatives.begin();
-                     it != out_commutatives.end(); ++it) {
-                    // Gather all siblings (parents of the out_commutative nodes)
-                    std::vector<Edge*> const &it_entries = (*it)->get_entries();
-                    for (std::vector<Edge*>::const_iterator itt = it_entries.begin(); itt != it_entries.end(); ++itt) {
-                        commutative_box.push_back((*itt)->get_source());
-                    }
-                }
-                // 2.- Print the subgraph with all sibling nodes
-                std::stringstream ss; ss << cluster_id++;
-                oss << indent << "  subgraph cluster_" << ss.str() << "{\n";
-                    oss << indent << "    rank=\"same\"; style=\"rounded\"; label=\"Commutative\";\n";
-                    for (std::vector<Node*>::iterator it = commutative_box.begin(); it != commutative_box.end(); ++it) {
-                        //os << indent << print_node_and_its_nested_json(*it, /*indentation*/"    ");
-                        oss << print_node_json(*it, indent + "    ");
-                        oss << ",\n";
-                        (*it)->set_printed();
-                    }
-                oss << indent << "  }\n";
-                // 3.- Print the edges connecting each sibling node with its corresponding real children
-                for (std::vector<Node*>::iterator it = commutative_box.begin(); it != commutative_box.end(); ++it) {
-                    std::stringstream sss; sss << (*it)->get_wd_id();
-                    std::vector<Edge*> const &it_exits = (*it)->get_exits();
-                    for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
-                         itt != it_exits.end(); ++itt) {
-                        Node* t = (*itt)->get_target();
-                        if ((*itt)->is_nesting()) continue;
-
-                        if (t->is_commutative() || t->is_concurrent())
-                        {   // If the exit is commutative|concurrent, get the exit of the exit
-                            std::vector<Edge*> const &itt_exits = t->get_exits();
-                            for (std::vector<Edge*>::const_iterator ittt = itt_exits.begin();
-                                 ittt != itt_exits.end(); ++ittt) {
-                                std::stringstream sst; sst << (*ittt)->get_target()->get_wd_id();
-                                oss << indent << "    " << sss.str() + " -> " + sst.str() + ";\n";
-                                // Prepare the next iteration
-                                worklist.push((*ittt)->get_target());
-                            }
-                        } else {
-                            oss << print_edge_json( *itt, indent + "  " );
-                            oss << ",\n";
-                            // Prepare the next iteration
-                            worklist.push(t);
-                        }
-                    }
-                }
+                edge_print_list.push_back(*it);
+                worklist.push(t);
             }
         }
 
