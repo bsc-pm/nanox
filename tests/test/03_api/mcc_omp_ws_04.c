@@ -26,6 +26,7 @@
 /*
 <testinfo>
   test_generator=gens/api-omp-generator
+  test_ignore_fail=yes
 </testinfo>
 */
 
