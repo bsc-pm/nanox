@@ -244,6 +244,7 @@ namespace nanos {
             std::vector<Edge*> c = source->get_connections(target);
             for (std::vector<Edge*>::iterator it = c.begin(); it != c.end(); ++it) {
                 if(*(*it) == *new_edge) {
+                    source->_exit_lock.release();
                     return;
                 }
             }
