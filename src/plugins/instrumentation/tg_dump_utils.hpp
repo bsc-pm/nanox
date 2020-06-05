@@ -649,9 +649,9 @@ namespace nanos {
 
         void to_json(std::string const indent, std::ostream& os) {
             os << indent << "{\n";
-            printJsonAttribute(indent + "  ", "input", _is_input, os);
+            printJsonAttribute(indent + "  ", "is_input", _is_input, os);
             os << ",\n";
-            printJsonAttribute(indent + "  ", "output", _is_output, os);
+            printJsonAttribute(indent + "  ", "is_output", _is_output, os);
             os << ",\n";
             printJsonAttribute(indent + "  ", "start_address", (uint64_t)_start_address, os);
             os << ",\n";
