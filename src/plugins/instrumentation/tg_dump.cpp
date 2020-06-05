@@ -948,8 +948,8 @@ public:
         static const nanos_event_key_t dependence = iD->getEventKey("dependence");
         static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
         static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
-        static const nanos_event_key_t dep_overlap_start = iD->getEventKey("dep-range-start");
-        static const nanos_event_key_t dep_overlap_end = iD->getEventKey("dep-range-end");
+        static const nanos_event_key_t dep_overlap_start = iD->getEventKey("dep-overlap-start");
+        static const nanos_event_key_t dep_overlap_end = iD->getEventKey("dep-overlap-end");
         static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
         static const nanos_event_key_t critical_wd_id = iD->getEventKey("critical-wd-id");
