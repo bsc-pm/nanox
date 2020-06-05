@@ -117,7 +117,7 @@ namespace nanos {
                for ( ; vectorIdx < vectorEnd ; ++vectorIdx ) {
                    std::pair < DepsRegion, TrackableObject*> item=_addressDependencyVector.at(vectorIdx);
                    if ( item.first.overlap(target) ) {
-                     std::pair<void*, void*> overlap_range = item.first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                     std::pair<void*, void*> overlap_range = item.first.computeOverlap(static_cast<const DepsRegion&>(target));
                      item.second->setDataRange(overlap_range);
                      objs->push_back(item.second);
                    } 
@@ -151,7 +151,7 @@ namespace nanos {
                     SizesMap::iterator endIter=_addressDependencySmall.upper_bound(finalAddr);
                     for ( ; startingIter!=_addressDependencySmall.end() && startingIter != endIter; ++startingIter ) {
                         if ( startingIter->first.overlap(target) ) {
-                            std::pair<void*, void*> overlap_range = startingIter->first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                            std::pair<void*, void*> overlap_range = startingIter->first.computeOverlap(static_cast<const DepsRegion&>(target));
                             startingIter->second->setDataRange(overlap_range);
                             result->push_back(startingIter->second); 
                         } 
@@ -170,7 +170,7 @@ namespace nanos {
                     SizesMap::iterator endIter=_addressDependencyMid.upper_bound(finalAddr);
                     for ( ; startingIter!=_addressDependencyMid.end() && startingIter != endIter; ++startingIter ) {
                         if ( startingIter->first.overlap(target) ) {
-                            std::pair<void*, void*> overlap_range = startingIter->first.getOverlapRange(static_cast<const DepsRegion&>(target));
+                            std::pair<void*, void*> overlap_range = startingIter->first.computeOverlap(static_cast<const DepsRegion&>(target));
                             startingIter->second->setDataRange(overlap_range);
                             result->push_back(startingIter->second); 
                         } 

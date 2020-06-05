@@ -56,7 +56,7 @@ inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
    return _address < obj._address;
 }
 
-inline std::pair<void*, void*> DepsRegion::getOverlapRange ( const DepsRegion &other ) const
+inline std::pair<void*, void*> DepsRegion::computeOverlap ( const DepsRegion &other ) const
 {
    void* overlap_start = std::max((void*)other._address, (void*)_address);
    void* overlap_end = std::min((void*)other._endAddress, (void*)_endAddress);
