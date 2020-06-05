@@ -168,8 +168,8 @@ namespace nanos {
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
             NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-range-start"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-range-end" ); )
+            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-overlap-start"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-overlap-end" ); )
          }
          
          BaseDependenciesDomain ( const BaseDependenciesDomain &depDomain ) : DependenciesDomain( depDomain ), _lastDepObjId ( depDomain._lastDepObjId ) {
@@ -177,8 +177,8 @@ namespace nanos {
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
             NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-range-start"); )
-            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-range-end" ); )
+            NANOS_INSTRUMENT ( _insKeyDeps[3] = ID->getEventKey("dep-overlap-start"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[4] = ID->getEventKey("dep-overlap-end" ); )
          }
    };
 

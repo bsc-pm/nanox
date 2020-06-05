@@ -675,8 +675,8 @@ namespace nanos {
             /* 71 */ registerEventKey("cache-evict", "Cache eviction", false, EVENT_ADVANCED);
             /* 72 */ registerEventKey("copy-data-alloc","Cache allocation", false, EVENT_ADVANCED);
 
-            /* 73 */ registerEventKey("dep-range-start", "Beginning of memory range implied by a dependency", true, EVENT_DEVELOPER );
-            /* 74 */ registerEventKey("dep-range-end", "End of memory range implied by a dependency", true, EVENT_DEVELOPER );
+            /* 73 */ registerEventKey("dep-overlap-start", "Beginning of memory range involved with a dependency", true, EVENT_DEVELOPER );
+            /* 74 */ registerEventKey("dep-overlap-end", "End of memory range involved with a dependency", true, EVENT_DEVELOPER );
 
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }
