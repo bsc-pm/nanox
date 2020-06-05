@@ -42,7 +42,7 @@ namespace nanos {
          Lock                     _writerLock; /**< Lock internally the object for secure access to _lastWriter */
          CommutationDO           *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
          bool                     _hold; /**< Cannot be erased since it is in use */
-         std::pair<void*, void*>  _data_range; /**< Range of data associated with this trackable object */
+         std::pair<void*, void*>  _overlapRange; /**< Range of data associated with this trackable object, used by cregions deps plugin */
 
       public:
 
@@ -51,14 +51,14 @@ namespace nanos {
          *  Creates a TrackableObject with the given address associated.
          */
          TrackableObject ()
-            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _data_range(std::pair<void*, void*>(NULL, NULL)) {}
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _overlapRange(std::pair<void*, void*>(NULL, NULL)) {}
 
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _data_range(std::pair<void*, void*>(NULL, NULL)) {}
+            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false), _overlapRange(std::pair<void*, void*>(NULL, NULL)) {}
 
         /*! \brief TrackableObject destructor
          */
@@ -152,11 +152,11 @@ namespace nanos {
          
         /*! \brief Returns the range of data associated with this trackable object
          */
-         std::pair<void*, void*> getDataRange() const;
+         std::pair<void*, void*> getOverlapRange() const;
          
         /*! \brief Returns the range of data associated with this trackable object
          */
-         void setDataRange(std::pair<void*, void*> const range);
+         void setOverlapRange(std::pair<void*, void*> const range);
    };
 
    //! \brief RegionStatus stream formatter

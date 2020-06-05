@@ -124,14 +124,14 @@ inline bool TrackableObject::isEmpty ()
    return ( _lastWriter == 0 ) && _versionReaders.empty() && ( _commDO == 0 );
 }
 
-inline std::pair<void*, void*> TrackableObject::getDataRange() const 
+inline std::pair<void*, void*> TrackableObject::getOverlapRange() const 
 {
-   return _data_range;
+   return _overlapRange;
 }
 
-inline void TrackableObject::setDataRange(std::pair<void*, void*> const data_range)
+inline void TrackableObject::setOverlapRange(std::pair<void*, void*> const range)
 {
-   _data_range = data_range;
+   _overlapRange = range;
 }
 
 inline bool TrackableObject::isOnHold () const
