@@ -65,6 +65,7 @@ private:
     std::vector<int> _papi_event_codes;                     // Event codes to be tracked using PAPI
     bool _commutative_output_warning_printed = false;
     bool _commutative_task_warning_printed = false;
+    bool _advanced_api_event_warning_printed = false;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
@@ -522,6 +523,24 @@ private:
             printJsonAttribute(indent + "  ", "duration_us", n->get_total_time(), ss);
             ss << ",\n";
 
+            // Output
+            std::vector<NodeIO> io = n->get_io();
+            if (io.size() != 0) {
+                for (std::vector<NodeIO>::iterator it = io.begin(); it != io.end(); ++it) {
+                    if(it == io.begin()) {
+                        ss << indent << "  " << "\"node_io\": [\n";
+                    }
+                    it->to_json(indent + "  " + "  ", ss);
+                    if((it + 1) != io.end()) {
+                        ss << ",\n";
+                    }
+                }
+                ss << "\n" << indent << "  " << "],\n";
+            } else {
+                printJsonNullAttribute(indent + "  ", "node_io", ss);
+                ss << ",\n";
+            }
+
             // Output papi operation counts
             std::vector<std::pair<int, long long> > papi_counter_data = n->get_perf_counters();
             std::vector<std::pair<std::string, long long> > papi_counter_data_printable;
@@ -587,11 +606,11 @@ private:
 
         if (e->is_dependency()) {
             ss << ",\n";
-            printJsonAttribute(indent + "  ", "data_start", (uint64_t)e->get_data_range().first , ss);
+            printJsonAttribute(indent + "  ", "start_address", (uint64_t)e->get_data_range().first , ss);
             ss << ",\n";
-            printJsonAttribute(indent + "  ", "data_end", (uint64_t)e->get_data_range().second , ss);
+            printJsonAttribute(indent + "  ", "end_address", (uint64_t)e->get_data_range().second , ss);
             ss << ",\n";
-            printJsonAttribute(indent + "  ", "data_size", e->get_data_size(), ss);
+            printJsonAttribute(indent + "  ", "size", e->get_data_size(), ss);
         }
 
         ss << "\n" << indent << "}";
@@ -953,6 +972,8 @@ public:
         static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
         static const nanos_event_key_t critical_wd_id = iD->getEventKey("critical-wd-id");
+        static const nanos_event_key_t wd_num_deps = iD->getEventKey("wd-num-deps");
+        static const nanos_event_key_t wd_deps_ptr = iD->getEventKey("wd-deps-ptr");
 
         // Get the node corresponding to the wd_id calling this function
         // This node won't exist if the calling wd corresponds to that of the master thread
@@ -982,6 +1003,27 @@ public:
                 // Connect the task with its parent task, if exists
                 if (current_parent != NULL) {
                     Node::connect_nodes(current_parent, new_node, Nesting);
+                }
+
+                if (events[i + 1].getKey() != wd_num_deps || events[i + 2].getKey() != wd_deps_ptr) {
+                    if (!_advanced_api_event_warning_printed) {
+                        std::cerr << "Warning, unable to get task IO information. Consider setting --instrument-default=advanced.\n";
+                        _advanced_api_event_warning_printed = true;
+                    }
+                    continue;
+                }
+
+                e = events[++i];
+                assert(e.getKey() == wd_num_deps);
+                size_t num_deps = (size_t) e.getValue();
+
+                e = events[++i];
+                assert(e.getKey() == wd_deps_ptr);
+                nanos_data_access_t *data_access = (nanos_data_access_t*) e.getValue();
+
+                for (size_t j = 0; j < num_deps; j++) {
+                    NodeIO io(data_access[j]);
+                    new_node->add_io(io);
                 }
             }
             else if (e.getKey() == critical_wd_id)

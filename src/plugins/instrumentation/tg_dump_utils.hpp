@@ -139,6 +139,7 @@ namespace nanos {
         TaskwaitNode
     };
 
+    struct NodeIO;
 
     struct Node {
         // Class members
@@ -158,6 +159,8 @@ namespace nanos {
         int _papi_event_set;
         std::vector<std::pair<int, long long> > _papi_counters;   // first - event id, second - counter value
 
+        std::vector<NodeIO> _io;
+
         // Constructor
         Node( int64_t wd_id, int64_t func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
@@ -174,6 +177,11 @@ namespace nanos {
         void set_last_time(double time) {_last_time = time;}
         double get_total_time() const {return _total_time;}
         std::vector<std::pair<int, long long> > get_perf_counters() const {return _papi_counters;}
+        std::vector<NodeIO> get_io() const {return _io;}
+
+        void add_io(NodeIO const& io) {
+            _io.push_back(io);
+        }
 
         void add_total_time( double time ) {
            _total_time += time;
@@ -621,5 +629,43 @@ namespace nanos {
 
         os << "\n" << indent << "}";
     }
+
+
+    // Struct used to describe a task input or output
+    struct NodeIO {
+        bool const _is_input;
+        bool const _is_output;
+        void const * const _start_address;
+        void const * const _end_address;
+        uint64_t const _size;
+
+        NodeIO(nanos_data_access_t const& data_access) :
+            _is_input(data_access.isInput()),
+            _is_output(data_access.isOutput()),
+            _start_address(data_access.getAddress()),
+            _end_address((void*)((uint64_t)_start_address + (data_access.getSize() - 1))),
+            _size(data_access.getSize())
+        {}
+
+        void to_json(std::string const indent, std::ostream& os) {
+            os << indent << "{\n";
+            printJsonAttribute(indent + "  ", "input", _is_input, os);
+            os << ",\n";
+            printJsonAttribute(indent + "  ", "output", _is_output, os);
+            os << ",\n";
+            printJsonAttribute(indent + "  ", "start_address", (uint64_t)_start_address, os);
+            os << ",\n";
+            printJsonAttribute(indent + "  ", "end_address", (uint64_t)_end_address, os);
+            os << ",\n";
+            printJsonAttribute(indent + "  ", "size", (uint64_t)_size, os);
+            os << "\n" << indent << "}";
+        }
+
+        std::string to_json(std::string const indent) {
+            std::stringstream ss;
+            to_json(indent, ss);
+            return ss.str();
+        }
+    };
 
 } // namespace nanos
