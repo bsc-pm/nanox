@@ -526,10 +526,8 @@ private:
             // Output
             std::vector<NodeIO> io = n->get_io();
             if (io.size() != 0) {
+                ss << indent << "  " << "\"io\": [\n";
                 for (std::vector<NodeIO>::iterator it = io.begin(); it != io.end(); ++it) {
-                    if(it == io.begin()) {
-                        ss << indent << "  " << "\"node_io\": [\n";
-                    }
                     it->to_json(indent + "  " + "  ", ss);
                     if((it + 1) != io.end()) {
                         ss << ",\n";
@@ -537,7 +535,7 @@ private:
                 }
                 ss << "\n" << indent << "  " << "],\n";
             } else {
-                printJsonNullAttribute(indent + "  ", "node_io", ss);
+                printJsonNullAttribute(indent + "  ", "io", ss);
                 ss << ",\n";
             }
 
