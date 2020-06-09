@@ -124,6 +124,16 @@ inline bool TrackableObject::isEmpty ()
    return ( _lastWriter == 0 ) && _versionReaders.empty() && ( _commDO == 0 );
 }
 
+inline std::pair<void*, void*> TrackableObject::getOverlapRange() const 
+{
+   return _overlapRange;
+}
+
+inline void TrackableObject::setOverlapRange(std::pair<void*, void*> const range)
+{
+   _overlapRange = range;
+}
+
 inline bool TrackableObject::isOnHold () const
 {
    return _hold;
