@@ -642,7 +642,7 @@ namespace nanos {
         NodeIO(nanos_data_access_t const& data_access) :
             _is_input(data_access.isInput()),
             _is_output(data_access.isOutput()),
-            _start_address(data_access.getAddress()),
+            _start_address(data_access.getDepAddress()),
             _end_address((void*)((uint64_t)_start_address + (data_access.getSize() - 1))),
             _size(data_access.getSize())
         {}
