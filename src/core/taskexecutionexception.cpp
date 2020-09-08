@@ -27,7 +27,7 @@ const char* TaskExecutionException::what ( ) const throw ()
 
    const char* sig_desc;
    if (signal_info.si_signo >= 0 && signal_info.si_signo < NSIG && (sig_desc =
-         _sys_siglist[signal_info.si_signo]) != NULL) {
+         strsignal(signal_info.si_signo)) != NULL) {
 
       s += sig_desc;
       switch (signal_info.si_signo) {
