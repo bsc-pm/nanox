@@ -153,5 +153,6 @@ const char* TaskExecutionException::what ( ) const throw ()
       s += " )";
    }
 
-   return s.c_str();
+   this->error_str = ::strdup(s.c_str());
+   return this->error_str;
 }
