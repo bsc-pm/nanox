@@ -63,6 +63,7 @@ namespace nanos {
 
          virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
          std::string getDescription( void ) { return _description; }
+         const char * getDescription_c_str( void ) { return _description.c_str(); }
 
          bool isMalleable( void ) const { return _malleable; }
          bool isOmpSs( void ) const { return _malleable; }
