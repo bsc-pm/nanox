@@ -75,15 +75,8 @@ AS_CASE([$ax_cv_cxx_compiler_vendor],
    no_inline_flag=-fno-inline
  ])
 
-AS_IF([test "$ax_cv_cxx_compiler_vendor" = "gnu"],[
-   AC_CACHE_CHECK([gcc version],[ax_cv_gcc_version],[
-      ax_cv_gcc_version="`$CC -dumpversion`"
-      # GCC 6.0 defaults to -std=c++11
-      AX_COMPARE_VERSION([$ax_cv_gcc_version], [ge], [6], [
-         cc_dep_CXXFLAGS+=" -std=c++98"
-      ])
-   ])
-])
+# Always force C++98
+cc_dep_CXXFLAGS+=" -std=c++98"
 
 AC_SUBST([cc_dep_CPPFLAGS])
 AC_SUBST([cc_dep_CXXFLAGS])

@@ -31,14 +31,14 @@ namespace nanos {
          WD const *task_wd, siginfo_t const &info,
          ucontext_t const &context ) throw () :
          runtime_error(TEE_ERR_MSG(task_wd->getId())), task(task_wd), signal_info(
-               info), task_context(context)
+               info), task_context(context), error_str(NULL)
    {
    }
 
    TaskExecutionException::TaskExecutionException (
          TaskExecutionException const &tee ) throw () :
          runtime_error(TEE_ERR_MSG(tee.task->getId())), task(tee.task), signal_info(
-               tee.signal_info), task_context(tee.task_context)
+               tee.signal_info), task_context(tee.task_context), error_str(NULL)
    {
    }
 
@@ -49,6 +49,7 @@ namespace nanos {
        * This is because that object's life does not finish at this point and,
        * thus, it will be accessed later.
        */
+       ::free(this->error_str);
    }
 
    inline int TaskExecutionException::getSignal ( )

@@ -410,10 +410,10 @@ inline const Config::BaseConfigOption& Config::BaseConfigOption::operator= ( con
       return *this;
    this->_optionName = co._optionName;
    this->_envOption = co._envOption;
-   this->_argOption = _argOption;
-   this->_option = _option;
-   this->_message = _message;
-   this->_section = _section;
+   this->_argOption = co._argOption;
+   this->_option = co._option;
+   this->_message = co._message;
+   this->_section = co._section;
    return *this;
 }
 

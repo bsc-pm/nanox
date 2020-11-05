@@ -37,6 +37,9 @@ namespace nanos {
          const WD* task;/*!< Pointer to the affected task */
          const siginfo_t signal_info;/*!< Detailed description after the member */
          const ucontext_t task_context;/*!< Detailed description after the member */
+         /* This member needs be mutable because it will be modified in `what()`,
+          * and `what()` needs to be const */
+         mutable char *error_str;/*!< Pointer to the runtime error returned by `what()` */
 
       public:
          /*!

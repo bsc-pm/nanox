@@ -43,7 +43,7 @@ NANOS_API_DEF(const char *, nanos_get_default_architecture, ())
 
 NANOS_API_DEF(const char *, nanos_get_pm, ())
 {
-   return (sys.getPMInterface()).getDescription().c_str();
+   return (sys.getPMInterface()).getDescription_c_str();
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
