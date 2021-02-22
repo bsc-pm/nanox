@@ -28,7 +28,7 @@
 #
 
 AC_DEFUN([AX_CHECK_HOST_ARCH],[
-AC_REQUIRE([AC_CANONICAL_SYSTEM])
+AC_REQUIRE([AC_CANONICAL_HOST])
 
 # This macro checks compilers and compiler flags
 # Must be called after checking compiler programs

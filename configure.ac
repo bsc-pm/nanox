@@ -1,12 +1,11 @@
 AC_INIT([nanox], [0.16a], [pm-tools@bsc.es])
 AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
-AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
+nanox_configure_args="$0 $@"
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$nanox_configure_args"], [Configure line])
 
 # Environment
-AC_CANONICAL_BUILD
-AC_CANONICAL_SYSTEM
-AC_CANONICAL_TARGET
+AC_CANONICAL_HOST
 
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects foreign])
@@ -68,7 +67,7 @@ AC_SUBST([DEB_RELEASE])
  AC_PROG_CXX
  AC_PROG_CXXCPP
  
- AC_PROG_LD
+ LT_PATH_LD
  AM_PROG_AS
  
  AC_PROG_SED
@@ -85,9 +84,6 @@ AC_SUBST([DEB_RELEASE])
 # Check for atomic builtins in GCC
 AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS()
 AC_CHECK_GXX_NEW_ATOMIC_BUILTINS()
-
-# Check for header files
-AC_HEADER_STDC
 
 # Check for typedefs, structures, and compiler characteristics
 AC_C_CONST
