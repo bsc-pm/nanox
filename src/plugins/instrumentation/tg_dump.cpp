@@ -63,9 +63,9 @@ private:
     double _total_time;
     double _min_diam;
     std::vector<int> _papi_event_codes;                     // Event codes to be tracked using PAPI
-    bool _commutative_output_warning_printed = false;
-    bool _commutative_task_warning_printed = false;
-    bool _advanced_api_event_warning_printed = false;
+    bool _commutative_output_warning_printed;
+    bool _commutative_task_warning_printed;
+    bool _advanced_api_event_warning_printed;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     int64_t _next_tw_id;
@@ -754,7 +754,10 @@ public:
     // constructor
     InstrumentationTGDump() : Instrumentation(),
                               _graph_nodes(), _funct_id_to_decl_map(),
-                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0)
+                              _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                              _commutative_output_warning_printed(false),
+                              _commutative_task_warning_printed(false),
+                              _advanced_api_event_warning_printed(false)
     {}
 
     // destructor
@@ -777,6 +780,9 @@ public:
     InstrumentationTGDump() : Instrumentation(*new InstrumentationContextDisabled()),
                               _graph_nodes(), _funct_id_to_decl_map(),
                               _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                              _commutative_output_warning_printed(false),
+                              _commutative_task_warning_printed(false),
+                              _advanced_api_event_warning_printed(false),
                               _next_tw_id(0), _next_conc_id(0)
     {}
 
