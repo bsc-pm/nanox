@@ -153,75 +153,78 @@ AX_CHECK_EXTRAE
 AX_CHECK_PAPI
 
 # Check NextSim support
+AC_MSG_CHECKING([for NextSim])
 AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
-           [
-              NEXTSIM_HOME="$withval"
-              NEXTSIM_INC="$withval/include"
-           ]
+           [], dnl Implicit: with_nextsim=$enableval
+           [with_nextsim=no]
 )
+AC_MSG_RESULT([$with_nextsim])
+AS_IF([test -d "x$with_nextsim"], [
+       NEXTSIM_HOME="$with_nextsim"
+       NEXTSIM_INC="$with_nextsim/include"
+])
 AC_SUBST([NEXTSIM_HOME])
 AC_SUBST([NEXTSIM_INC])
-AM_CONDITIONAL([instrumentation_NEXTSIM], test x"$NEXTSIM_HOME" != x)
+AM_CONDITIONAL([instrumentation_NEXTSIM], [test x"$with_nextsim" != xno])
 
 # Check Ayudame support
-AYUDAME_HOME=""
-AYUDAME_INC=""
-AYUDAME_LIB=""
-AYUDAME_BIN=""
-
+AC_MSG_CHECKING([for Ayudame])
 AC_ARG_WITH([ayudame],
            AS_HELP_STRING([--with-ayudame=dir], [Directory of Ayudame installation]),
-           [
-                AYUDAME_HOME="$withval"
-                AYUDAME_INC="$withval/include"
-                AYUDAME_LIB="$withval/lib"
-                AYUDAME_BIN="$withval/bin"
-           ]
+           [], dnl Implicit: with_ayudame=$enableval
+           [with_ayudame=no]
 )
+AC_MSG_RESULT([$with_ayudame])
+AS_IF([test -d "x$with_ayudame"], [
+       AYUDAME_HOME="$with_ayudame"
+       AYUDAME_INC="$with_ayudame/include"
+       AYUDAME_LIB="$with_ayudame/lib"
+       AYUDAME_BIN="$with_ayudame/bin"
+])
 AC_SUBST([AYUDAME_HOME])
 AC_SUBST([AYUDAME_INC])
 AC_SUBST([AYUDAME_LIB])
 AC_SUBST([AYUDAME_BIN])
+AM_CONDITIONAL([instrumentation_AYUDAME], [test x"$with_ayudame" != xno])
 
-AM_CONDITIONAL([instrumentation_AYUDAME], test x"$AYUDAME_HOME" != x)
 
 # Check for Chapel support
+AC_MSG_CHECKING([for Chapel])
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
-	    [
-		chapel=yes
-		CHAPEL_HOME="$withval"
-	    ],
-            [
-		chapel=no
-	    ]
+            [], dnl Implicit: with_chapel=$enableval
+            [with_chapel=no]
 )
-
-AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
+AC_MSG_RESULT([$with_chapel])
+AS_IF([test -d "x$with_chapel"], [
+       CHAPEL_HOME="$with_chapel"
+])
 AC_SUBST([CHAPEL_HOME])
+AM_CONDITIONAL([CHAPEL_SUPPORT], [test x"$with_chapel" != xno])
+
+
+# Check for Mercurium support
+AC_MSG_CHECKING([for Mercurium])
+AC_ARG_WITH([mcc],
+            AS_HELP_STRING([--with-mcc=dir], [Directory of Mercurium compiler]),
+            [], dnl Implicit: with_mcc=$enableval
+            [with_mcc=no]
+)
+AC_MSG_RESULT([$with_mcc])
+AS_IF([test -d "x$with_mcc"], [
+       MCC="$with_mcc/bin/mcc"
+       MCXX="$with_mcc/bin/mcxx"
+])
+AC_SUBST([MCC])
+AC_SUBST([MCXX])
+AM_CONDITIONAL([MCC_SUPPORT], [test x"$with_mcc" != xno])
+
 
 # Check MKL Support
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
-
-
-# mcc support
-AC_ARG_WITH([mcc],
-AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
-	[
-      mcc_valid=yes
-		MCC="${withval}/bin/mcc"
-		MCXX="${withval}/bin/mcxx"
-	],
-	[
-      mcc_valid=no
-	])
-
-AC_SUBST([mcc_valid])
-AC_SUBST([MCC])
-AC_SUBST([MCXX])
 
 
 # Build versions
