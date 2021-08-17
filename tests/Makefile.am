@@ -31,7 +31,7 @@ check-local: bets-check
 endif
 
 LIT_OPTIONS = --xunit-xml-output=tests.log.xml -sv --threads=$(shell nproc)
-LIT = PYTHONPATH=$(top_srcdir)/tests $(top_srcdir)/scripts/lit/lit.py $(LIT_OPTIONS)
+LIT = PYTHONPATH=$(top_srcdir)/tests $(PYTHON) $(top_srcdir)/scripts/lit/lit.py $(LIT_OPTIONS)
 
 lit-check:
 	$(LIT) $(srcdir)/test
