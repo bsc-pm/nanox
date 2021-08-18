@@ -83,7 +83,7 @@ void * os_bootthread ( void *arg );
 
 #ifdef NANOS_RESILIENCY_ENABLED
 void taskExecutionHandler(int sig, siginfo_t* si, void* context)
-   throw (TaskExecutionException);
+   throw (nanos::TaskExecutionException);
 #endif
 
 #endif
