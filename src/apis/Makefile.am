@@ -38,6 +38,7 @@ CLEANFILES = $(top_builddir)/src/apis/c/nanos_version.h
 
 c/nanos_version.h : $(srcdir)/c/nanos_version.def
 	$(AM_V_GEN) (\
+       mkdir -p c; \
        echo "#ifndef  _NANOS_enabled_H_" > $@; \
        echo "#define  _NANOS_enabled_H_" >> $@; \
        cat $(srcdir)/c/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#define NANOS_API_\U\1 \2,' >> $@; \
